@@ -23,5 +23,10 @@ public enum AuthenticationMethod
     /// <summary>
     /// OAuth2 authentication.
     /// </summary>
-    OAuth2
+    OAuth2,
+
+    /// <summary>
+    /// API key authentication.
+    /// </summary>
+    ApiKey
 }

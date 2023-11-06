@@ -6,6 +6,7 @@ namespace Microsoft.SCIM.WebHostSample
 {
     using System.Text;
     using System.Threading.Tasks;
+    using KN.KloudIdentity.Mapper;
     using Microsoft.AspNetCore.Authentication;
     using Microsoft.AspNetCore.Authentication.JwtBearer;
     using Microsoft.AspNetCore.Builder;
@@ -48,7 +49,7 @@ namespace Microsoft.SCIM.WebHostSample
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             }
 
-            void ConfigureJwtBearerOptons( JwtBearerOptions options)
+            void ConfigureJwtBearerOptons(JwtBearerOptions options)
             {
                 if (this.environment.IsDevelopment())
                 {
@@ -85,6 +86,11 @@ namespace Microsoft.SCIM.WebHostSample
 
             services.AddSingleton(typeof(IProvider), this.ProviderBehavior);
             services.AddSingleton(typeof(IMonitor), this.MonitoringBehavior);
+
+            services.AddScoped<IAuthContext, AuthContextV1>();
+            services.AddScoped<IAuthStrategy, ApiKeyStrategy>();
+            services.AddScoped<IAuthStrategy, BasicAuthStrategy>();
+            services.AddScoped<IAuthStrategy, OAuth2Strategy>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -115,7 +121,7 @@ namespace Microsoft.SCIM.WebHostSample
 
             arg.Response.ContentLength = authenticationExceptionMessage.Length;
             arg.Response.Body.WriteAsync(
-                Encoding.UTF8.GetBytes(authenticationExceptionMessage), 
+                Encoding.UTF8.GetBytes(authenticationExceptionMessage),
                 0,
                 authenticationExceptionMessage.Length);
 

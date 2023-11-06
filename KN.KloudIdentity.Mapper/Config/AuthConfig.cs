@@ -51,4 +51,14 @@ public class AuthConfig
     /// Authority for OAuth2 authentication.
     /// </summary>
     public string? Authority { get; set; }
+
+    /// <summary>
+    /// OAuth2 token URL for OAuth2 authentication.
+    /// </summary>
+    public string? OAuth2TokenUrl { get; internal set; }
+
+    /// <summary>
+    /// Grant type for OAuth2 authentication.
+    /// </summary>
+    public string? GrantType { get; internal set; }
 }
