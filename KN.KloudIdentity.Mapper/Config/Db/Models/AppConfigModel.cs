@@ -3,7 +3,7 @@ using KN.KloudIdentity.Mapper.Config;
 
 namespace KN.KloudIdentity.Mapper;
 
-public class ConfigModel
+public class AppConfigModel
 {
     [Key]
     public required string AppId { get; set; }
@@ -12,10 +12,9 @@ public class ConfigModel
 
     public required string GroupProvisioningApiUrl { get; set; }
 
-    public required AuthConfigModel AuthConfig { get; set; }
+    public AuthConfigModel AuthConfig { get; set; }
 
-    public required ICollection<UserSchemaModel> UserSchema { get; set; }
+    public ICollection<UserSchemaModel> UserSchema { get; set; }
 
-    public required ICollection<GroupSchemaModel> GroupSchema { get; set; }
-
+    public ICollection<GroupSchemaModel> GroupSchema { get; set; }
 }
