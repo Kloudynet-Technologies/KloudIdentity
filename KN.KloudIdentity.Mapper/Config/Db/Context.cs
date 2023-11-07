@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace KN.KloudIdentity.Mapper.Config.Db;
 
@@ -7,12 +8,16 @@ namespace KN.KloudIdentity.Mapper.Config.Db;
 /// </summary>
 public class Context : DbContext
 {
-    public Context(DbContextOptions<Context> options) : base(options)
+    private readonly IConfiguration configuration;
+
+    public Context(DbContextOptions<Context> options, IConfiguration configuration)
+        : base(options)
     {
-        Database.EnsureCreated();
+        this.configuration = configuration;
+        //  Database.EnsureCreated();
     }
 
-    public DbSet<ConfigModel> Config { get; set; }
+    public DbSet<AppConfigModel> AppConfig { get; set; }
 
     public DbSet<AuthConfigModel> AuthConfig { get; set; }
 
@@ -26,6 +31,6 @@ public class Context : DbContext
     /// <param name="options">The options for the database context.</param>
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
-        options.UseSqlServer("Data Source=kn-kloudidentity-mapper.db");
+        options.UseSqlServer(this.configuration.GetConnectionString("DefaultConnection"));
     }
 }

@@ -27,5 +27,5 @@ public class AuthConfigModel
     public string? Authority { get; set; }
 
     [ForeignKey("AppId")]
-    public required ConfigModel ConfigModel { get; set; }
+    public AppConfigModel ConfigModel { get; set; }
 }

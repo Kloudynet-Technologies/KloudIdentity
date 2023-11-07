@@ -29,9 +29,10 @@ public class SchemaBaseModel
     /// </summary>
     public required string MappedAttribute { get; set; }
 
+    public required string AppId { get; set;}
     /// <summary>
     /// The application ID this schema belongs to.
     /// </summary>
     [ForeignKey("AppId")]
-    public required ConfigModel ConfigModel { get; set; }
+    public AppConfigModel AppConfigModel { get; set; }
 }
