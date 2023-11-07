@@ -56,7 +56,6 @@ namespace Microsoft.SCIM.WebHostSample
             }
 
             void ConfigureJwtBearerOptons(JwtBearerOptions options)
-            void ConfigureJwtBearerOptons(JwtBearerOptions options)
             {
                 if (this.environment.IsDevelopment())
                 {
@@ -140,7 +139,6 @@ namespace Microsoft.SCIM.WebHostSample
 
             arg.Response.ContentLength = authenticationExceptionMessage.Length;
             arg.Response.Body.WriteAsync(
-                Encoding.UTF8.GetBytes(authenticationExceptionMessage),
                 Encoding.UTF8.GetBytes(authenticationExceptionMessage),
                 0,
                 authenticationExceptionMessage.Length);
