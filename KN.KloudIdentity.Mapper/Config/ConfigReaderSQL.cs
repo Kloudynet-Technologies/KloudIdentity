@@ -1,9 +1,11 @@
-﻿using KN.KloudIdentity.Mapper.Common.Exceptions;
+﻿using KN.KloudIdentity.Mapper.Common.Encryption;
+using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Config.Db;
 using KN.KloudIdentity.Mapper.Config.Helper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Data.Common;
+using System.Reflection;
 
 namespace KN.KloudIdentity.Mapper.Config
 {
@@ -11,10 +13,12 @@ namespace KN.KloudIdentity.Mapper.Config
     {
         private readonly Context _context;
         private readonly ILogger<ConfigReaderSQL> _logger;
-        public ConfigReaderSQL(Context context, ILogger<ConfigReaderSQL> logger)
+        private readonly IConfiguration _configuration;
+        public ConfigReaderSQL(Context context, ILogger<ConfigReaderSQL> logger, IConfiguration configuration)
         {
             _context = context;
             _logger = logger;
+            _configuration = configuration;
         }
 
         public async Task CreateConfigAsync(MapperConfig config, CancellationToken cancellationToken)
@@ -24,7 +28,8 @@ namespace KN.KloudIdentity.Mapper.Config
                 throw new ApplicationException($"Config already exists for appId: {config.AppId}");
             }
             try
-            {  
+            {
+                ProcessAuthConfig(config.AuthConfig, true);
 
                 using (var transaction = await _context.Database.BeginTransactionAsync(cancellationToken))
                 {
@@ -58,7 +63,11 @@ namespace KN.KloudIdentity.Mapper.Config
                 throw new NotFoundException($"No config found for appId: {appId}");
             }
 
-            return ConfigReaderHelper.FormatMapperConfig(res);
+            var mapperConfig = ConfigReaderHelper.FormatMapperConfig(res);
+
+            ProcessAuthConfig(mapperConfig.AuthConfig, false);
+
+            return mapperConfig;
 
         }
 
@@ -75,6 +84,8 @@ namespace KN.KloudIdentity.Mapper.Config
 
             try
             {
+                ProcessAuthConfig(config.AuthConfig, true);
+
                 using (var transaction = await _context.Database.BeginTransactionAsync(cancellationToken))
                 {
                     await RemoveAuthConfig(config.AppId, cancellationToken);
@@ -87,8 +98,8 @@ namespace KN.KloudIdentity.Mapper.Config
                     _context.AppConfig.Update(configModel);
 
                     _context.AuthConfig.Add(ConfigReaderHelper.FormatAuthConfigModel(configModel.AppId, config.AuthConfig));
-                    _context.GroupSchema.AddRange(ConfigReaderHelper.FormatGroupSchemaModel(configModel.AppId, config.GroupSchema));
-                    _context.UserSchema.AddRange(ConfigReaderHelper.FormatUserSchemaModel(configModel.AppId, config.UserSchema));
+                    _context.GroupSchema.AddRange(ConfigReaderHelper.FormatListGroupSchemaModel(configModel.AppId, config.GroupSchema));
+                    _context.UserSchema.AddRange(ConfigReaderHelper.FormatListUserSchemaModel(configModel.AppId, config.UserSchema));
 
                     await _context.SaveChangesAsync(cancellationToken);
 
@@ -146,6 +157,37 @@ namespace KN.KloudIdentity.Mapper.Config
                 await _context.SaveChangesAsync(cancellationToken);
             }
         }
+
+        private void ProcessAuthConfig(AuthConfig authConfig, bool encrypt)
+        {
+            var encryptedKey = _configuration.GetSection("Encryption:Key").Value;
+            var encryptedIV = _configuration.GetSection("Encryption:IV").Value;
+
+            PropertyInfo[] properties = typeof(AuthConfig).GetProperties();
+
+            foreach (var property in properties)
+            {
+                if (property.PropertyType == typeof(string) && property.GetCustomAttribute<SensitiveFieldAttribute>() != null)
+                {
+                    var fieldValue = (string)property.GetValue(authConfig);
+
+                    if (!string.IsNullOrEmpty(fieldValue))
+                    {
+                        if (encrypt)
+                        {
+                            fieldValue = EncryptionHelper.Encrypt(fieldValue, encryptedKey, encryptedIV);
+                        }
+                        else
+                        {
+                            fieldValue = EncryptionHelper.Decrypt(fieldValue, encryptedKey, encryptedIV);
+                        }
+
+                        property.SetValue(authConfig, fieldValue);
+                    }
+                }
+            }
+        }
+
 
     }
 }

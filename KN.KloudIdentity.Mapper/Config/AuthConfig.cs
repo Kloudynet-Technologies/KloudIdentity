@@ -20,21 +20,25 @@ public class AuthConfig
     /// <summary>
     /// Password for basic authentication.
     /// </summary>
+    [SensitiveField]
     public string? Password { get; set; }
 
     /// <summary>
     /// Token for bearer authentication.
     /// </summary>
+    [SensitiveField]
     public string? Token { get; set; }
 
     /// <summary>
     /// Client ID for OAuth2 authentication.
     /// </summary>
+    [SensitiveField]
     public string? ClientId { get; set; }
 
     /// <summary>
     /// Client secret for OAuth2 authentication.
     /// </summary>
+    [SensitiveField]
     public string? ClientSecret { get; set; }
 
     /// <summary>
@@ -61,4 +65,16 @@ public class AuthConfig
     /// Grant type for OAuth2 authentication.
     /// </summary>
     public string? GrantType { get; internal set; }
+
+    /// <summary>
+    /// API key for API key authentication.
+    /// </summary>
+    [SensitiveField]
+    public string? ApiKey { get; set; }
+
+    /// <summary>
+    /// Login URL for basic authentication.
+    /// </summary>
+    public string? LoginUrl { get; set; }
 }
+

@@ -22,9 +22,15 @@ public class AuthConfigModel
 
     public string? Scope { get; set; }
 
+    public string? GrantType { get; set; }
+
     public string? RedirectUri { get; set; }
 
     public string? Authority { get; set; }
+
+    public string? OAuth2TokenUrl { get; set; }
+
+    public string? ApiKey { get; set; }
 
     [ForeignKey("AppId")]
     public AppConfigModel ConfigModel { get; set; }
