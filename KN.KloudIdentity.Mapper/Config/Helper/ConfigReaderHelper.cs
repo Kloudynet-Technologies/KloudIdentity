@@ -6,9 +6,9 @@ using KN.KloudIdentity.Mapper.Auth;
 
 namespace KN.KloudIdentity.Mapper.Config.Helper
 {
-    public class ConfigReaderHelper
+    public static class ConfigReaderExtensions
     {
-        public static MapperConfig FormatMapperConfig(AppConfigModel appConfig)
+        public static MapperConfig TransformToMapperConfig(this AppConfigModel appConfig)
         {
             return new MapperConfig
             {
@@ -55,28 +55,28 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
             };
         }
 
-        public static AppConfigModel FormatAppConfigModel(MapperConfig config)
+        public static AppConfigModel TransformToAppConfigModel(this MapperConfig config)
         {
             var configModel = new AppConfigModel
             {
                 AppId = config.AppId,
                 UserProvisioningApiUrl = config.UserProvisioningApiUrl,
                 GroupProvisioningApiUrl = config.GroupProvisioningApiUrl,
-                AuthConfig = FormatAuthConfigModel(
+                AuthConfig = TransformToAuthConfigModel(
                     appId: config.AppId,
                     authConfig: config.AuthConfig
                 ),
-                GroupSchema = FormatGroupSchemaModel(
+                GroupSchema = TransformToGroupSchemaModel(
                     appId: config.AppId,
                     schemaAttributes: config.GroupSchema
                 ),
-                UserSchema = FormatUserSchemaModel(config.AppId, config.UserSchema)
+                UserSchema = TransformToUserSchemaModel(appId: config.AppId, schemaAttributes: config.UserSchema)
             };
 
             return configModel;
         }
 
-        public static AuthConfigModel FormatAuthConfigModel(string appId, AuthConfig authConfig)
+        public static AuthConfigModel TransformToAuthConfigModel(this AuthConfig authConfig, string appId)
         {
             return new AuthConfigModel
             {
@@ -93,10 +93,7 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
             };
         }
 
-        public static List<GroupSchemaModel> FormatGroupSchemaModel(
-            string appId,
-            IList<SchemaAttribute> schemaAttributes
-        )
+        public static List<GroupSchemaModel> TransformToGroupSchemaModel(this IList<SchemaAttribute> schemaAttributes, string appId)
         {
             return schemaAttributes
                 .Select(
@@ -113,10 +110,7 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
                 .ToList();
         }
 
-        public static List<UserSchemaModel> FormatUserSchemaModel(
-            string appId,
-            IList<SchemaAttribute> schemaAttributes
-        )
+        public static List<UserSchemaModel> TransformToUserSchemaModel(this IList<SchemaAttribute> schemaAttributes, string appId)
         {
             return schemaAttributes
                 .Select(

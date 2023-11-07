@@ -45,7 +45,7 @@ namespace KN.KloudIdentity.Mapper.Config
             {
                 using (var transaction = await _context.Database.BeginTransactionAsync(cancellationToken))
                 {
-                    var appConfigModel = ConfigReaderHelper.FormatAppConfigModel(config);
+                    var appConfigModel = config.TransformToAppConfigModel();
                     await _context.AppConfig.AddAsync(appConfigModel, cancellationToken);
                     await _context.SaveChangesAsync(cancellationToken);
                     await transaction.CommitAsync(cancellationToken);
@@ -82,7 +82,7 @@ namespace KN.KloudIdentity.Mapper.Config
                 throw new NotFoundException($"No config found for appId: {appId}");
             }
 
-            return ConfigReaderHelper.FormatMapperConfig(res);
+            return res.TransformToMapperConfig();
         }
 
         /// <summary>
@@ -117,9 +117,9 @@ namespace KN.KloudIdentity.Mapper.Config
 
                     _context.AppConfig.Update(configModel);
 
-                    _context.AuthConfig.Add(ConfigReaderHelper.FormatAuthConfigModel(configModel.AppId, config.AuthConfig));
-                    _context.GroupSchema.AddRange(ConfigReaderHelper.FormatGroupSchemaModel(configModel.AppId, config.GroupSchema));
-                    _context.UserSchema.AddRange(ConfigReaderHelper.FormatUserSchemaModel(configModel.AppId, config.UserSchema));
+                    _context.AuthConfig.Add(config.AuthConfig.TransformToAuthConfigModel(configModel.AppId));
+                    _context.GroupSchema.AddRange(config.GroupSchema.TransformToGroupSchemaModel(configModel.AppId));
+                    _context.UserSchema.AddRange(config.UserSchema.TransformToUserSchemaModel(configModel.AppId));
 
                     await _context.SaveChangesAsync(cancellationToken);
 
