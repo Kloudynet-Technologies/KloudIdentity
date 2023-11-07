@@ -1,4 +1,8 @@
-﻿using AutoMapper;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+using AutoMapper;
 using KN.KloudIdentity.Mapper.Config;
 
 namespace KN.KloudIdentity.Mapper;
