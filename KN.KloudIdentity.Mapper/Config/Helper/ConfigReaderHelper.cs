@@ -1,9 +1,8 @@
-﻿using KN.KloudIdentity.Mapper.Auth;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+using KN.KloudIdentity.Mapper.Auth;
 
 namespace KN.KloudIdentity.Mapper.Config.Helper
 {
