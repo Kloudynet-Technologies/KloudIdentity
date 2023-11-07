@@ -93,11 +93,7 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddSingleton(typeof(IProvider), this.ProviderBehavior);
             services.AddSingleton(typeof(IMonitor), this.MonitoringBehavior);
 
-            services.AddScoped<IAuthContext, AuthContextV1>();
-            services.AddScoped<IAuthStrategy, ApiKeyStrategy>();
-            services.AddScoped<IAuthStrategy, BasicAuthStrategy>();
-            services.AddScoped<IAuthStrategy, OAuth2Strategy>();
-            services.AddScoped<IConfigReader, ConfigReaderSQL>();
+            services.ConfigureMapperServices();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

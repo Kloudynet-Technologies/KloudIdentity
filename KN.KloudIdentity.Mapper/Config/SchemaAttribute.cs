@@ -1,4 +1,8 @@
-﻿namespace KN.KloudIdentity.Mapper.Config;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+namespace KN.KloudIdentity.Mapper.Config;
 
 public class SchemaAttribute
 {

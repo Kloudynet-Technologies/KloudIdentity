@@ -1,4 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace KN.KloudIdentity.Mapper;
@@ -29,7 +33,7 @@ public class SchemaBaseModel
     /// </summary>
     public required string MappedAttribute { get; set; }
 
-    public required string AppId { get; set;}
+    public required string AppId { get; set; }
     /// <summary>
     /// The application ID this schema belongs to.
     /// </summary>

@@ -1,5 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
-using KN.KloudIdentity.Mapper.Config;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+using System.ComponentModel.DataAnnotations;
 
 namespace KN.KloudIdentity.Mapper;
 
