@@ -6,9 +6,8 @@ namespace Microsoft.SCIM.WebHostSample
 {
     using System.Text;
     using System.Threading.Tasks;
-    using KN.KloudIdentity.Mapper;
+    using KN.KloudIdentity.Mapper.Utils;
     using KN.KloudIdentity.Mapper.Common.Exceptions;
-    using KN.KloudIdentity.Mapper.Config;
     using KN.KloudIdentity.Mapper.Config.Db;
     using Microsoft.AspNetCore.Authentication;
     using Microsoft.AspNetCore.Authentication.JwtBearer;

@@ -5,7 +5,7 @@
 using AutoMapper;
 using KN.KloudIdentity.Mapper.Config;
 
-namespace KN.KloudIdentity.Mapper;
+namespace KN.KloudIdentity.Mapper.Utils;
 
 /// <summary>
 /// Auto mapper config.

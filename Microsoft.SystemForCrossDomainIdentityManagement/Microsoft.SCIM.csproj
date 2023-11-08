@@ -60,9 +60,4 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\KN.KloudIdentity.Mapper\KN.KloudIdentity.Mapper.csproj" />
-  </ItemGroup>
-
 </Project>
