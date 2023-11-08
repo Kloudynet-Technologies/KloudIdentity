@@ -2,12 +2,14 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
+using KN.KloudIdentity.Mapper.Common.Encryption;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Config.Db;
 using KN.KloudIdentity.Mapper.Config.Helper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 
 namespace KN.KloudIdentity.Mapper.Config
 {
@@ -22,10 +24,13 @@ namespace KN.KloudIdentity.Mapper.Config
 
         private readonly ILogger<ConfigReaderSQL> _logger;
 
-        public ConfigReaderSQL(Context context, ILogger<ConfigReaderSQL> logger)
+        private readonly IConfiguration _configuration;
+
+        public ConfigReaderSQL(Context context, ILogger<ConfigReaderSQL> logger, IConfiguration configuration)
         {
             _context = context;
             _logger = logger;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -44,6 +49,8 @@ namespace KN.KloudIdentity.Mapper.Config
 
             try
             {
+                ProcessAuthConfig(config.AuthConfig, true);
+
                 using (var transaction = await _context.Database.BeginTransactionAsync(cancellationToken))
                 {
                     var appConfigModel = config.TransformToAppConfigModel();
@@ -83,8 +90,12 @@ namespace KN.KloudIdentity.Mapper.Config
                 throw new NotFoundException($"No config found for appId: {appId}");
             }
 
-            return res.TransformToMapperConfig();
-        }
+            var mapperConfig = res.TransformToMapperConfig();
+
+            ProcessAuthConfig(mapperConfig.AuthConfig, false);
+
+            return mapperConfig;
+        } 
 
         /// <summary>
         /// This method updates the config in the database.
@@ -205,6 +216,11 @@ namespace KN.KloudIdentity.Mapper.Config
             }
         }
 
+        /// <summary>
+        /// Encrypts or decrypts the sensitive fields in the auth config.
+        /// </summary>
+        /// <param name="authConfig"></param>
+        /// <param name="encrypt"></param>
         private void ProcessAuthConfig(AuthConfig authConfig, bool encrypt)
         {
             var encryptedKey = _configuration.GetSection("Encryption:Key").Value;
@@ -218,7 +234,7 @@ namespace KN.KloudIdentity.Mapper.Config
                 {
                     var fieldValue = (string)property.GetValue(authConfig);
 
-                    if (!string.IsNullOrEmpty(fieldValue))
+                    if (!string.IsNullOrWhiteSpace(fieldValue))
                     {
                         if (encrypt)
                         {

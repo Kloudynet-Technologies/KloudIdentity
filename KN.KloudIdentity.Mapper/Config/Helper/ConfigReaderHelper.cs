@@ -26,7 +26,9 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
                     RedirectUri = appConfig.AuthConfig.RedirectUri,
                     Scope = appConfig.AuthConfig.Scope,
                     Token = appConfig.AuthConfig.Token,
-                    Username = appConfig.AuthConfig.Username
+                    Username = appConfig.AuthConfig.Username,
+                    OAuth2TokenUrl = appConfig.AuthConfig.OAuth2TokenUrl,
+                    ApiKey = appConfig.AuthConfig.ApiKey
                 },
                 UserSchema = appConfig.UserSchema
                     .Select(
@@ -89,7 +91,9 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
                 RedirectUri = authConfig.RedirectUri,
                 Scope = authConfig.Scope,
                 Token = authConfig.Token,
-                Username = authConfig.Username
+                Username = authConfig.Username,
+                OAuth2TokenUrl = authConfig.OAuth2TokenUrl,
+                ApiKey = authConfig.ApiKey
             };
         }
 

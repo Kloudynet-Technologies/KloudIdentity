@@ -75,10 +75,5 @@ public class AuthConfig
     /// </summary>
     [SensitiveField]
     public string? ApiKey { get; set; }
-
-    /// <summary>
-    /// Login URL for basic authentication.
-    /// </summary>
-    public string? LoginUrl { get; set; }
 }
 

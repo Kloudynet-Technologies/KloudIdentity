@@ -7,8 +7,15 @@ using KN.KloudIdentity.Mapper.Config;
 
 namespace KN.KloudIdentity.Mapper;
 
+/// <summary>
+/// Auto mapper config.
+/// </summary>
 public class AutoMapperConfig
 {
+    /// <summary>
+    /// Initializes the automatic mapper.
+    /// </summary>
+    /// <returns></returns>
     public static AutoMapper.Mapper InitializeAutoMapper()
     {
         var config = new MapperConfiguration(cfg =>

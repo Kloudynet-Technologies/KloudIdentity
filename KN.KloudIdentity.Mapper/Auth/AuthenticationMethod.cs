@@ -1,4 +1,8 @@
-﻿namespace KN.KloudIdentity.Mapper.Auth;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+namespace KN.KloudIdentity.Mapper.Auth;
 
 /// <summary>
 /// Authentication methods for 3rd party API calls.

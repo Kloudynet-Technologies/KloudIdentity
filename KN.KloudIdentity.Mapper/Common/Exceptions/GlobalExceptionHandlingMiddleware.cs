@@ -1,14 +1,20 @@
-﻿using KN.KloudIdentity.Mapper.Common.Models;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+using KN.KloudIdentity.Mapper.Common.Models;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
-using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
 namespace KN.KloudIdentity.Mapper.Common.Exceptions
 {
+    /// <summary>
+    /// Global exception handling middleware and return a standard error response.
+    /// </summary>
     public class GlobalExceptionHandlingMiddleware
     {
         private readonly ILogger<GlobalExceptionHandlingMiddleware> _logger;
@@ -23,6 +29,11 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
             _logger = logger;
         }
 
+        /// <summary>
+        /// Invoke the middleware
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
         public async Task Invoke(HttpContext context)
         {
             try
@@ -35,6 +46,12 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
             }
         }
 
+        /// <summary>
+        /// Handles all application exceptions and returns a standard error response with status code.
+        /// </summary>
+        /// <param name="context">The HttpContext of the current request.</param>
+        /// <param name="exception">The exception that needs to be handled.</param>
+        /// <returns>A Task representing the asynchronous operation.</returns>
         private async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
             context.Response.ContentType = "application/json";

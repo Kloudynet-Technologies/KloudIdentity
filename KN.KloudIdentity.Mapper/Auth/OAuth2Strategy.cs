@@ -1,4 +1,8 @@
-﻿using System.Net;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+using System.Net;
 using System.Security.Authentication;
 using System.Text.Json;
 using KN.KloudIdentity.Mapper.Auth;

@@ -6,7 +6,7 @@ using KN.KloudIdentity.Mapper.Config;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace KN.KloudIdentity.Mapper;
-
+ 
 public static class ServiceExtension
 {
     public static void ConfigureMapperServices(this IServiceCollection services)
