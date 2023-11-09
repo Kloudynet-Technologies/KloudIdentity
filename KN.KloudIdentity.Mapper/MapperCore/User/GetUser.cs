@@ -5,7 +5,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 /// <summary>
 /// Implementation of IGetResource interface for retrieving a Core2User resource.
 /// </summary>
-public class GetUser : OperationsBase<Core2User>, IGetResource<Core2User>
+public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2EnterpriseUser>
 {
     /// <summary>
     /// Retrieves a user by identifier and application ID asynchronously.
@@ -14,7 +14,7 @@ public class GetUser : OperationsBase<Core2User>, IGetResource<Core2User>
     /// <param name="appId">The ID of the application the user belongs to.</param>
     /// <param name="correlationID">The correlation ID for the request.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the retrieved user.</returns>
-    public Task<Core2User> GetAsync(string identifier, string appId, string correlationID)
+    public Task<Core2EnterpriseUser> GetAsync(string identifier, string appId, string correlationID)
     {
         throw new NotImplementedException();
     }

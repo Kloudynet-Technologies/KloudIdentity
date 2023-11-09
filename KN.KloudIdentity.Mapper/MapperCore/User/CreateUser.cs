@@ -6,7 +6,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 /// Class for creating a new Core2User resource.
 /// Implements the ICreateResource interface.
 /// </summary>
-public class CreateUser : OperationsBase<Core2User>, ICreateResource<Core2User>
+public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<Core2EnterpriseUser>
 {
     /// <summary>
     /// Executes the creation of a new user asynchronously.
@@ -15,7 +15,7 @@ public class CreateUser : OperationsBase<Core2User>, ICreateResource<Core2User>
     /// <param name="appId">The ID of the application.</param>
     /// <param name="correlationID">The correlation ID.</param>
     /// <returns>The created user resource.</returns>
-    public Task<Core2User> ExecuteAsync(Core2User resource, string appId, string correlationID)
+    public Task<Core2EnterpriseUser> ExecuteAsync(Core2EnterpriseUser resource, string appId, string correlationID)
     {
         throw new NotImplementedException();
     }
