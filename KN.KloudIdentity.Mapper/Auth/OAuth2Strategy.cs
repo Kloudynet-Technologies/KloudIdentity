@@ -48,7 +48,9 @@ public class OAuth2Strategy : IAuthStrategy
 
         var tokenResponse = JsonSerializer.Deserialize<HttpResponseMessage>(responseContent);
 
-        return await tokenResponse.Content.ReadAsStringAsync();
+        string token = await tokenResponse.Content.ReadAsStringAsync();
+
+        return "Bearer " + token;
     }
 
     /// <summary>

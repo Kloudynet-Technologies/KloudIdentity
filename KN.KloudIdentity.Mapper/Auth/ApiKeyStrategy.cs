@@ -27,7 +27,7 @@ public class ApiKeyStrategy : IAuthStrategy
         if (!string.IsNullOrWhiteSpace(authConfig.ApiKey))
             return await Task.FromResult(authConfig.ApiKey);
 
-        // TODO: Implement API key retrieval from a secret store.
+        // TODO: Implement API key retrieval from a server.
         throw new NotImplementedException();
     }
 

@@ -28,7 +28,9 @@ public class BasicAuthStrategy : IAuthStrategy
         );
         string base64EncodedValue = Convert.ToBase64String(plainTextBytes);
 
-        return await Task.FromResult(base64EncodedValue);
+        string token = await Task.FromResult(base64EncodedValue);
+
+        return "Basic " + token;
     }
 
     /// <summary>
