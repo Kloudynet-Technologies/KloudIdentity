@@ -75,5 +75,10 @@ public class AuthConfig
     /// </summary>
     [SensitiveField]
     public string? ApiKey { get; set; }
+
+    /// <summary>
+    /// API key header name for API key authentication.
+    /// </summary>
+    public string? ApiKeyHeader { get; set; }
 }
 

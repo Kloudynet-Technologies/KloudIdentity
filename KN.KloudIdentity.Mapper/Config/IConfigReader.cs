@@ -8,7 +8,7 @@ namespace KN.KloudIdentity.Mapper;
 
 public interface IConfigReader
 {
-    Task<MapperConfig> GetConfigAsync(string appId, CancellationToken cancellationToken);
+    Task<MapperConfig> GetConfigAsync(string appId, CancellationToken cancellationToken = default);
 
     Task CreateConfigAsync(MapperConfig config, CancellationToken cancellationToken);
 

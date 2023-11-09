@@ -36,6 +36,8 @@ public class AuthConfigModel
 
     public string? ApiKey { get; set; }
 
+    public string? ApiKeyHeader { get; set; }
+
     [ForeignKey("AppId")]
     public AppConfigModel ConfigModel { get; set; }
 }

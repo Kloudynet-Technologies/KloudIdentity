@@ -77,7 +77,7 @@ namespace KN.KloudIdentity.Mapper.Config
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="NotFoundException"></exception>
-        public async Task<MapperConfig> GetConfigAsync(string appId, CancellationToken cancellationToken)
+        public async Task<MapperConfig> GetConfigAsync(string appId, CancellationToken cancellationToken = default)
         {
             var res = await _context.AppConfig.Where(x => x.AppId == appId)
                        .Include(auth => auth.AuthConfig)
