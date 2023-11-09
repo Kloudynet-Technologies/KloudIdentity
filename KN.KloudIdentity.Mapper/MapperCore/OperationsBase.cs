@@ -20,23 +20,34 @@ public abstract class OperationsBase<T> : IAPIMapperBase<T> where T : Resource
     public string? CorrelationID { get; set; }
     public required JObject Payload { get; set; }
 
+    private readonly IConfigReader _configReader;
+    private readonly IAuthContext _authContext;
+
+    public OperationsBase(IConfigReader configReader, IAuthContext authContext)
+    {
+        _configReader = configReader;
+        _authContext = authContext;
+    }
+
     public abstract Task MapAndPreparePayloadAsync();
 
     /// <summary>
     /// Gets the application configuration asynchronously.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation. The task result contains the mapper configuration.</returns>
-    public virtual Task<MapperConfig> GetAppConfigAsync()
+    public virtual async Task<MapperConfig> GetAppConfigAsync()
     {
-        throw new NotImplementedException();
+        return await _configReader.GetConfigAsync(AppId);
     }
 
     /// <summary>
     /// Gets the authentication token asynchronously.
     /// </summary>
     /// <returns>The authentication token.</returns>
-    public virtual Task<string> GetAuthenticationAsync()
+    public virtual async Task<string> GetAuthenticationAsync()
     {
-        throw new NotImplementedException();
+        var appConfig = await GetAppConfigAsync();
+
+        return await _authContext.GetTokenAsync(appConfig.AuthConfig);
     }
 }
