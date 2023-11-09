@@ -7,6 +7,14 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 /// </summary>
 public class GetUser : OperationsBase<Core2User>, IGetResource<Core2User>
 {
+    private readonly IConfigReader _configReader;
+
+    public GetUser(IConfigReader configReader, IAuthContext authContext)
+        : base(configReader, authContext)
+    {
+        _configReader = configReader;
+    }
+
     /// <summary>
     /// Retrieves a user by identifier and application ID asynchronously.
     /// </summary>

@@ -22,5 +22,6 @@ public static class ServiceExtension
         services.AddScoped<IConfigReader, ConfigReaderSQL>();
         services.AddScoped<ICreateResource<Core2User>, CreateUser>();
         services.AddScoped<IGetResource<Core2User>, GetUser>();
+       // services.AddScoped<IAPIMapperBase<Core2EnterpriseUser>, OperationsBase<Core2EnterpriseUser>>();
     }
 }
