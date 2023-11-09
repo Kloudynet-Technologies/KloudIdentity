@@ -78,7 +78,8 @@ namespace KN.KloudIdentity.Mapper.Utils
         /// <returns>The value of the property, or null if the property is not found.</returns>
         public static object? ReadProperty(T resource, string propertyName)
         {
-            var property = typeof(T).GetProperty(propertyName);
+            var customType = resource.GetType();
+            var property = customType.GetProperty(propertyName);
             if (property != null)
             {
                 return property.GetValue(resource, null);

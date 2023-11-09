@@ -32,7 +32,7 @@ public class NonSCIMUserProvider : ProviderBase
     /// <param name="resource">The resource to create.</param>
     /// <param name="correlationIdentifier">The correlation identifier.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the created resource.</returns>
-    public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
+    public override async Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
     {
         if (resource.Identifier != null)
         {
@@ -66,11 +66,11 @@ public class NonSCIMUserProvider : ProviderBase
         string resourceIdentifier = Guid.NewGuid().ToString();
         resource.Identifier = resourceIdentifier;
 
-        _createUser.ExecuteAsync(user, "App-001", correlationIdentifier);
+        await _createUser.ExecuteAsync(user, "App-001", correlationIdentifier);
 
         // this.storage.Users.Add(resourceIdentifier, user);
 
-        return Task.FromResult(resource);
+        return await Task.FromResult(resource);
     }
 
     public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)

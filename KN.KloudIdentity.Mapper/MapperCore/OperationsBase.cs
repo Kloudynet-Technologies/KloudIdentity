@@ -46,7 +46,7 @@ public abstract class OperationsBase<T> : IAPIMapperBase<T> where T : Resource
     /// <returns>The authentication token.</returns>
     public virtual async Task<string> GetAuthenticationAsync()
     {
-        var appConfig = await GetAppConfigAsync();
+        var appConfig = await _configReader.GetConfigAsync(AppId);
 
         return await _authContext.GetTokenAsync(appConfig.AuthConfig);
     }
