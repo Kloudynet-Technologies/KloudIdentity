@@ -5,13 +5,23 @@ using Microsoft.SCIM;
 using System.Net.Http.Headers;
 using System.Text;
 
-namespace KN.KloudIdentity.Mapper.MapperCore.User
+namespace KN.KloudIdentity.Mapper.MapperCore.User;
+
+/// <summary>
+/// Class for creating a new Core2User resource.
+/// Implements the ICreateResource interface.
+/// </summary>
+public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<Core2EnterpriseUser>
 {
     /// <summary>
     /// Class for creating a new Core2User resource.
     /// Implements the ICreateResource interface.
     /// </summary>
-    public class CreateUser : OperationsBase<Core2User>, ICreateResource<Core2User>
+    /// <param name="resource">The user resource to create.</param>
+    /// <param name="appId">The ID of the application.</param>
+    /// <param name="correlationID">The correlation ID.</param>
+    /// <returns>The created user resource.</returns>
+    public Task<Core2EnterpriseUser> ExecuteAsync(Core2EnterpriseUser resource, string appId, string correlationID)
     {
         private MapperConfig _appConfig;
 

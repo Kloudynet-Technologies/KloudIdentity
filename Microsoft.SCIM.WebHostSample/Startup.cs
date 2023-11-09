@@ -89,10 +89,15 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddAuthentication(ConfigureAuthenticationOptions).AddJwtBearer(ConfigureJwtBearerOptons);
             services.AddControllers().AddNewtonsoftJson(ConfigureMvcNewtonsoftJsonOptions);
 
-            services.AddSingleton(typeof(IProvider), this.ProviderBehavior);
+            // services.AddSingleton(typeof(IProvider), this.ProviderBehavior);
             services.AddSingleton(typeof(IMonitor), this.MonitoringBehavior);
 
             services.ConfigureMapperServices();
+
+            services.AddScoped<NonSCIMGroupProvider>();
+            services.AddScoped<NonSCIMUserProvider>();
+            services.AddScoped<IProvider, NonSCIMAppProvider>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -104,13 +109,13 @@ namespace Microsoft.SCIM.WebHostSample
             }
 
             // Migrate database
-            using (var scope = app.ApplicationServices.CreateScope())
-            {
-                var services = scope.ServiceProvider;
+            // using (var scope = app.ApplicationServices.CreateScope())
+            // {
+            //     var services = scope.ServiceProvider;
 
-                var context = services.GetRequiredService<Context>();
-                context.Database.Migrate();
-            }
+            //     var context = services.GetRequiredService<Context>();
+            //     context.Database.Migrate();
+            // }
 
             app.UseHsts();
             app.UseRouting();
