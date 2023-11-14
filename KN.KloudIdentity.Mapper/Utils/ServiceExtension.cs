@@ -29,5 +29,6 @@ public static class ServiceExtension
         services.AddScoped<IConfigReader, ConfigReaderSQL>();
         services.AddScoped<ICreateResource<Core2EnterpriseUser>, CreateUser>();
         services.AddScoped<IGetResource<Core2EnterpriseUser>, GetUser>();
+        services.AddScoped<IDeleteResource<Core2EnterpriseUser>, DeleteUser>();
     }
 }

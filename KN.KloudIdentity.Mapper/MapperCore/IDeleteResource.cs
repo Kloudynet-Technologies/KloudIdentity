@@ -19,5 +19,5 @@ public interface IDeleteResource<T> : IAPIMapperBase<T> where T : Resource
     /// <param name="appId">The ID of the application.</param>
     /// <param name="correlationID">The correlation ID.</param>
     /// <returns>A task representing the asynchronous operation. The result of the task contains the deleted resource.</returns>
-    Task<Resource> DeleteAsync(Resource resource, string appId, string correlationID);
+    Task DeleteAsync(IResourceIdentifier resourceIdentifier, string appId, string correlationID);
 }

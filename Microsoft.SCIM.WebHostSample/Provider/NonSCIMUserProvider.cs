@@ -20,10 +20,12 @@ namespace Microsoft.SCIM.WebHostSample;
 public class NonSCIMUserProvider : ProviderBase
 {
     private readonly ICreateResource<Core2EnterpriseUser> _createUser;
+    private readonly IDeleteResource<Core2EnterpriseUser> _deleteUser;
 
-    public NonSCIMUserProvider(ICreateResource<Core2EnterpriseUser> createUser)
+    public NonSCIMUserProvider(ICreateResource<Core2EnterpriseUser> createUser, IDeleteResource<Core2EnterpriseUser> deleteUser)
     {
         _createUser = createUser;
+        _deleteUser = deleteUser;
     }
 
     /// <summary>
@@ -73,9 +75,21 @@ public class NonSCIMUserProvider : ProviderBase
         return await Task.FromResult(resource);
     }
 
-    public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
+    /// <summary>
+    /// Initiates the asynchronous deletion of a resource using the provided resource identifier and correlation identifier.
+    /// </summary>
+    /// <param name="resourceIdentifier">The identifier of the resource to be deleted.</param>
+    /// <param name="correlationIdentifier">The correlation identifier associated with the operation.</param>
+    /// <returns>A Task representing the asynchronous operation.</returns>
+    /// <exception cref="HttpResponseException">Thrown when the resource identifier is null or empty, resulting in a Bad Request status code.</exception>
+    public override async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrWhiteSpace(resourceIdentifier?.Identifier))
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        await _deleteUser.DeleteAsync(resourceIdentifier, "App-001", correlationIdentifier);
     }
 
     // @TODO: Implement retrieve

@@ -42,9 +42,23 @@ public class NonSCIMAppProvider : ProviderBase
         throw new NotImplementedException();
     }
 
-    public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
+    /// <summary>
+    /// Initiates the asynchronous deletion of a resource based on its schema identifier.
+    /// </summary>
+    /// <param name="resourceIdentifier">The identifier of the resource to be deleted.</param>
+    /// <param name="correlationIdentifier">The correlation identifier associated with the operation.</param>
+    /// <returns>A Task representing the asynchronous operation.</returns>
+    public override async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
     {
-        throw new NotImplementedException();
+        if (resourceIdentifier.SchemaIdentifier.Equals(SchemaIdentifiers.Core2EnterpriseUser))
+        {
+            await _userProvider.DeleteAsync(resourceIdentifier, correlationIdentifier);
+        }
+
+        if (resourceIdentifier.SchemaIdentifier.Equals(SchemaIdentifiers.Core2Group))
+        {
+            await _userProvider.DeleteAsync(resourceIdentifier, correlationIdentifier);
+        }
     }
 
     /// <summary>
