@@ -15,7 +15,10 @@ public class NonSCIMAppProvider : ProviderBase
     private readonly ProviderBase _groupProvider;
     private readonly ProviderBase _userProvider;
 
-    public NonSCIMAppProvider(NonSCIMUserProvider nonSCIMUserProvider, NonSCIMGroupProvider nonSCIMGroupProvider)
+    public NonSCIMAppProvider(
+        NonSCIMUserProvider nonSCIMUserProvider,
+        NonSCIMGroupProvider nonSCIMGroupProvider
+    )
     {
         _userProvider = nonSCIMUserProvider;
         _groupProvider = nonSCIMGroupProvider;
@@ -48,7 +51,10 @@ public class NonSCIMAppProvider : ProviderBase
     /// <param name="resourceIdentifier">The identifier of the resource to be deleted.</param>
     /// <param name="correlationIdentifier">The correlation identifier associated with the operation.</param>
     /// <returns>A Task representing the asynchronous operation.</returns>
-    public override async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
+    public override async Task DeleteAsync(
+        IResourceIdentifier resourceIdentifier,
+        string correlationIdentifier
+    )
     {
         if (resourceIdentifier.SchemaIdentifier.Equals(SchemaIdentifiers.Core2EnterpriseUser))
         {
@@ -67,7 +73,10 @@ public class NonSCIMAppProvider : ProviderBase
     /// <param name="parameters">The parameters used to retrieve the resource.</param>
     /// <param name="correlationIdentifier">The correlation identifier associated with the request.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the retrieved resource.</returns>
-    public override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier)
+    public override Task<Resource> RetrieveAsync(
+        IResourceRetrievalParameters parameters,
+        string correlationIdentifier
+    )
     {
         if (parameters.SchemaIdentifier.Equals(SchemaIdentifiers.Core2EnterpriseUser))
         {
@@ -93,7 +102,10 @@ public class NonSCIMAppProvider : ProviderBase
     /// <param name="parameters">The query parameters.</param>
     /// <param name="correlationIdentifier">The correlation identifier.</param>
     /// <returns>An array of resources.</returns>
-    public override Task<Resource[]> QueryAsync(IQueryParameters parameters, string correlationIdentifier)
+    public override Task<Resource[]> QueryAsync(
+        IQueryParameters parameters,
+        string correlationIdentifier
+    )
     {
         if (parameters.SchemaIdentifier.Equals(SchemaIdentifiers.Core2EnterpriseUser))
         {
@@ -103,6 +115,27 @@ public class NonSCIMAppProvider : ProviderBase
         if (parameters.SchemaIdentifier.Equals(SchemaIdentifiers.Core2Group))
         {
             return _userProvider.QueryAsync(parameters, correlationIdentifier);
+        }
+
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Replaces a new resource asynchronously.
+    /// </summary>
+    /// <param name="resource">The resource to replace.</param>
+    /// <param name="correlationIdentifier">The correlation identifier.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the replaced  resource.</returns>
+    public override Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier)
+    {
+        if (resource is Core2EnterpriseUser)
+        {
+            return _userProvider.ReplaceAsync(resource, correlationIdentifier);
+        }
+
+        if (resource is Core2Group)
+        {
+            return _groupProvider.ReplaceAsync(resource, correlationIdentifier);
         }
 
         throw new NotImplementedException();

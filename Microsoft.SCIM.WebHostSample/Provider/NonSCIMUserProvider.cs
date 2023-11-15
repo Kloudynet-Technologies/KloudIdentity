@@ -21,11 +21,17 @@ public class NonSCIMUserProvider : ProviderBase
 {
     private readonly ICreateResource<Core2EnterpriseUser> _createUser;
     private readonly IDeleteResource<Core2EnterpriseUser> _deleteUser;
+    private readonly IReplaceResource<Core2EnterpriseUser> _replaceUser;
 
-    public NonSCIMUserProvider(ICreateResource<Core2EnterpriseUser> createUser, IDeleteResource<Core2EnterpriseUser> deleteUser)
+    public NonSCIMUserProvider(
+        ICreateResource<Core2EnterpriseUser> createUser,
+        IDeleteResource<Core2EnterpriseUser> deleteUser,
+        IReplaceResource<Core2EnterpriseUser> replaceUser
+    )
     {
         _createUser = createUser;
         _deleteUser = deleteUser;
+        _replaceUser = replaceUser;
     }
 
     /// <summary>
@@ -34,7 +40,10 @@ public class NonSCIMUserProvider : ProviderBase
     /// <param name="resource">The resource to create.</param>
     /// <param name="correlationIdentifier">The correlation identifier.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the created resource.</returns>
-    public override async Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
+    public override async Task<Resource> CreateAsync(
+        Resource resource,
+        string correlationIdentifier
+    )
     {
         if (resource.Identifier != null)
         {
@@ -82,7 +91,10 @@ public class NonSCIMUserProvider : ProviderBase
     /// <param name="correlationIdentifier">The correlation identifier associated with the operation.</param>
     /// <returns>A Task representing the asynchronous operation.</returns>
     /// <exception cref="HttpResponseException">Thrown when the resource identifier is null or empty, resulting in a Bad Request status code.</exception>
-    public override async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
+    public override async Task DeleteAsync(
+        IResourceIdentifier resourceIdentifier,
+        string correlationIdentifier
+    )
     {
         if (string.IsNullOrWhiteSpace(resourceIdentifier?.Identifier))
         {
@@ -93,7 +105,10 @@ public class NonSCIMUserProvider : ProviderBase
     }
 
     // @TODO: Implement retrieve
-    public override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier)
+    public override Task<Resource> RetrieveAsync(
+        IResourceRetrievalParameters parameters,
+        string correlationIdentifier
+    )
     {
         if (parameters == null)
         {
@@ -131,7 +146,10 @@ public class NonSCIMUserProvider : ProviderBase
     }
 
     // @TODO: Implement query
-    public override Task<Resource[]> QueryAsync(IQueryParameters parameters, string correlationIdentifier)
+    public override Task<Resource[]> QueryAsync(
+        IQueryParameters parameters,
+        string correlationIdentifier
+    )
     {
         if (parameters == null)
         {
@@ -145,12 +163,16 @@ public class NonSCIMUserProvider : ProviderBase
 
         if (null == parameters.AlternateFilters)
         {
-            throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters);
+            throw new ArgumentException(
+                SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters
+            );
         }
 
         if (string.IsNullOrWhiteSpace(parameters.SchemaIdentifier))
         {
-            throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters);
+            throw new ArgumentException(
+                SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters
+            );
         }
 
         IEnumerable<Resource> results;
@@ -166,7 +188,6 @@ public class NonSCIMUserProvider : ProviderBase
         }
         else
         {
-
             foreach (IFilter queryFilter in parameters.AlternateFilters)
             {
                 predicateAnd = PredicateBuilder.True<Core2EnterpriseUser>();
@@ -177,93 +198,140 @@ public class NonSCIMUserProvider : ProviderBase
                 {
                     if (string.IsNullOrWhiteSpace(andFilter.AttributePath))
                     {
-                        throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters);
+                        throw new ArgumentException(
+                            SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters
+                        );
                     }
-
                     else if (string.IsNullOrWhiteSpace(andFilter.ComparisonValue))
                     {
-                        throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters);
+                        throw new ArgumentException(
+                            SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters
+                        );
                     }
-
                     // UserName filter
-                    else if (andFilter.AttributePath.Equals(AttributeNames.UserName, StringComparison.OrdinalIgnoreCase))
+                    else if (
+                        andFilter.AttributePath.Equals(
+                            AttributeNames.UserName,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
                     {
                         if (andFilter.FilterOperator != ComparisonOperator.Equals)
                         {
                             throw new NotSupportedException(
-                                string.Format(SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterOperatorNotSupportedTemplate, andFilter.FilterOperator));
+                                string.Format(
+                                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterOperatorNotSupportedTemplate,
+                                    andFilter.FilterOperator
+                                )
+                            );
                         }
 
                         string userName = andFilter.ComparisonValue;
-                        predicateAnd = predicateAnd.And(p => string.Equals(p.UserName, userName, StringComparison.OrdinalIgnoreCase));
-
-
+                        predicateAnd = predicateAnd.And(
+                            p =>
+                                string.Equals(
+                                    p.UserName,
+                                    userName,
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                        );
                     }
-
                     // ExternalId filter
-                    else if (andFilter.AttributePath.Equals(AttributeNames.ExternalIdentifier, StringComparison.OrdinalIgnoreCase))
+                    else if (
+                        andFilter.AttributePath.Equals(
+                            AttributeNames.ExternalIdentifier,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
                     {
                         if (andFilter.FilterOperator != ComparisonOperator.Equals)
                         {
                             throw new NotSupportedException(
-                                string.Format(SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterOperatorNotSupportedTemplate, andFilter.FilterOperator));
+                                string.Format(
+                                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterOperatorNotSupportedTemplate,
+                                    andFilter.FilterOperator
+                                )
+                            );
                         }
 
                         string externalIdentifier = andFilter.ComparisonValue;
-                        predicateAnd = predicateAnd.And(p => string.Equals(p.ExternalIdentifier, externalIdentifier, StringComparison.OrdinalIgnoreCase));
-
-
+                        predicateAnd = predicateAnd.And(
+                            p =>
+                                string.Equals(
+                                    p.ExternalIdentifier,
+                                    externalIdentifier,
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                        );
                     }
-
                     //Active Filter
-                    else if (andFilter.AttributePath.Equals(AttributeNames.Active, StringComparison.OrdinalIgnoreCase))
+                    else if (
+                        andFilter.AttributePath.Equals(
+                            AttributeNames.Active,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
                     {
                         if (andFilter.FilterOperator != ComparisonOperator.Equals)
                         {
                             throw new NotSupportedException(
-                                string.Format(SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterOperatorNotSupportedTemplate, andFilter.FilterOperator));
+                                string.Format(
+                                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterOperatorNotSupportedTemplate,
+                                    andFilter.FilterOperator
+                                )
+                            );
                         }
 
                         bool active = bool.Parse(andFilter.ComparisonValue);
                         predicateAnd = predicateAnd.And(p => p.Active == active);
-
                     }
-
                     //LastModified filter
-                    else if (andFilter.AttributePath.Equals($"{AttributeNames.Metadata}.{AttributeNames.LastModified}", StringComparison.OrdinalIgnoreCase))
+                    else if (
+                        andFilter.AttributePath.Equals(
+                            $"{AttributeNames.Metadata}.{AttributeNames.LastModified}",
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
                     {
                         if (andFilter.FilterOperator == ComparisonOperator.EqualOrGreaterThan)
                         {
-                            DateTime comparisonValue = DateTime.Parse(andFilter.ComparisonValue).ToUniversalTime();
-                            predicateAnd = predicateAnd.And(p => p.Metadata.LastModified >= comparisonValue);
-
-
+                            DateTime comparisonValue = DateTime
+                                .Parse(andFilter.ComparisonValue)
+                                .ToUniversalTime();
+                            predicateAnd = predicateAnd.And(
+                                p => p.Metadata.LastModified >= comparisonValue
+                            );
                         }
                         else if (andFilter.FilterOperator == ComparisonOperator.EqualOrLessThan)
                         {
-                            DateTime comparisonValue = DateTime.Parse(andFilter.ComparisonValue).ToUniversalTime();
-                            predicateAnd = predicateAnd.And(p => p.Metadata.LastModified <= comparisonValue);
-
-
+                            DateTime comparisonValue = DateTime
+                                .Parse(andFilter.ComparisonValue)
+                                .ToUniversalTime();
+                            predicateAnd = predicateAnd.And(
+                                p => p.Metadata.LastModified <= comparisonValue
+                            );
                         }
                         else
                             throw new NotSupportedException(
-                                string.Format(SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterOperatorNotSupportedTemplate, andFilter.FilterOperator));
-
-
-
+                                string.Format(
+                                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterOperatorNotSupportedTemplate,
+                                    andFilter.FilterOperator
+                                )
+                            );
                     }
                     else
                         throw new NotSupportedException(
-                            string.Format(SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterAttributePathNotSupportedTemplate, andFilter.AttributePath));
+                            string.Format(
+                                SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterAttributePathNotSupportedTemplate,
+                                andFilter.AttributePath
+                            )
+                        );
 
                     currentFilter = andFilter;
                     andFilter = andFilter.AdditionalFilter;
-
                 } while (currentFilter.AdditionalFilter != null);
 
                 predicate = predicate.Or(predicateAnd);
-
             }
 
             // results = this.storage.Users.Values.Where(predicate.Compile());
@@ -272,10 +340,37 @@ public class NonSCIMUserProvider : ProviderBase
 
         if (parameters.PaginationParameters != null)
         {
-            int count = parameters.PaginationParameters.Count.HasValue ? parameters.PaginationParameters.Count.Value : 0;
+            int count = parameters.PaginationParameters.Count.HasValue
+                ? parameters.PaginationParameters.Count.Value
+                : 0;
             return Task.FromResult(results.Take(count).ToArray());
         }
         else
             return Task.FromResult(results.ToArray());
+    }
+
+    public override async Task<Resource> ReplaceAsync(
+        Resource resource,
+        string correlationIdentifier
+    )
+    {
+        if (resource.Identifier == null)
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        Core2EnterpriseUser user = resource as Core2EnterpriseUser;
+
+        if (string.IsNullOrWhiteSpace(user.UserName))
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        // Update metadata
+        user.Metadata.LastModified = DateTime.UtcNow;
+
+        await _replaceUser.ReplaceAsync(user, "App-001", correlationIdentifier);
+
+        return await Task.FromResult(resource);
     }
 }
