@@ -74,24 +74,7 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
 
         using (var httpClient = new HttpClient())
         {
-            if (authConfig.AuthenticationMethod == AuthenticationMethod.ApiKey)
-            {
-                if (string.IsNullOrWhiteSpace(authConfig.ApiKeyHeader))
-                {
-                    throw new ArgumentNullException(
-                        nameof(authConfig.ApiKeyHeader),
-                        "ApiKeyHeaderName cannot be null or empty when AuthenticationMethod is ApiKey"
-                    );
-                }
-
-                httpClient.DefaultRequestHeaders.Add(authConfig.ApiKeyHeader, token);
-            }
-            else
-            {
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-                    token
-                );
-            }
+            httpClient.SetAuthenticationHeaders(authConfig, token);
 
             var response = await httpClient.PostAsJsonAsync(
                 _appConfig.UserProvisioningApiUrl,
