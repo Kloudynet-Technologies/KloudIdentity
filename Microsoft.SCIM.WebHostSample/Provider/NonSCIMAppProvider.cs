@@ -114,7 +114,7 @@ public class NonSCIMAppProvider : ProviderBase
 
         if (parameters.SchemaIdentifier.Equals(SchemaIdentifiers.Core2Group))
         {
-            return _userProvider.QueryAsync(parameters, correlationIdentifier);
+            return _groupProvider.QueryAsync(parameters, correlationIdentifier);
         }
 
         throw new NotImplementedException();

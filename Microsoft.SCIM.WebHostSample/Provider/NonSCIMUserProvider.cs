@@ -77,7 +77,7 @@ public class NonSCIMUserProvider : ProviderBase
         string resourceIdentifier = Guid.NewGuid().ToString();
         resource.Identifier = resourceIdentifier;
 
-        await _createUser.ExecuteAsync(user, "App-001", correlationIdentifier);
+        await _createUser.ExecuteAsync(user, "App-002", correlationIdentifier);
 
         // this.storage.Users.Add(resourceIdentifier, user);
 
@@ -369,7 +369,7 @@ public class NonSCIMUserProvider : ProviderBase
         // Update metadata
         user.Metadata.LastModified = DateTime.UtcNow;
 
-        await _replaceUser.ReplaceAsync(user, "App-001", correlationIdentifier);
+        await _replaceUser.ReplaceAsync(user, "App-002", correlationIdentifier);
 
         return await Task.FromResult(resource);
     }
