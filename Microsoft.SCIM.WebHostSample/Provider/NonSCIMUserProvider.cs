@@ -22,16 +22,19 @@ public class NonSCIMUserProvider : ProviderBase
     private readonly ICreateResource<Core2EnterpriseUser> _createUser;
     private readonly IDeleteResource<Core2EnterpriseUser> _deleteUser;
     private readonly IReplaceResource<Core2EnterpriseUser> _replaceUser;
+    private readonly IUpdateResource<Core2EnterpriseUser> _updateUser;
 
     public NonSCIMUserProvider(
         ICreateResource<Core2EnterpriseUser> createUser,
         IDeleteResource<Core2EnterpriseUser> deleteUser,
-        IReplaceResource<Core2EnterpriseUser> replaceUser
+        IReplaceResource<Core2EnterpriseUser> replaceUser,
+        IUpdateResource<Core2EnterpriseUser> updateUser
     )
     {
         _createUser = createUser;
         _deleteUser = deleteUser;
         _replaceUser = replaceUser;
+        _updateUser = updateUser;
     }
 
     /// <summary>
@@ -77,7 +80,7 @@ public class NonSCIMUserProvider : ProviderBase
         string resourceIdentifier = Guid.NewGuid().ToString();
         resource.Identifier = resourceIdentifier;
 
-        await _createUser.ExecuteAsync(user, "App-002", correlationIdentifier);
+        await _createUser.ExecuteAsync(user, "App-001", correlationIdentifier);
 
         // this.storage.Users.Add(resourceIdentifier, user);
 
@@ -140,9 +143,15 @@ public class NonSCIMUserProvider : ProviderBase
         throw new HttpResponseException(HttpStatusCode.NotFound);
     }
 
-    public override Task UpdateAsync(IPatch patch, string correlationIdentifier)
+    public override async Task UpdateAsync(IPatch patch, string correlationIdentifier)
     {
-        throw new NotImplementedException();
+        PatchRequest2 patchRequest =
+               patch.PatchRequest as PatchRequest2;
+
+        Core2EnterpriseUser user = new Core2EnterpriseUser();
+        user.Apply(patchRequest);
+
+        await _updateUser.UpdateAsync(user, "App-002", correlationIdentifier);
     }
 
     // @TODO: Implement query
