@@ -128,6 +128,11 @@ namespace KN.KloudIdentity.Mapper.Config
 
                     configModel.GroupProvisioningApiUrl = config.GroupProvisioningApiUrl;
                     configModel.UserProvisioningApiUrl = config.UserProvisioningApiUrl;
+                    configModel.PATCHAPIForUsers = config.PATCHAPIForUsers;
+                    configModel.PUTAPIForUsers = config.PUTAPIForUsers;
+                    configModel.DELETEAPIForUsers = config.DELETEAPIForUsers;
+                    configModel.GETAPIForUsers = config.GETAPIForUsers;
+                    configModel.LISTAPIForUsers = config.LISTAPIForUsers;
 
                     _context.AppConfig.Update(configModel);
 

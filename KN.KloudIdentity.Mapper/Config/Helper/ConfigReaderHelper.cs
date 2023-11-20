@@ -15,6 +15,11 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
                 AppId = appConfig.AppId,
                 UserProvisioningApiUrl = appConfig.UserProvisioningApiUrl,
                 GroupProvisioningApiUrl = appConfig.GroupProvisioningApiUrl,
+                DELETEAPIForUsers = appConfig.DELETEAPIForUsers,
+                GETAPIForUsers = appConfig.GETAPIForUsers,
+                LISTAPIForUsers = appConfig.LISTAPIForUsers,
+                PATCHAPIForUsers = appConfig.PATCHAPIForUsers,
+                PUTAPIForUsers = appConfig.PUTAPIForUsers,
                 AuthConfig = new AuthConfig
                 {
                     AuthenticationMethod = (AuthenticationMethod)
@@ -64,7 +69,12 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
             {
                 AppId = config.AppId,
                 UserProvisioningApiUrl = config.UserProvisioningApiUrl,
-                GroupProvisioningApiUrl = config.GroupProvisioningApiUrl,
+                GroupProvisioningApiUrl = config.GroupProvisioningApiUrl, 
+                DELETEAPIForUsers = config.DELETEAPIForUsers,
+                GETAPIForUsers = config.GETAPIForUsers,
+                LISTAPIForUsers = config.LISTAPIForUsers,
+                PATCHAPIForUsers = config.PATCHAPIForUsers,
+                PUTAPIForUsers = config.PUTAPIForUsers,
                 AuthConfig = TransformToAuthConfigModel(
                     appId: config.AppId,
                     authConfig: config.AuthConfig

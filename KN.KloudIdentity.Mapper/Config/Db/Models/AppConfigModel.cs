@@ -13,6 +13,16 @@ public class AppConfigModel
 
     public required string UserProvisioningApiUrl { get; set; }
 
+    public string? PUTAPIForUsers { get; set; }
+
+    public string? PATCHAPIForUsers { get; set; }
+
+    public string? DELETEAPIForUsers { get; set; }
+
+    public string? GETAPIForUsers { get; set; }
+
+    public string? LISTAPIForUsers { get; set; }
+
     public required string GroupProvisioningApiUrl { get; set; }
 
     public AuthConfigModel AuthConfig { get; set; }
