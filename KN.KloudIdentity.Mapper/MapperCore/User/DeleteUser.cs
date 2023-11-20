@@ -35,6 +35,9 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             // Retrieve application configuration asynchronously.
             _appConfig = await GetAppConfigAsync();
 
+            // Validate the request.
+            ValidatedRequest(resourceIdentifier.Identifier, _appConfig);
+
             // Initiate the asynchronous deletion of a user/resource.
             await DeleteUserAsync(resourceIdentifier.Identifier);
         }
@@ -61,7 +64,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             {
                 httpClient.SetAuthenticationHeaders(authConfig, token);
 
-                var response = await httpClient.DeleteAsync($"{_appConfig.UserProvisioningApiUrl}/{identifier}");
+                var apiUrl = DynamicApiUrlUtil.GetFullUrl(_appConfig.DELETEAPIForUsers, identifier);
+                var response = await httpClient.DeleteAsync(apiUrl);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -69,6 +73,24 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
                         $"HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}"
                     );
                 }
+            }
+        }
+
+        /// <summary>
+        /// Validates the request by checking if the identifier and DELETEAPIForUsers are null or empty.
+        /// </summary>
+        /// <param name="identifier">The identifier to be validated.</param>
+        /// <param name="mapperConfig">The mapper configuration containing DELETEAPIForUsers.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the identifier or DELETEAPIForUsers is null or empty.</exception>
+        private void ValidatedRequest(string identifier, MapperConfig mapperConfig)
+        {
+            if (string.IsNullOrWhiteSpace(identifier))
+            {
+                throw new ArgumentNullException(nameof(identifier), "Identifier cannot be null or empty");
+            }
+            if (string.IsNullOrWhiteSpace(mapperConfig.DELETEAPIForUsers))
+            {
+                throw new ArgumentNullException(nameof(mapperConfig.DELETEAPIForUsers), "DELETEAPIForUsers cannot be null or empty");
             }
         }
 
