@@ -4,6 +4,7 @@
 
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.MapperCore;
+using KN.KloudIdentity.Mapper.MapperCore.Group;
 using KN.KloudIdentity.Mapper.MapperCore.User;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SCIM;
@@ -32,5 +33,6 @@ public static class ServiceExtension
         services.AddScoped<IDeleteResource<Core2EnterpriseUser>, DeleteUser>();
         services.AddScoped<IReplaceResource<Core2EnterpriseUser>, ReplaceUser>();
         services.AddScoped<IUpdateResource<Core2EnterpriseUser>, UpdateUser>();
+        services.AddScoped<ICreateResource<Core2Group>, CreateGroup>();
     }
 }

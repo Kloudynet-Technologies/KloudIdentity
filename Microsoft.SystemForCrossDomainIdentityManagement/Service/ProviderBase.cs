@@ -322,13 +322,10 @@ namespace Microsoft.SCIM
             return result;
         }
 
-        public virtual Task<Resource[]> QueryAsync(
+        public abstract Task<Resource[]> QueryAsync(
             IQueryParameters parameters,
             string correlationIdentifier
-        )
-        {
-            throw new NotImplementedException();
-        }
+        );
 
         public virtual async Task<Resource[]> QueryAsync(IRequest<IQueryParameters> request)
         {
