@@ -97,7 +97,7 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddScoped<NonSCIMGroupProvider>();
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();
-
+            services.AddScoped<ExtractAppIdFilter>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

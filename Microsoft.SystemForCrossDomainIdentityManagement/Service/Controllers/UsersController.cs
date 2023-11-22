@@ -8,7 +8,7 @@ namespace Microsoft.SCIM
 
     [Route(ServiceConstants.RouteUsers)]
     [Authorize]
-    [ApiController]
+    [ApiController]    
     public sealed class UsersController : ControllerTemplate<Core2EnterpriseUser>
     {
         public UsersController(IProvider provider, IMonitor monitor)

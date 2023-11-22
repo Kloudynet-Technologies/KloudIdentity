@@ -56,6 +56,11 @@ namespace Microsoft.SCIM.WebHostSample.Provider
             return Task.FromResult(resource);
         }
 
+        public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier, string appId = null)
+        {
+            throw new NotImplementedException();
+        }
+
         public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
         {
             if (string.IsNullOrWhiteSpace(resourceIdentifier?.Identifier))

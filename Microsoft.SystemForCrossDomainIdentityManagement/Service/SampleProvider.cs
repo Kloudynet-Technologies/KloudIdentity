@@ -631,5 +631,10 @@ namespace Microsoft.SCIM
             Task result = Task.WhenAll();
             return result;
         }
+
+        public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier, string appId = null)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

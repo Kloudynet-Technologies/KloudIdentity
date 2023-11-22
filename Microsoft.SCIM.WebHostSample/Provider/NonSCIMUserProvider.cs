@@ -32,7 +32,7 @@ public class NonSCIMUserProvider : ProviderBase
     /// <param name="resource">The resource to create.</param>
     /// <param name="correlationIdentifier">The correlation identifier.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the created resource.</returns>
-    public override async Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
+    public override async Task<Resource> CreateAsync(Resource resource, string correlationIdentifier, string appId)
     {
         if (resource.Identifier != null)
         {
@@ -66,7 +66,7 @@ public class NonSCIMUserProvider : ProviderBase
         string resourceIdentifier = Guid.NewGuid().ToString();
         resource.Identifier = resourceIdentifier;
 
-        await _createUser.ExecuteAsync(user, "App-001", correlationIdentifier);
+        await _createUser.ExecuteAsync(user, appId, correlationIdentifier);
 
         // this.storage.Users.Add(resourceIdentifier, user);
 
@@ -263,5 +263,18 @@ public class NonSCIMUserProvider : ProviderBase
         }
         else
             return Task.FromResult(results.ToArray());
+    }
+
+    /// <summary>
+    /// Creates a new user asynchronously.
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <param name="correlationIdentifier"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    [Obsolete("This method is obsolete. Use CreateAsync(Resource, string, string) instead.", true)]
+    public sealed override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
+    {
+        throw new NotImplementedException();
     }
 }

@@ -146,5 +146,10 @@ namespace Microsoft.SCIM.WebHostSample.Provider
 
             throw new NotImplementedException();
         }
+
+        public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier, string appId = null)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

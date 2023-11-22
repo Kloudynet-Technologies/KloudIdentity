@@ -108,7 +108,10 @@ namespace Microsoft.SCIM
             }
         }
 
+        [Obsolete ("Use CreateAsync(Resource, string, string) instead.")]
         public abstract Task<Resource> CreateAsync(Resource resource, string correlationIdentifier);
+
+        public abstract Task<Resource> CreateAsync(Resource resource, string correlationIdentifier, string appId = null);
 
         public virtual async Task<Resource> CreateAsync(IRequest<Resource> request)
         {
@@ -127,7 +130,17 @@ namespace Microsoft.SCIM
                 throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
             }
 
-            Resource result = await this.CreateAsync(request.Payload, request.CorrelationIdentifier).ConfigureAwait(false);
+            string appId;
+            if (request.Request.Options.TryGetValue<string>(new HttpRequestOptionsKey<string>("appId"), out var appIdValue))
+            {
+                appId = appIdValue;
+            }
+            else
+            {
+                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+            }
+
+            Resource result = await this.CreateAsync(request.Payload, request.CorrelationIdentifier, appId).ConfigureAwait(false);
             return result;
         }
 

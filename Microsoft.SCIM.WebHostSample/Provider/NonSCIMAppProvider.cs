@@ -27,18 +27,9 @@ public class NonSCIMAppProvider : ProviderBase
     /// <param name="resource">The resource to create.</param>
     /// <param name="correlationIdentifier">The correlation identifier.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the created resource.</returns>
+    [Obsolete("Use CreateAsync(Resource, string, string) instead.")]
     public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
     {
-        if (resource is Core2EnterpriseUser)
-        {
-            return _userProvider.CreateAsync(resource, correlationIdentifier);
-        }
-
-        if (resource is Core2Group)
-        {
-            return _groupProvider.CreateAsync(resource, correlationIdentifier);
-        }
-
         throw new NotImplementedException();
     }
 
@@ -89,6 +80,29 @@ public class NonSCIMAppProvider : ProviderBase
         if (parameters.SchemaIdentifier.Equals(SchemaIdentifiers.Core2Group))
         {
             return _userProvider.QueryAsync(parameters, correlationIdentifier);
+        }
+
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Creates a new resource asynchronously.
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <param name="correlationIdentifier"></param>
+    /// <param name="appId"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier, string appId = null)
+    {
+        if (resource is Core2EnterpriseUser)
+        {
+            return _userProvider.CreateAsync(resource, correlationIdentifier, appId);
+        }
+
+        if (resource is Core2Group)
+        {
+            return _groupProvider.CreateAsync(resource, correlationIdentifier, appId);
         }
 
         throw new NotImplementedException();

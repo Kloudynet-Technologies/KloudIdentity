@@ -12,6 +12,7 @@ namespace Microsoft.SCIM
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.WebApiCompatShim;
 
+    [ServiceFilter(typeof(ExtractAppIdFilter))]
     public abstract class ControllerTemplate : ControllerBase
     {
         internal const string AttributeValueIdentifier = "{identifier}";
@@ -53,8 +54,14 @@ namespace Microsoft.SCIM
 
         protected HttpRequestMessage ConvertRequest()
         {
+            string appId = HttpContext.Items["appId"] as string;
+
             HttpRequestMessageFeature hreqmf = new HttpRequestMessageFeature(this.HttpContext);
             HttpRequestMessage result = hreqmf.HttpRequestMessage;
+            
+            // Add the appId to the request options
+            result.Options.Set(new HttpRequestOptionsKey<string>("appId"), appId);
+
             return result;
         }
 
@@ -185,6 +192,7 @@ namespace Microsoft.SCIM
         public virtual async Task<ActionResult<QueryResponseBase>> Get()
         {
             string correlationIdentifier = null;
+            string appId = HttpContext.Items["appId"] as string;
             try
             {
                 HttpRequestMessage request = this.ConvertRequest();
@@ -287,6 +295,7 @@ namespace Microsoft.SCIM
         public virtual async Task<IActionResult> Get([FromUri]string identifier)
         {
             string correlationIdentifier = null;
+            string appId = HttpContext.Items["appId"] as string;
             try
             {
                 if (string.IsNullOrWhiteSpace(identifier))
