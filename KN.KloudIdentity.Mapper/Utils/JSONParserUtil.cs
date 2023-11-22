@@ -3,6 +3,7 @@
 //------------------------------------------------------------
 
 using System.Collections;
+using System.Dynamic;
 using KN.KloudIdentity.Mapper.Config;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
@@ -73,7 +74,7 @@ namespace KN.KloudIdentity.Mapper.Utils
                 JSonDataType.Boolean => Boolean.TryParse(value?.ToString(), out bool boolValue) ? boolValue : default(bool?),
                 JSonDataType.Integer => Int32.TryParse(value?.ToString(), out int intValue) ? intValue : default(int?),
                 JSonDataType.Object => throw new NotImplementedException("Object type not implemented yet."),
-                JSonDataType.Array => throw new NotImplementedException("Array type not implemented yet."),
+                JSonDataType.Array => ReadValueFromArray(value, schemaAttribute),
                 _ => default,
             };
         }
@@ -141,5 +142,74 @@ namespace KN.KloudIdentity.Mapper.Utils
 
             return value;
         }
+
+        /// <summary>
+        /// Reads values from an array of dynamic objects based on the provided schema attribute.
+        /// </summary>
+        /// <param name="data">The array of dynamic objects to read values from.</param>
+        /// <param name="schemaAttribute">The schema attribute specifying how to read values from the array.</param>
+        /// <returns>A JArray containing the extracted values based on the schema attribute.</returns>
+        public static dynamic ReadValueFromArray(dynamic data, SchemaAttribute schemaAttribute)
+        {
+            var newArray = new JArray();
+
+            // Check if the array element type is a simple data type (String, Integer, Boolean)
+            if (schemaAttribute.ArrayElementType == JSonDataType.String ||
+                schemaAttribute.ArrayElementType == JSonDataType.Integer ||
+                schemaAttribute.ArrayElementType == JSonDataType.Boolean)
+            {
+                // Iterate through each object in the array
+                foreach (var obj in data)
+                {
+                    // Get the value of the specified property from the object
+                    var propertyValue = GetPropertyValue(obj, schemaAttribute.ArrayElementMappingField);
+
+                    // If the property value is not null, convert and add it to the new array
+                    if (propertyValue != null)
+                    {
+                        switch (schemaAttribute.ArrayElementType)
+                        {
+                            case JSonDataType.String:
+                                newArray.Add(propertyValue.ToString());
+                                break;
+
+                            case JSonDataType.Integer:
+                                newArray.Add(Convert.ToInt32(propertyValue));
+                                break;
+
+                            case JSonDataType.Boolean:
+                                newArray.Add(Convert.ToBoolean(propertyValue));
+                                break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                /*
+                 * @TODO: Handle nested objects in array
+                 * For complex data types, implement logic to handle nested objects in the array.
+                 */
+            }
+
+            return newArray;
+        }
+
+        /// <summary>
+        /// Gets the value of a specified property from a dynamic object.
+        /// </summary>
+        /// <param name="obj">The dynamic object from which to retrieve the property value.</param>
+        /// <param name="propertyName">The name of the property to retrieve.</param>
+        /// <returns>The value of the specified property, or null if the property is not found.</returns>
+        private static object GetPropertyValue(dynamic obj, string propertyName)
+        {
+            // Get the property information using reflection
+            var property = obj.GetType().GetProperty(propertyName);
+
+            // Return the property value if the property is found, otherwise return null
+            return property?.GetValue(obj);
+        }
+
+
     }
 }
