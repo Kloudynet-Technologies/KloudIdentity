@@ -25,4 +25,19 @@ public class SchemaAttribute
     /// Name of the mapped SCIM attribute.
     /// </summary>
     public required string MappedAttribute { get; set; }
+
+    /// <summary>
+    /// Array element type of the field.
+    /// </summary>
+    public JSonDataType? ArrayElementType { get; set; }
+
+    /// <summary>
+    /// For plain JSON array, the field name of the array element.
+    /// </summary>  
+    public string? ArrayElementMappingField { get; set; }
+
+    /// <summary>
+    /// Child schemas of the schema.
+    /// </summary>
+    public IList<SchemaAttribute>? ChildSchemas { get; set; }
 }

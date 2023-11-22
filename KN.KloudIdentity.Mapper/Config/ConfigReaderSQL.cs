@@ -90,6 +90,11 @@ namespace KN.KloudIdentity.Mapper.Config
                 throw new NotFoundException($"No config found for appId: {appId}");
             }
 
+            if (res != null)
+            {
+                res.GroupSchema = res.GroupSchema.Where(gs => gs.ParentId == null).ToList();
+            }
+
             var mapperConfig = res.TransformToMapperConfig();
 
             ProcessAuthConfig(mapperConfig.AuthConfig, false);

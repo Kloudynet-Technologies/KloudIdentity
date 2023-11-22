@@ -36,31 +36,51 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
                     ApiKey = appConfig.AuthConfig.ApiKey,
                     ApiKeyHeader = appConfig.AuthConfig.ApiKeyHeader
                 },
-                UserSchema = appConfig.UserSchema
-                    .Select(
-                        x =>
-                            new SchemaAttribute
-                            {
-                                DataType = (JSonDataType)x.DataType,
-                                FieldName = x.FieldName,
-                                IsRequired = x.IsRequired,
-                                MappedAttribute = x.MappedAttribute
-                            }
-                    )
-                    .ToList(),
-                GroupSchema = appConfig.GroupSchema
-                    .Select(
-                        x =>
-                            new SchemaAttribute
-                            {
-                                DataType = (JSonDataType)x.DataType,
-                                FieldName = x.FieldName,
-                                IsRequired = x.IsRequired,
-                                MappedAttribute = x.MappedAttribute
-                            }
-                    )
-                    .ToList()
+                UserSchema = TransformToUserSchema(appConfig.UserSchema),
+                GroupSchema = TransformToGroupSchema(appConfig.GroupSchema)
             };
+        }
+
+        public static List<SchemaAttribute> TransformToGroupSchema(
+            this ICollection<GroupSchemaModel> groupSchemaModels
+        )
+        {
+            return groupSchemaModels
+                .Select(
+                    x =>
+                        new SchemaAttribute
+                        {
+                            DataType = (JSonDataType)x.DataType,
+                            FieldName = x.FieldName,
+                            IsRequired = x.IsRequired,
+                            MappedAttribute = x.MappedAttribute,
+                            ArrayElementMappingField = x.ArrayElementMappingField,
+                            ArrayElementType = x.ArrayElementType,
+                            ChildSchemas = x.ChildSchemas?.TransformToGroupSchema()
+                        }
+                )
+                .ToList();
+        }
+
+        public static List<SchemaAttribute> TransformToUserSchema(
+            this ICollection<UserSchemaModel> userSchemaModels
+        )
+        {
+            return userSchemaModels
+                .Select(
+                    x =>
+                        new SchemaAttribute
+                        {
+                            DataType = (JSonDataType)x.DataType,
+                            FieldName = x.FieldName,
+                            IsRequired = x.IsRequired,
+                            MappedAttribute = x.MappedAttribute,
+                            ArrayElementMappingField = x.ArrayElementMappingField,
+                            ArrayElementType = x.ArrayElementType,
+                            ChildSchemas = x.ChildSchemas?.TransformToUserSchema()
+                        }
+                )
+                .ToList();
         }
 
         public static AppConfigModel TransformToAppConfigModel(this MapperConfig config)
@@ -69,7 +89,7 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
             {
                 AppId = config.AppId,
                 UserProvisioningApiUrl = config.UserProvisioningApiUrl,
-                GroupProvisioningApiUrl = config.GroupProvisioningApiUrl, 
+                GroupProvisioningApiUrl = config.GroupProvisioningApiUrl,
                 DELETEAPIForUsers = config.DELETEAPIForUsers,
                 GETAPIForUsers = config.GETAPIForUsers,
                 LISTAPIForUsers = config.LISTAPIForUsers,
@@ -83,13 +103,19 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
                     appId: config.AppId,
                     schemaAttributes: config.GroupSchema
                 ),
-                UserSchema = TransformToUserSchemaModel(appId: config.AppId, schemaAttributes: config.UserSchema)
+                UserSchema = TransformToUserSchemaModel(
+                    appId: config.AppId,
+                    schemaAttributes: config.UserSchema
+                )
             };
 
             return configModel;
         }
 
-        public static AuthConfigModel TransformToAuthConfigModel(this AuthConfig authConfig, string appId)
+        public static AuthConfigModel TransformToAuthConfigModel(
+            this AuthConfig authConfig,
+            string appId
+        )
         {
             return new AuthConfigModel
             {
@@ -109,9 +135,12 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
             };
         }
 
-        public static List<GroupSchemaModel> TransformToGroupSchemaModel(this IList<SchemaAttribute> schemaAttributes, string appId)
+        public static List<GroupSchemaModel> TransformToGroupSchemaModel(
+            this IList<SchemaAttribute> schemaAttributes,
+            string appId
+        )
         {
-            return schemaAttributes
+            var groupSchemaModels = schemaAttributes
                 .Select(
                     x =>
                         new GroupSchemaModel
@@ -120,13 +149,21 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
                             DataType = (int)x.DataType,
                             FieldName = x.FieldName,
                             IsRequired = x.IsRequired,
-                            MappedAttribute = x.MappedAttribute
+                            MappedAttribute = x.MappedAttribute,
+                            ArrayElementMappingField = x.ArrayElementMappingField,
+                            ArrayElementType = x.ArrayElementType,
+                            ChildSchemas = x.ChildSchemas?.TransformToGroupSchemaModel(appId)
                         }
                 )
                 .ToList();
+
+            return groupSchemaModels;
         }
 
-        public static List<UserSchemaModel> TransformToUserSchemaModel(this IList<SchemaAttribute> schemaAttributes, string appId)
+        public static List<UserSchemaModel> TransformToUserSchemaModel(
+            this IList<SchemaAttribute> schemaAttributes,
+            string appId
+        )
         {
             return schemaAttributes
                 .Select(
@@ -137,7 +174,10 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
                             DataType = (int)x.DataType,
                             FieldName = x.FieldName,
                             IsRequired = x.IsRequired,
-                            MappedAttribute = x.MappedAttribute
+                            MappedAttribute = x.MappedAttribute,
+                            ArrayElementMappingField = x.ArrayElementMappingField,
+                            ArrayElementType = x.ArrayElementType,
+                            ChildSchemas = x.ChildSchemas?.TransformToUserSchemaModel(appId)
                         }
                 )
                 .ToList();
