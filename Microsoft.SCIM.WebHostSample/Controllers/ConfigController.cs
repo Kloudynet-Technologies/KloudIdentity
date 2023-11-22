@@ -1,4 +1,8 @@
-﻿using KN.KloudIdentity.Mapper;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+using KN.KloudIdentity.Mapper;
 using KN.KloudIdentity.Mapper.Config;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

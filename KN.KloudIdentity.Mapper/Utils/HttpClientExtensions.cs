@@ -1,4 +1,8 @@
-﻿using KN.KloudIdentity.Mapper.Auth;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+using KN.KloudIdentity.Mapper.Auth;
 using KN.KloudIdentity.Mapper.Config;
 using System.Net.Http.Headers;
 

@@ -1,7 +1,10 @@
-﻿using KN.KloudIdentity.Mapper.Config;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
-using System.Net.Http.Json;
 using System.Text;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User

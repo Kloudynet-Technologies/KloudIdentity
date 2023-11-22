@@ -1,4 +1,8 @@
-﻿using Microsoft.SCIM;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+using Microsoft.SCIM;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
