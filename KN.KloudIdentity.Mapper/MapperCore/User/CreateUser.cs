@@ -3,7 +3,6 @@ using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 using System.Net.Http.Headers;
-using System.Text;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
@@ -69,29 +68,13 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
 
     private async Task CreateUserAsync()
     {
-        var token = await GetAuthenticationAsync();
         var authConfig = _appConfig.AuthConfig;
+
+        var token = await GetAuthenticationAsync(authConfig);
 
         using (var httpClient = new HttpClient())
         {
-            if (authConfig.AuthenticationMethod == AuthenticationMethod.ApiKey)
-            {
-                if (string.IsNullOrWhiteSpace(authConfig.ApiKeyHeader))
-                {
-                    throw new ArgumentNullException(
-                        nameof(authConfig.ApiKeyHeader),
-                        "ApiKeyHeaderName cannot be null or empty when AuthenticationMethod is ApiKey"
-                    );
-                }
-
-                httpClient.DefaultRequestHeaders.Add(authConfig.ApiKeyHeader, token);
-            }
-            else
-            {
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-                    token
-                );
-            }
+            httpClient.SetAuthenticationHeaders(authConfig, token);
 
             var response = await httpClient.PostAsJsonAsync(
                 _appConfig.UserProvisioningApiUrl,

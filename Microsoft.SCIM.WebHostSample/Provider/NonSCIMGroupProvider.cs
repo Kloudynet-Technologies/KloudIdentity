@@ -22,12 +22,23 @@ public class NonSCIMGroupProvider : ProviderBase
         throw new NotImplementedException();
     }
 
-    public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
+    public override Task DeleteAsync(
+        IResourceIdentifier resourceIdentifier,
+        string correlationIdentifier
+    )
     {
         throw new NotImplementedException();
     }
 
-    public override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier)
+    public override Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override Task<Resource> RetrieveAsync(
+        IResourceRetrievalParameters parameters,
+        string correlationIdentifier
+    )
     {
         throw new NotImplementedException();
     }

@@ -44,7 +44,7 @@ public interface IAPIMapperBase<T> where T : Resource
     /// Gets the authentication token asynchronously.
     /// </summary>
     /// <returns></returns>
-    Task<string> GetAuthenticationAsync();
+    Task<string> GetAuthenticationAsync(AuthConfig config);
 
     /// <summary>
     /// Map and prepare the payload to be sent to the API asynchronously.

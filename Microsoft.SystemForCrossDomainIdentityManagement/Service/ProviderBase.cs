@@ -13,37 +13,34 @@ namespace Microsoft.SCIM
     public abstract class ProviderBase : IProvider
     {
         private static readonly Lazy<BulkRequestsFeature> BulkFeatureSupport =
-            new Lazy<BulkRequestsFeature>(
-                () =>
-                    BulkRequestsFeature.CreateUnsupportedFeature());
+            new Lazy<BulkRequestsFeature>(() => BulkRequestsFeature.CreateUnsupportedFeature());
 
-        private static readonly Lazy<IReadOnlyCollection<TypeScheme>> TypeSchema =
-            new Lazy<IReadOnlyCollection<TypeScheme>>(
-                () =>
-                    Array.Empty<TypeScheme>());
+        private static readonly Lazy<IReadOnlyCollection<TypeScheme>> TypeSchema = new Lazy<
+            IReadOnlyCollection<TypeScheme>
+        >(() => Array.Empty<TypeScheme>());
 
         private static readonly Lazy<ServiceConfigurationBase> ServiceConfiguration =
             new Lazy<ServiceConfigurationBase>(
                 () =>
-                    new Core2ServiceConfiguration(ProviderBase.BulkFeatureSupport.Value, false, true, false, true, false));
+                    new Core2ServiceConfiguration(
+                        ProviderBase.BulkFeatureSupport.Value,
+                        false,
+                        true,
+                        false,
+                        true,
+                        false
+                    )
+            );
 
-        private static readonly Lazy<IReadOnlyCollection<Core2ResourceType>> Types =
-            new Lazy<IReadOnlyCollection<Core2ResourceType>>(
-                () =>
-                    Array.Empty<Core2ResourceType>());
+        private static readonly Lazy<IReadOnlyCollection<Core2ResourceType>> Types = new Lazy<
+            IReadOnlyCollection<Core2ResourceType>
+        >(() => Array.Empty<Core2ResourceType>());
 
-        public virtual bool AcceptLargeObjects
-        {
-            get;
-            set;
-        }
+        public virtual bool AcceptLargeObjects { get; set; }
 
         public virtual ServiceConfigurationBase Configuration
         {
-            get
-            {
-                return ProviderBase.ServiceConfiguration.Value;
-            }
+            get { return ProviderBase.ServiceConfiguration.Value; }
         }
 
         //public virtual IEventTokenHandler EventHandler
@@ -54,42 +51,27 @@ namespace Microsoft.SCIM
 
         public virtual IReadOnlyCollection<IExtension> Extensions
         {
-            get
-            {
-                return null;
-            }
+            get { return null; }
         }
 
         public virtual IResourceJsonDeserializingFactory<GroupBase> GroupDeserializationBehavior
         {
-            get
-            {
-                return null;
-            }
+            get { return null; }
         }
 
         public virtual ISchematizedJsonDeserializingFactory<PatchRequest2> PatchRequestDeserializationBehavior
         {
-            get
-            {
-                return null;
-            }
+            get { return null; }
         }
 
         public virtual IReadOnlyCollection<Core2ResourceType> ResourceTypes
         {
-            get
-            {
-                return ProviderBase.Types.Value;
-            }
+            get { return ProviderBase.Types.Value; }
         }
 
         public virtual IReadOnlyCollection<TypeScheme> Schema
         {
-            get
-            {
-                return ProviderBase.TypeSchema.Value;
-            }
+            get { return ProviderBase.TypeSchema.Value; }
         }
 
         //public virtual Action<IAppBuilder, HttpConfiguration> StartupBehavior
@@ -102,10 +84,7 @@ namespace Microsoft.SCIM
 
         public virtual IResourceJsonDeserializingFactory<Core2UserBase> UserDeserializationBehavior
         {
-            get
-            {
-                return null;
-            }
+            get { return null; }
         }
 
         [Obsolete ("Use CreateAsync(Resource, string, string) instead.")]
@@ -122,12 +101,16 @@ namespace Microsoft.SCIM
 
             if (null == request.Payload)
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest
+                );
             }
 
             if (string.IsNullOrWhiteSpace(request.CorrelationIdentifier))
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest
+                );
             }
 
             string appId;
@@ -144,7 +127,10 @@ namespace Microsoft.SCIM
             return result;
         }
 
-        public abstract Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier);
+        public abstract Task DeleteAsync(
+            IResourceIdentifier resourceIdentifier,
+            string correlationIdentifier
+        );
 
         public virtual async Task DeleteAsync(IRequest<IResourceIdentifier> request)
         {
@@ -155,35 +141,40 @@ namespace Microsoft.SCIM
 
             if (null == request.Payload)
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest
+                );
             }
 
             if (string.IsNullOrWhiteSpace(request.CorrelationIdentifier))
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest
+                );
             }
 
-            await this.DeleteAsync(request.Payload, request.CorrelationIdentifier).ConfigureAwait(false);
+            await this.DeleteAsync(request.Payload, request.CorrelationIdentifier)
+                .ConfigureAwait(false);
         }
 
-        public virtual async Task<QueryResponseBase> PaginateQueryAsync(IRequest<IQueryParameters> request)
+        public virtual async Task<QueryResponseBase> PaginateQueryAsync(
+            IRequest<IQueryParameters> request
+        )
         {
             if (null == request)
             {
                 throw new ArgumentNullException(nameof(request));
             }
 
-            IReadOnlyCollection<Resource> resources = await this.QueryAsync(request).ConfigureAwait(false);
+            IReadOnlyCollection<Resource> resources = await this.QueryAsync(request)
+                .ConfigureAwait(false);
             QueryResponseBase result = new QueryResponse(resources);
-            result.TotalResults =
-                result.ItemsPerPage =
-                    resources.Count;
+            result.TotalResults = result.ItemsPerPage = resources.Count;
             result.StartIndex = resources.Any() ? 1 : (int?)null;
             return result;
         }
 
-
-        public  virtual async Task<BulkResponse2> ProcessAsync(IRequest<BulkRequest2> request)
+        public virtual async Task<BulkResponse2> ProcessAsync(IRequest<BulkRequest2> request)
         {
             if (null == request)
             {
@@ -192,7 +183,9 @@ namespace Microsoft.SCIM
 
             if (null == request.Request)
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest
+                );
             }
             Queue<IBulkOperationContext> operations = request.EnqueueOperations();
             BulkResponse2 result = await this.ProcessAsync(operations).ConfigureAwait(false);
@@ -213,23 +206,29 @@ namespace Microsoft.SCIM
 
             if (null == operation.Method)
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidOperation);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidOperation
+                );
             }
 
             if (null == operation.Operation)
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidOperation);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidOperation
+                );
             }
 
-            BulkResponseOperation response =
-                new BulkResponseOperation(operation.Operation.Identifier)
-                {
-                    Method = operation.Method
-                };
+            BulkResponseOperation response = new BulkResponseOperation(
+                operation.Operation.Identifier
+            )
+            {
+                Method = operation.Method
+            };
 
             if (HttpMethod.Delete == operation.Method)
             {
-                IBulkOperationContext<IResourceIdentifier> context = (IBulkOperationContext<IResourceIdentifier>)operation;
+                IBulkOperationContext<IResourceIdentifier> context =
+                    (IBulkOperationContext<IResourceIdentifier>)operation;
                 await this.DeleteAsync(context.Request).ConfigureAwait(false);
                 response.Status = HttpStatusCode.NoContent;
             }
@@ -238,11 +237,14 @@ namespace Microsoft.SCIM
                 switch (operation)
                 {
                     case IBulkOperationContext<IResourceRetrievalParameters> retrievalContext:
-                        response.Response = await this.RetrieveAsync(retrievalContext.Request).ConfigureAwait(false);
+                        response.Response = await this.RetrieveAsync(retrievalContext.Request)
+                            .ConfigureAwait(false);
                         break;
                     default:
-                        IBulkOperationContext<IQueryParameters> queryContext = (IBulkOperationContext<IQueryParameters>)operation;
-                        response.Response = await this.QueryAsync(queryContext.Request).ConfigureAwait(false);
+                        IBulkOperationContext<IQueryParameters> queryContext =
+                            (IBulkOperationContext<IQueryParameters>)operation;
+                        response.Response = await this.QueryAsync(queryContext.Request)
+                            .ConfigureAwait(false);
                         break;
                 }
                 response.Status = HttpStatusCode.OK;
@@ -255,24 +257,26 @@ namespace Microsoft.SCIM
             }
             else if (HttpMethod.Post == operation.Method)
             {
-                IBulkOperationContext<Resource> context = (IBulkOperationContext<Resource>)operation;
+                IBulkOperationContext<Resource> context =
+                    (IBulkOperationContext<Resource>)operation;
                 Resource output = await this.CreateAsync(context.Request).ConfigureAwait(false);
                 response.Status = HttpStatusCode.Created;
-                response.Location = output.GetResourceIdentifier(context.BulkRequest.BaseResourceIdentifier);
+                response.Location = output.GetResourceIdentifier(
+                    context.BulkRequest.BaseResourceIdentifier
+                );
             }
             else
             {
-                string exceptionMessage =
-                    string.Format(
-                        CultureInfo.InvariantCulture,
-                        SystemForCrossDomainIdentityManagementServiceResources.ExceptionMethodNotSupportedTemplate,
-                        operation.Method);
-                ErrorResponse error =
-                    new ErrorResponse()
-                    {
-                        Status = HttpStatusCode.BadRequest,
-                        Detail = exceptionMessage
-                    };
+                string exceptionMessage = string.Format(
+                    CultureInfo.InvariantCulture,
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionMethodNotSupportedTemplate,
+                    operation.Method
+                );
+                ErrorResponse error = new ErrorResponse()
+                {
+                    Status = HttpStatusCode.BadRequest,
+                    Detail = exceptionMessage
+                };
                 response.Response = error;
                 response.Status = HttpStatusCode.BadRequest;
             }
@@ -280,7 +284,9 @@ namespace Microsoft.SCIM
             operation.Complete(response);
         }
 
-        public virtual async Task<BulkResponse2> ProcessAsync(Queue<IBulkOperationContext> operations)
+        public virtual async Task<BulkResponse2> ProcessAsync(
+            Queue<IBulkOperationContext> operations
+        )
         {
             if (null == operations)
             {
@@ -317,9 +323,8 @@ namespace Microsoft.SCIM
                     }
                 }
 
-                if
-                (
-                        operation.BulkRequest.Payload.FailOnErrors.HasValue
+                if (
+                    operation.BulkRequest.Payload.FailOnErrors.HasValue
                     && countFailures > operation.BulkRequest.Payload.FailOnErrors.Value
                 )
                 {
@@ -329,7 +334,10 @@ namespace Microsoft.SCIM
             return result;
         }
 
-        public virtual Task<Resource[]> QueryAsync(IQueryParameters parameters, string correlationIdentifier)
+        public virtual Task<Resource[]> QueryAsync(
+            IQueryParameters parameters,
+            string correlationIdentifier
+        )
         {
             throw new NotImplementedException();
         }
@@ -343,22 +351,30 @@ namespace Microsoft.SCIM
 
             if (null == request.Payload)
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest
+                );
             }
 
             if (string.IsNullOrWhiteSpace(request.CorrelationIdentifier))
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest
+                );
             }
 
-            Resource[] result = await this.QueryAsync(request.Payload, request.CorrelationIdentifier).ConfigureAwait(false);
+            Resource[] result = await this.QueryAsync(
+                    request.Payload,
+                    request.CorrelationIdentifier
+                )
+                .ConfigureAwait(false);
             return result;
         }
 
-        public virtual Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier)
-        {
-            throw new NotSupportedException();
-        }
+        public abstract Task<Resource> ReplaceAsync(
+            Resource resource,
+            string correlationIdentifier
+        );
 
         public virtual async Task<Resource> ReplaceAsync(IRequest<Resource> request)
         {
@@ -369,21 +385,34 @@ namespace Microsoft.SCIM
 
             if (null == request.Payload)
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest
+                );
             }
 
             if (string.IsNullOrWhiteSpace(request.CorrelationIdentifier))
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest
+                );
             }
 
-            Resource result = await this.ReplaceAsync(request.Payload, request.CorrelationIdentifier).ConfigureAwait(false);
+            Resource result = await this.ReplaceAsync(
+                    request.Payload,
+                    request.CorrelationIdentifier
+                )
+                .ConfigureAwait(false);
             return result;
         }
 
-        public abstract Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier);
+        public abstract Task<Resource> RetrieveAsync(
+            IResourceRetrievalParameters parameters,
+            string correlationIdentifier
+        );
 
-        public virtual async Task<Resource> RetrieveAsync(IRequest<IResourceRetrievalParameters> request)
+        public virtual async Task<Resource> RetrieveAsync(
+            IRequest<IResourceRetrievalParameters> request
+        )
         {
             if (null == request)
             {
@@ -392,15 +421,23 @@ namespace Microsoft.SCIM
 
             if (null == request.Payload)
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest
+                );
             }
 
             if (string.IsNullOrWhiteSpace(request.CorrelationIdentifier))
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest
+                );
             }
 
-            Resource result = await this.RetrieveAsync(request.Payload, request.CorrelationIdentifier).ConfigureAwait(false);
+            Resource result = await this.RetrieveAsync(
+                    request.Payload,
+                    request.CorrelationIdentifier
+                )
+                .ConfigureAwait(false);
             return result;
         }
 
@@ -415,15 +452,20 @@ namespace Microsoft.SCIM
 
             if (null == request.Payload)
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest
+                );
             }
 
             if (string.IsNullOrWhiteSpace(request.CorrelationIdentifier))
             {
-                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+                throw new ArgumentException(
+                    SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest
+                );
             }
 
-            await this.UpdateAsync(request.Payload, request.CorrelationIdentifier).ConfigureAwait(false);
+            await this.UpdateAsync(request.Payload, request.CorrelationIdentifier)
+                .ConfigureAwait(false);
         }
     }
 }

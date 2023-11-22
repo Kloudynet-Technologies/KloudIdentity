@@ -25,6 +25,31 @@ public class MapperConfig
     public required string UserProvisioningApiUrl { get; set; }
 
     /// <summary>
+    ///  URL for the PUT API for users.
+    /// </summary>
+    public string? PUTAPIForUsers { get; set; }
+
+    /// <summary>
+    /// URL for the PATCH API for users.
+    /// </summary>  
+    public string? PATCHAPIForUsers { get; set; }
+
+    /// <summary>
+    /// URL for the DELETE API for users.
+    /// </summary>
+    public string? DELETEAPIForUsers { get; set; }
+
+    /// <summary>
+    /// URL for the GET API for users.
+    /// </summary>
+    public string? GETAPIForUsers { get; set; }
+
+    /// <summary>
+    /// URL for the LIST API for users.
+    /// </summary> 
+    public string? LISTAPIForUsers { get; set; }
+
+    /// <summary>
     /// URL for the group provisioning API.
     /// </summary>
     public required string GroupProvisioningApiUrl { get; set; }
