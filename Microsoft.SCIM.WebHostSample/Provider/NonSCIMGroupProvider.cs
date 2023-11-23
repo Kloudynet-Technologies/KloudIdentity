@@ -12,6 +12,7 @@ namespace Microsoft.SCIM.WebHostSample;
 /// </summary>
 public class NonSCIMGroupProvider : ProviderBase
 {
+    [Obsolete("Use CreateAsync(Resource, string, string) instead.")]
     public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
     {
         throw new NotImplementedException();
@@ -22,6 +23,7 @@ public class NonSCIMGroupProvider : ProviderBase
         throw new NotImplementedException();
     }
 
+    [Obsolete("Use DeleteAsync(IResourceIdentifier, string, string) instead.")]
     public override Task DeleteAsync(
         IResourceIdentifier resourceIdentifier,
         string correlationIdentifier
@@ -30,7 +32,18 @@ public class NonSCIMGroupProvider : ProviderBase
         throw new NotImplementedException();
     }
 
+    public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier, string appId = null)
+    {
+        throw new NotImplementedException();
+    }
+
+    [Obsolete("Use ReplaceAsync(IResourceRetrievalParameters, string, string) instead.")]
     public override Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier, string appId = null)
     {
         throw new NotImplementedException();
     }
@@ -43,7 +56,13 @@ public class NonSCIMGroupProvider : ProviderBase
         throw new NotImplementedException();
     }
 
+    [Obsolete("Use UpdateAsync(IResourceRetrievalParameters, string, string) instead.")]
     public override Task UpdateAsync(IPatch patch, string correlationIdentifier)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override Task UpdateAsync(IPatch patch, string correlationIdentifier, string appId = null)
     {
         throw new NotImplementedException();
     }

@@ -127,10 +127,17 @@ namespace Microsoft.SCIM
             return result;
         }
 
-        public abstract Task DeleteAsync(
-            IResourceIdentifier resourceIdentifier,
-            string correlationIdentifier
-        );
+        /// <summary>
+        /// Initiates the asynchronous deletion of a resource based on its schema identifier.
+        /// This method is obsolete. Use DeleteAsync(IResourceIdentifier, string, string) instead.
+        /// </summary>
+        /// <param name="resourceIdentifier"></param>
+        /// <param name="correlationIdentifier"></param>
+        /// <returns></returns>
+        [Obsolete("Use DeleteAsync(IResourceIdentifier, string, string) instead.")]
+        public abstract Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier);
+
+        public abstract Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier, string appId = null);
 
         public virtual async Task DeleteAsync(IRequest<IResourceIdentifier> request)
         {
@@ -153,7 +160,17 @@ namespace Microsoft.SCIM
                 );
             }
 
-            await this.DeleteAsync(request.Payload, request.CorrelationIdentifier)
+            string appId;
+            if (request.Request.Options.TryGetValue<string>(new HttpRequestOptionsKey<string>("appId"), out var appIdValue))
+            {
+                appId = appIdValue;
+            }
+            else
+            {
+                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+            }
+
+            await this.DeleteAsync(request.Payload, request.CorrelationIdentifier, appId)
                 .ConfigureAwait(false);
         }
 
@@ -371,10 +388,10 @@ namespace Microsoft.SCIM
             return result;
         }
 
-        public abstract Task<Resource> ReplaceAsync(
-            Resource resource,
-            string correlationIdentifier
-        );
+        [Obsolete("Use ReplaceAsync(Resource, string, string) instead.")]
+        public abstract Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier);
+
+        public abstract Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier, string appId = null);
 
         public virtual async Task<Resource> ReplaceAsync(IRequest<Resource> request)
         {
@@ -397,9 +414,20 @@ namespace Microsoft.SCIM
                 );
             }
 
+            string appId;
+            if (request.Request.Options.TryGetValue<string>(new HttpRequestOptionsKey<string>("appId"), out var appIdValue))
+            {
+                appId = appIdValue;
+            }
+            else
+            {
+                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+            }
+
             Resource result = await this.ReplaceAsync(
                     request.Payload,
-                    request.CorrelationIdentifier
+                    request.CorrelationIdentifier,
+                    appId
                 )
                 .ConfigureAwait(false);
             return result;
@@ -440,8 +468,11 @@ namespace Microsoft.SCIM
                 .ConfigureAwait(false);
             return result;
         }
-
+        
+        [Obsolete("Use UpdateAsync(IPatch, string, string) instead.")]
         public abstract Task UpdateAsync(IPatch patch, string correlationIdentifier);
+
+        public abstract Task UpdateAsync(IPatch patch, string correlationIdentifier, string appId = null);
 
         public virtual async Task UpdateAsync(IRequest<IPatch> request)
         {
@@ -464,7 +495,17 @@ namespace Microsoft.SCIM
                 );
             }
 
-            await this.UpdateAsync(request.Payload, request.CorrelationIdentifier)
+            string appId;
+            if (request.Request.Options.TryGetValue<string>(new HttpRequestOptionsKey<string>("appId"), out var appIdValue))
+            {
+                appId = appIdValue;
+            }
+            else
+            {
+                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+            }
+
+            await this.UpdateAsync(request.Payload, request.CorrelationIdentifier, appId)
                 .ConfigureAwait(false);
         }
     }

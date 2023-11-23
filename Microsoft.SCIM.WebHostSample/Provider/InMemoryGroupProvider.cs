@@ -78,6 +78,11 @@ namespace Microsoft.SCIM.WebHostSample.Provider
             return Task.CompletedTask;
         }
 
+        public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier, string appId = null)
+        {
+            throw new NotImplementedException();
+        }
+
         public override Task<Resource[]> QueryAsync(IQueryParameters parameters, string correlationIdentifier)
         {
             if (parameters == null)
@@ -189,6 +194,11 @@ namespace Microsoft.SCIM.WebHostSample.Provider
             return Task.FromResult(result);
         }
 
+        public override Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier, string appId = null)
+        {
+            throw new NotImplementedException();
+        }
+
         public override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier)
         {
             if (parameters == null)
@@ -263,6 +273,11 @@ namespace Microsoft.SCIM.WebHostSample.Provider
             }
 
             return Task.CompletedTask;
+        }
+
+        public override Task UpdateAsync(IPatch patch, string correlationIdentifier, string appId = null)
+        {
+            throw new NotImplementedException();
         }
     }
 }
