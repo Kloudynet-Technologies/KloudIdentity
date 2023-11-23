@@ -3,6 +3,7 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.MapperCore;
+using KN.KloudIdentity.Mapper.MapperCore.User;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -17,14 +18,19 @@ namespace Microsoft.SCIM.WebHostSample;
 public class NonSCIMGroupProvider : ProviderBase
 {
     private readonly ICreateResource<Core2Group> _createGroup;
+    private readonly IDeleteResource<Core2Group> _deleteGroup;
+    private readonly IReplaceResource<Core2Group> _replaceGroup;
 
     /// <summary>
     /// Constructor that initializes the NonSCIMGroupProvider with a resource creation service.
     /// </summary>
     /// <param name="createGroup">Service for creating resources of type Core2Group.</param>
-    public NonSCIMGroupProvider(ICreateResource<Core2Group> createGroup)
+    /// <param name="deleteGroup">Service for deleting resources of type Core2Group.</param>
+    public NonSCIMGroupProvider(ICreateResource<Core2Group> createGroup, IDeleteResource<Core2Group> deleteGroup, IReplaceResource<Core2Group> replaceGroup)
     {
         _createGroup = createGroup;
+        _deleteGroup = deleteGroup;
+        _replaceGroup = replaceGroup;
     }
 
     /// <summary>
@@ -59,7 +65,7 @@ public class NonSCIMGroupProvider : ProviderBase
         resource.Identifier = resourceIdentifier;
 
         // Invoke the createGroup service to create the group asynchronously.
-        return await _createGroup.ExecuteAsync(group, "App-001", correlationIdentifier);
+        return await _createGroup.ExecuteAsync(group, "App-002", correlationIdentifier);
     }
 
     /// <summary>
@@ -69,12 +75,14 @@ public class NonSCIMGroupProvider : ProviderBase
     /// <param name="correlationIdentifier">Correlation identifier for tracking.</param>
     /// <returns>Task representing the asynchronous operation.</returns>
     /// <exception cref="NotImplementedException">Thrown to indicate the method is not implemented.</exception>
-    public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
+    public override async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
     {
-        /*
-         * @TODO: Implement this method.
-         */
-        throw new NotImplementedException();
+        if (string.IsNullOrWhiteSpace(resourceIdentifier?.Identifier))
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        await _deleteGroup.DeleteAsync(resourceIdentifier, "App-001", correlationIdentifier);
     }
 
     /// <summary>
@@ -99,9 +107,26 @@ public class NonSCIMGroupProvider : ProviderBase
     /// <param name="correlationIdentifier">Correlation identifier for tracking.</param>
     /// <returns>Task representing the asynchronous operation.</returns>
     /// <exception cref="NotImplementedException">Thrown to indicate the method is not implemented.</exception>
-    public override Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier)
+    public override async Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier)
     {
-        throw new NotImplementedException();
+        if (resource.Identifier == null)
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        Core2Group group = resource as Core2Group;
+
+        if (string.IsNullOrWhiteSpace(group.DisplayName))
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        // Update metadata
+        group.Metadata.LastModified = DateTime.UtcNow;
+
+        var res = await _replaceGroup.ReplaceAsync(group, "App-002", correlationIdentifier);
+
+        return res;
     }
 
     /// <summary>

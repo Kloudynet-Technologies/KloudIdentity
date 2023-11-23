@@ -63,7 +63,7 @@ public class NonSCIMAppProvider : ProviderBase
 
         if (resourceIdentifier.SchemaIdentifier.Equals(SchemaIdentifiers.Core2Group))
         {
-            await _userProvider.DeleteAsync(resourceIdentifier, correlationIdentifier);
+            await _groupProvider.DeleteAsync(resourceIdentifier, correlationIdentifier);
         }
     }
 
