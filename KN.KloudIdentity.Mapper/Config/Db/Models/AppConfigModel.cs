@@ -25,6 +25,16 @@ public class AppConfigModel
 
     public required string GroupProvisioningApiUrl { get; set; }
 
+    public string? PUTAPIForGroups { get; set; }
+
+    public string? PATCHAPIForGroups { get; set; }
+
+    public string? DELETEAPIForGroups { get; set; }
+
+    public string? GETAPIForGroups { get; set; }
+
+    public string? LISTAPIForGroups { get; set; }
+
     public AuthConfigModel AuthConfig { get; set; }
 
     public ICollection<UserSchemaModel> UserSchema { get; set; }
