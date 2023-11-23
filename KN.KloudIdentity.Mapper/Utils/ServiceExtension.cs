@@ -34,5 +34,7 @@ public static class ServiceExtension
         services.AddScoped<IReplaceResource<Core2EnterpriseUser>, ReplaceUser>();
         services.AddScoped<IUpdateResource<Core2EnterpriseUser>, UpdateUser>();
         services.AddScoped<ICreateResource<Core2Group>, CreateGroup>();
+        services.AddScoped<IDeleteResource<Core2Group>, DeleteGroup>();
+        services.AddScoped<IReplaceResource<Core2Group>, ReplaceGroup>();
     }
 }
