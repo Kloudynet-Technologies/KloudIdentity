@@ -174,11 +174,11 @@ namespace KN.KloudIdentity.Mapper.Utils
                                 break;
 
                             case JSonDataType.Integer:
-                                newArray.Add(Convert.ToInt32(propertyValue));
+                                newArray.Add(Int32.TryParse(propertyValue?.ToString(), out int intValue) ? intValue : default(int?));
                                 break;
 
                             case JSonDataType.Boolean:
-                                newArray.Add(Convert.ToBoolean(propertyValue));
+                                newArray.Add(Boolean.TryParse(propertyValue?.ToString(), out bool boolValue) ? boolValue : default(bool?));
                                 break;
                         }
                     }
