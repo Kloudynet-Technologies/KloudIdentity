@@ -30,18 +30,9 @@ public class NonSCIMAppProvider : ProviderBase
     /// <param name="resource">The resource to create.</param>
     /// <param name="correlationIdentifier">The correlation identifier.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the created resource.</returns>
+    [Obsolete("Use CreateAsync(Resource, string, string) instead.")]
     public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
     {
-        if (resource is Core2EnterpriseUser)
-        {
-            return _userProvider.CreateAsync(resource, correlationIdentifier);
-        }
-
-        if (resource is Core2Group)
-        {
-            return _groupProvider.CreateAsync(resource, correlationIdentifier);
-        }
-
         throw new NotImplementedException();
     }
 
@@ -51,20 +42,13 @@ public class NonSCIMAppProvider : ProviderBase
     /// <param name="resourceIdentifier">The identifier of the resource to be deleted.</param>
     /// <param name="correlationIdentifier">The correlation identifier associated with the operation.</param>
     /// <returns>A Task representing the asynchronous operation.</returns>
+    [Obsolete("Use DeleteAsync(IResourceIdentifier, string, string) instead.")]
     public override async Task DeleteAsync(
         IResourceIdentifier resourceIdentifier,
         string correlationIdentifier
     )
     {
-        if (resourceIdentifier.SchemaIdentifier.Equals(SchemaIdentifiers.Core2EnterpriseUser))
-        {
-            await _userProvider.DeleteAsync(resourceIdentifier, correlationIdentifier);
-        }
-
-        if (resourceIdentifier.SchemaIdentifier.Equals(SchemaIdentifiers.Core2Group))
-        {
-            await _groupProvider.DeleteAsync(resourceIdentifier, correlationIdentifier);
-        }
+        throw new NotImplementedException();
     }
 
     /// <summary>
@@ -91,6 +75,15 @@ public class NonSCIMAppProvider : ProviderBase
         throw new NotImplementedException();
     }
 
+    /// <summary>
+    /// Updates a resource asynchronously.
+    /// This method is obsolete. Use UpdateAsync(IPatch, string, string) instead.
+    /// </summary>
+    /// <param name="patch"></param>
+    /// <param name="correlationIdentifier"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    [Obsolete("Use UpdateAsync(IPatch, string, string) instead.")]
     public override Task UpdateAsync(IPatch patch, string correlationIdentifier)
     {
         throw new NotImplementedException();
@@ -126,18 +119,81 @@ public class NonSCIMAppProvider : ProviderBase
     /// <param name="resource">The resource to replace.</param>
     /// <param name="correlationIdentifier">The correlation identifier.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the replaced  resource.</returns>
+    /// <exception cref="NotImplementedException"></exception>
+    [Obsolete("Use ReplaceAsync(Resource, string, string) instead.")]
     public override Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Updates a resource asynchronously.
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <param name="correlationIdentifier"></param>
+    /// <param name="appId"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public override Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier, string appId = null)
     {
         if (resource is Core2EnterpriseUser)
         {
-            return _userProvider.ReplaceAsync(resource, correlationIdentifier);
+            return _userProvider.ReplaceAsync(resource, correlationIdentifier, appId);
         }
 
         if (resource is Core2Group)
         {
-            return _groupProvider.ReplaceAsync(resource, correlationIdentifier);
+            return _groupProvider.ReplaceAsync(resource, correlationIdentifier, appId);
         }
 
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Creates a new resource asynchronously.
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <param name="correlationIdentifier"></param>
+    /// <param name="appId"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier, string appId = null)
+    {
+        if (resource is Core2EnterpriseUser)
+        {
+            return _userProvider.CreateAsync(resource, correlationIdentifier, appId);
+        }
+
+        if (resource is Core2Group)
+        {
+            return _groupProvider.CreateAsync(resource, correlationIdentifier, appId);
+        }
+
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Deletes a resource asynchronously.
+    /// </summary>
+    /// <param name="resourceIdentifier"></param>
+    /// <param name="correlationIdentifier"></param>
+    /// <param name="appId"></param>
+    /// <returns></returns>
+    public override async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier, string appId = null)
+    {
+        if (resourceIdentifier.SchemaIdentifier.Equals(SchemaIdentifiers.Core2EnterpriseUser))
+        {
+            await _userProvider.DeleteAsync(resourceIdentifier, correlationIdentifier, appId);
+        }
+
+        if (resourceIdentifier.SchemaIdentifier.Equals(SchemaIdentifiers.Core2Group))
+        {
+            await _groupProvider.DeleteAsync(resourceIdentifier, correlationIdentifier, appId);
+        }
+    }
+
+    public override Task UpdateAsync(IPatch patch, string correlationIdentifier, string appId = null)
+    {
         throw new NotImplementedException();
     }
 }

@@ -17,6 +17,7 @@ namespace Microsoft.SCIM.WebHostSample;
 /// </summary>
 public class NonSCIMGroupProvider : ProviderBase
 {
+    [Obsolete("Use CreateAsync(Resource, string, string) instead.")]
     private readonly ICreateResource<Core2Group> _createGroup;
     private readonly IDeleteResource<Core2Group> _deleteGroup;
     private readonly IReplaceResource<Core2Group> _replaceGroup;
@@ -42,56 +43,19 @@ public class NonSCIMGroupProvider : ProviderBase
     /// <exception cref="HttpResponseException">Thrown for invalid input conditions.</exception>
     public override async Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
     {
-        // Input validation: If the resource already has an identifier, reject the request.
-        if (resource.Identifier != null)
-        {
-            throw new HttpResponseException(HttpStatusCode.BadRequest);
-        }
-
-        Core2Group group = resource as Core2Group;
-
-        // Input validation: Ensure that the group has a non-empty display name.
-        if (string.IsNullOrWhiteSpace(group.DisplayName))
-        {
-            throw new HttpResponseException(HttpStatusCode.BadRequest);
-        }
-
-        // Update Metadata
-        DateTime created = DateTime.UtcNow;
-        group.Metadata.Created = created;
-        group.Metadata.LastModified = created;
-
-        string resourceIdentifier = Guid.NewGuid().ToString();
-        resource.Identifier = resourceIdentifier;
-
-        // Invoke the createGroup service to create the group asynchronously.
-        return await _createGroup.ExecuteAsync(group, "App-002", correlationIdentifier);
+        throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// Not implemented: Deletes a resource identified by the given parameters.
-    /// </summary>
-    /// <param name="resourceIdentifier">Identifier of the resource to be deleted.</param>
-    /// <param name="correlationIdentifier">Correlation identifier for tracking.</param>
-    /// <returns>Task representing the asynchronous operation.</returns>
-    /// <exception cref="NotImplementedException">Thrown to indicate the method is not implemented.</exception>
-    public override async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
+    public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier, string appId = null)
     {
-        if (string.IsNullOrWhiteSpace(resourceIdentifier?.Identifier))
-        {
-            throw new HttpResponseException(HttpStatusCode.BadRequest);
-        }
-
-        await _deleteGroup.DeleteAsync(resourceIdentifier, "App-001", correlationIdentifier);
+        throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// Retrieves an empty array of resources, indicating that querying is not supported.
-    /// </summary>
-    /// <param name="parameters">Query parameters.</param>
-    /// <param name="correlationIdentifier">Correlation identifier for tracking.</param>
-    /// <returns>Task representing the asynchronous operation.</returns>
-    public override Task<Resource[]> QueryAsync(IQueryParameters parameters, string correlationIdentifier)
+    [Obsolete("Use DeleteAsync(IResourceIdentifier, string, string) instead.")]
+    public override Task DeleteAsync(
+        IResourceIdentifier resourceIdentifier,
+        string correlationIdentifier
+    )
     {
         /*
         * @TODO: Implement this method.
@@ -107,71 +71,31 @@ public class NonSCIMGroupProvider : ProviderBase
     /// <param name="correlationIdentifier">Correlation identifier for tracking.</param>
     /// <returns>Task representing the asynchronous operation.</returns>
     /// <exception cref="NotImplementedException">Thrown to indicate the method is not implemented.</exception>
+    public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier, string appId = null)
+    {
+        throw new NotImplementedException();
+    }
+
+    [Obsolete("Use ReplaceAsync(IResourceRetrievalParameters, string, string) instead.")]
     public override async Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier)
     {
-        if (resource.Identifier == null)
-        {
-            throw new HttpResponseException(HttpStatusCode.BadRequest);
-        }
-
-        Core2Group group = resource as Core2Group;
-
-        if (string.IsNullOrWhiteSpace(group.DisplayName))
-        {
-            throw new HttpResponseException(HttpStatusCode.BadRequest);
-        }
-
-        // Update metadata
-        group.Metadata.LastModified = DateTime.UtcNow;
-
-        var res = await _replaceGroup.ReplaceAsync(group, "App-002", correlationIdentifier);
-
-        return res;
+        throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// Retrieves a resource asynchronously based on the provided retrieval parameters.
-    /// </summary>
-    /// <param name="parameters">Retrieval parameters.</param>
-    /// <param name="correlationIdentifier">Correlation identifier for tracking.</param>
-    /// <returns>Task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentNullException">Thrown for null parameters.</exception>
-    /// <exception cref="HttpResponseException">Thrown if the resource is not found.</exception>
-    public override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier)
+    public override Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier, string appId = null)
     {
-        // Input validation: Ensure parameters and correlationIdentifier are not null or empty.
-        if (parameters == null)
-        {
-            throw new ArgumentNullException(nameof(parameters));
-        }
-
-        if (string.IsNullOrWhiteSpace(correlationIdentifier))
-        {
-            throw new ArgumentNullException(nameof(correlationIdentifier));
-        }
-
-        if (string.IsNullOrEmpty(parameters?.ResourceIdentifier?.Identifier))
-        {
-            throw new ArgumentNullException(nameof(parameters));
-        }
-
-        // Attempt to retrieve the resource based on the identifier.
-        string identifier = parameters.ResourceIdentifier.Identifier;
-
-        // Not implemented: Retrieve the group from storage. Currently, this block is commented out.
-        // if (this.storage.Groups.ContainsKey(identifier))
-        // {
-        //     if (this.storage.Groups.TryGetValue(identifier, out Core2Group group))
-        //     {
-        //         Resource result = group as Resource;
-        //         return Task.FromResult(result);
-        //     }
-        // }
-
-        // Throw HttpResponseException if the resource is not found.
-        throw new HttpResponseException(HttpStatusCode.NotFound);
+        throw new NotImplementedException();
     }
 
+    public override Task<Resource> RetrieveAsync(
+        IResourceRetrievalParameters parameters,
+        string correlationIdentifier
+    )
+    {
+        throw new NotImplementedException();
+    }
+
+    [Obsolete("Use UpdateAsync(IResourceRetrievalParameters, string, string) instead.")]
     /// <summary>
     /// Not implemented: Updates a resource with the provided patch.
     /// </summary>
@@ -180,6 +104,11 @@ public class NonSCIMGroupProvider : ProviderBase
     /// <returns>Task representing the asynchronous operation.</returns>
     /// <exception cref="NotImplementedException">Thrown to indicate the method is not implemented.</exception>
     public override Task UpdateAsync(IPatch patch, string correlationIdentifier)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override Task UpdateAsync(IPatch patch, string correlationIdentifier, string appId = null)
     {
         throw new NotImplementedException();
     }

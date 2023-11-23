@@ -3,6 +3,7 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Config.Db;
 using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.MapperCore.Group;
 using KN.KloudIdentity.Mapper.MapperCore.User;
@@ -22,6 +23,8 @@ public static class ServiceExtension
     /// <param name="services">The collection of services to add the mapper services to.</param>
     public static void ConfigureMapperServices(this IServiceCollection services)
     {
+        services.AddScoped<Context>();
+        
         services.AddScoped<AutoMapperConfig>();
         services.AddScoped<IAuthContext, AuthContextV1>();
         services.AddScoped<IAuthStrategy, ApiKeyStrategy>();

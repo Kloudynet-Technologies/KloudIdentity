@@ -43,10 +43,7 @@ public class NonSCIMUserProvider : ProviderBase
     /// <param name="resource">The resource to create.</param>
     /// <param name="correlationIdentifier">The correlation identifier.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the created resource.</returns>
-    public override async Task<Resource> CreateAsync(
-        Resource resource,
-        string correlationIdentifier
-    )
+    public override async Task<Resource> CreateAsync(Resource resource, string correlationIdentifier, string appId)
     {
         if (resource.Identifier != null)
         {
@@ -80,7 +77,7 @@ public class NonSCIMUserProvider : ProviderBase
         string resourceIdentifier = Guid.NewGuid().ToString();
         resource.Identifier = resourceIdentifier;
 
-        await _createUser.ExecuteAsync(user, "App-001", correlationIdentifier);
+        await _createUser.ExecuteAsync(user, appId, correlationIdentifier);
 
         // this.storage.Users.Add(resourceIdentifier, user);
 
@@ -93,18 +90,14 @@ public class NonSCIMUserProvider : ProviderBase
     /// <param name="resourceIdentifier">The identifier of the resource to be deleted.</param>
     /// <param name="correlationIdentifier">The correlation identifier associated with the operation.</param>
     /// <returns>A Task representing the asynchronous operation.</returns>
-    /// <exception cref="HttpResponseException">Thrown when the resource identifier is null or empty, resulting in a Bad Request status code.</exception>
-    public override async Task DeleteAsync(
+    /// <exception cref="NotImplementedException"></exception>
+    [Obsolete("This method is obsolete. Use DeleteAsync(IResourceIdentifier, string, string) instead.", true)]
+    public override Task DeleteAsync(
         IResourceIdentifier resourceIdentifier,
         string correlationIdentifier
     )
     {
-        if (string.IsNullOrWhiteSpace(resourceIdentifier?.Identifier))
-        {
-            throw new HttpResponseException(HttpStatusCode.BadRequest);
-        }
-
-        await _deleteUser.DeleteAsync(resourceIdentifier, "App-001", correlationIdentifier);
+        throw new NotImplementedException();
     }
 
     // @TODO: Implement retrieve
@@ -143,15 +136,18 @@ public class NonSCIMUserProvider : ProviderBase
         throw new HttpResponseException(HttpStatusCode.NotFound);
     }
 
-    public override async Task UpdateAsync(IPatch patch, string correlationIdentifier)
+    /// <summary>
+    /// Updates a resource asynchronously.
+    /// This method is obsolete. Use UpdateAsync(IPatch, string, string) instead.
+    /// </summary>
+    /// <param name="patch"></param>
+    /// <param name="correlationIdentifier"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    [Obsolete("This method is obsolete. Use UpdateAsync(IPatch, string, string) instead.", true)]
+    public override Task UpdateAsync(IPatch patch, string correlationIdentifier)
     {
-        PatchRequest2 patchRequest =
-               patch.PatchRequest as PatchRequest2;
-
-        Core2EnterpriseUser user = new Core2EnterpriseUser();
-        user.Apply(patchRequest);
-
-        await _updateUser.UpdateAsync(user, "App-002", correlationIdentifier);
+        throw new NotImplementedException();
     }
 
     // @TODO: Implement query
@@ -358,10 +354,12 @@ public class NonSCIMUserProvider : ProviderBase
             return Task.FromResult(results.ToArray());
     }
 
-    public override async Task<Resource> ReplaceAsync(
-        Resource resource,
-        string correlationIdentifier
-    )
+    public override async Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override async Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier, string appId = null)
     {
         if (resource.Identifier == null)
         {
@@ -378,8 +376,57 @@ public class NonSCIMUserProvider : ProviderBase
         // Update metadata
         user.Metadata.LastModified = DateTime.UtcNow;
 
-        await _replaceUser.ReplaceAsync(user, "App-002", correlationIdentifier);
+        await _replaceUser.ReplaceAsync(user, appId, correlationIdentifier);
 
         return await Task.FromResult(resource);
+    }
+
+    /// <summary>
+    /// Creates a new user asynchronously.
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <param name="correlationIdentifier"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    [Obsolete("This method is obsolete. Use CreateAsync(Resource, string, string) instead.", true)]
+    public sealed override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Deletes a user asynchronously.
+    /// </summary>
+    /// <param name="resourceIdentifier"></param>
+    /// <param name="correlationIdentifier"></param>
+    /// <param name="appId"></param>
+    /// <returns></returns>
+    /// <exception cref="HttpResponseException"></exception>
+    public async override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier, string appId = null)
+    {
+        if (string.IsNullOrWhiteSpace(resourceIdentifier?.Identifier))
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        await _deleteUser.DeleteAsync(resourceIdentifier, appId, correlationIdentifier);
+    }
+
+    /// <summary>
+    /// Updates a user asynchronously.
+    /// </summary>
+    /// <param name="patch"></param>
+    /// <param name="correlationIdentifier"></param>
+    /// <param name="appId"></param>
+    /// <returns></returns>
+    public async override Task UpdateAsync(IPatch patch, string correlationIdentifier, string appId = null)
+    {
+        PatchRequest2 patchRequest =
+               patch.PatchRequest as PatchRequest2;
+
+        Core2EnterpriseUser user = new Core2EnterpriseUser();
+        user.Apply(patchRequest);
+
+        await _updateUser.UpdateAsync(user, appId, correlationIdentifier);
     }
 }
