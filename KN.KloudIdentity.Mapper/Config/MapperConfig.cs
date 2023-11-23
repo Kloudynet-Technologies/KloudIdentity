@@ -50,6 +50,31 @@ public class MapperConfig
     public string? LISTAPIForUsers { get; set; }
 
     /// <summary>
+    /// URL for the PUT API for groups.
+    /// </summary>
+    public string? PUTAPIForGroups { get; set; }
+
+    /// <summary>
+    /// URL for the PATCH API for groups.
+    /// </summary>
+    public string? PATCHAPIForGroups { get; set; }
+
+    /// <summary>
+    /// URL for the DELETE API for groups.
+    /// </summary>
+    public string? DELETEAPIForGroups { get; set; }
+
+    /// <summary>
+    /// URL for the GET API for groups.
+    /// </summary>
+    public string? GETAPIForGroups { get; set; }
+
+    /// <summary>
+    /// URL for the LIST API for groups.
+    /// </summary>
+    public string? LISTAPIForGroups { get; set; }
+
+    /// <summary>
     /// URL for the group provisioning API.
     /// </summary>
     public required string GroupProvisioningApiUrl { get; set; }

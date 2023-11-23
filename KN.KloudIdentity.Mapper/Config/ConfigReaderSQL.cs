@@ -138,6 +138,10 @@ namespace KN.KloudIdentity.Mapper.Config
                     configModel.DELETEAPIForUsers = config.DELETEAPIForUsers;
                     configModel.GETAPIForUsers = config.GETAPIForUsers;
                     configModel.LISTAPIForUsers = config.LISTAPIForUsers;
+                    configModel.PATCHAPIForGroups = config.PATCHAPIForGroups;
+                    configModel.PUTAPIForGroups = config.PUTAPIForGroups;
+                    configModel.DELETEAPIForGroups = config.DELETEAPIForGroups;
+                    configModel.GETAPIForGroups = config.GETAPIForGroups;
 
                     _context.AppConfig.Update(configModel);
 

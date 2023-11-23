@@ -20,6 +20,11 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
                 LISTAPIForUsers = appConfig.LISTAPIForUsers,
                 PATCHAPIForUsers = appConfig.PATCHAPIForUsers,
                 PUTAPIForUsers = appConfig.PUTAPIForUsers,
+                PUTAPIForGroups = appConfig.PUTAPIForGroups,
+                DELETEAPIForGroups = appConfig.DELETEAPIForGroups,
+                GETAPIForGroups = appConfig.GETAPIForGroups,
+                LISTAPIForGroups = appConfig.LISTAPIForGroups,
+                PATCHAPIForGroups = appConfig.PATCHAPIForGroups,
                 AuthConfig = new AuthConfig
                 {
                     AuthenticationMethod = (AuthenticationMethod)
@@ -95,6 +100,11 @@ namespace KN.KloudIdentity.Mapper.Config.Helper
                 LISTAPIForUsers = config.LISTAPIForUsers,
                 PATCHAPIForUsers = config.PATCHAPIForUsers,
                 PUTAPIForUsers = config.PUTAPIForUsers,
+                PUTAPIForGroups = config.PUTAPIForGroups,
+                DELETEAPIForGroups = config.DELETEAPIForGroups,
+                GETAPIForGroups = config.GETAPIForGroups,
+                LISTAPIForGroups = config.LISTAPIForGroups,
+                PATCHAPIForGroups = config.PATCHAPIForGroups,
                 AuthConfig = TransformToAuthConfigModel(
                     appId: config.AppId,
                     authConfig: config.AuthConfig
