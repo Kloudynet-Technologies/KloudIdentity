@@ -15,15 +15,17 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
     public class CreateGroup : OperationsBase<Core2Group>, ICreateResource<Core2Group>
     {
         private MapperConfig _appConfig;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         /// <summary>
         /// Initializes a new instance of the CreateGroup class.
         /// </summary>
         /// <param name="configReader">An implementation of IConfigReader for reading configuration settings.</param>
         /// <param name="authContext">An implementation of IAuthContext for handling authentication.</param>
-        public CreateGroup(IConfigReader configReader, IAuthContext authContext)
+        public CreateGroup(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory)
             : base(configReader, authContext)
         {
+            _httpClientFactory = httpClientFactory;
         }
 
         /// <summary>
@@ -71,15 +73,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             var token = await GetAuthenticationAsync(authConfig);
 
-            using (var httpClient = new HttpClient())
+            var httpClient = _httpClientFactory.CreateClient();
+
+            httpClient.SetAuthenticationHeaders(authConfig, token);
+
+            using (var response = await httpClient.PostAsJsonAsync(
+                 _appConfig.GroupProvisioningApiUrl,
+                 Payload
+             ))
             {
-                httpClient.SetAuthenticationHeaders(authConfig, token);
-
-                var response = await httpClient.PostAsJsonAsync(
-                    _appConfig.GroupProvisioningApiUrl,
-                    Payload
-                );
-
                 if (!response.IsSuccessStatusCode)
                 {
                     throw new HttpRequestException(
