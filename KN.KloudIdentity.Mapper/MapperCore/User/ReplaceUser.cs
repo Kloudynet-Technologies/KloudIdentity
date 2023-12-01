@@ -18,16 +18,17 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             IReplaceResource<Core2EnterpriseUser>
     {
         private MapperConfig _mapperConfig;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         /// <summary>
         /// Constructor for the ReplaceUser class.
         /// </summary>
         /// <param name="configReader">Configuration reader.</param>
         /// <param name="authContext">Authentication context.</param>
-        public ReplaceUser(IConfigReader configReader, IAuthContext authContext)
+        public ReplaceUser(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory)
             : base(configReader, authContext)
         {
-            // Constructor implementation.
+            _httpClientFactory = httpClientFactory;
         }
 
         /// <summary>
@@ -74,13 +75,13 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             // Obtain authentication token.
             var token = await GetAuthenticationAsync(authConfig);
 
-            using (var httpClient = new HttpClient())
+            var httpClient = _httpClientFactory.CreateClient();
+
+            // Set headers based on authentication method.
+            httpClient.SetAuthenticationHeaders(authConfig, token);
+
+            using (var response = await ProcessRequestAsync(_mapperConfig, httpClient))
             {
-                // Set headers based on authentication method.
-                httpClient.SetAuthenticationHeaders(authConfig, token);
-
-                var response = await ProcessRequestAsync(_mapperConfig, httpClient);
-
                 // Check if the request was successful; otherwise, throw an exception.
                 if (response != null && !response.IsSuccessStatusCode)
                 {
@@ -111,7 +112,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             else if (!string.IsNullOrWhiteSpace(mapperConfig.PATCHAPIForUsers))
             {
                 var apiPath = DynamicApiUrlUtil.GetFullUrl(mapperConfig.PATCHAPIForUsers, Resource.Identifier);
-                var jsonPayload = Payload.ToString(); 
+                var jsonPayload = Payload.ToString();
                 var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
                 return await httpClient.PatchAsync(apiPath, content);

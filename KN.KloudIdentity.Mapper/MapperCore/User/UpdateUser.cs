@@ -14,37 +14,42 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             IUpdateResource<Core2EnterpriseUser>
     {
         private MapperConfig _appConfig;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         /// <summary>
         /// Initializes a new instance of the CreateUser class.
         /// </summary>
         /// <param name="configReader">An implementation of IConfigReader for reading configuration settings.</param>
         /// <param name="authContext">An implementation of IAuthContext for handling authentication.</param>
-        public UpdateUser(IConfigReader configReader, IAuthContext authContext)
-            : base(configReader, authContext) { }
+        public UpdateUser(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory)
+            : base(configReader, authContext)
+        {
+            _httpClientFactory = httpClientFactory;
+        }
 
         public override async Task MapAndPreparePayloadAsync()
         {
             Payload = JSONParserUtil<Resource>.Parse(_appConfig.UserSchema, Resource);
         }
 
-        public async Task<Resource> UpdateAsync(
-            Resource resource,
-            string appId,
-            string correlationID
-        )
+        public async Task UpdateAsync(IPatch patch, string appId, string correlationID)
         {
+            PatchRequest2 patchRequest =
+             patch.PatchRequest as PatchRequest2;
+
+            Core2EnterpriseUser user = new Core2EnterpriseUser();
+            user.Apply(patchRequest);
+            user.Identifier = patch.ResourceIdentifier.Identifier;
+
             AppId = appId;
-            Resource = (Core2EnterpriseUser)resource;
             CorrelationID = correlationID;
+            Resource = user;
 
             _appConfig = await GetAppConfigAsync();
 
             await MapAndPreparePayloadAsync();
 
             await UpdateUserAsync();
-
-            return resource;
         }
 
         /// <summary>
@@ -61,17 +66,18 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
 
             var token = await GetAuthenticationAsync(authConfig);
 
-            using (var httpClient = new HttpClient())
+            var httpClient = _httpClientFactory.CreateClient();
+
+            httpClient.SetAuthenticationHeaders(authConfig, token);
+
+            var apiPath = DynamicApiUrlUtil.GetFullUrl(_appConfig.PATCHAPIForUsers, Resource.Identifier);
+
+            var jsonPayload = Payload.ToString();
+
+            var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+            using (var response = await httpClient.PatchAsync(apiPath, content))
             {
-
-                httpClient.SetAuthenticationHeaders(authConfig, token);
-
-                var apiPath = DynamicApiUrlUtil.GetFullUrl(_appConfig.PATCHAPIForUsers, Resource.Identifier);
-                var jsonPayload = Payload.ToString();
-                var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
-
-                var response = await httpClient.PatchAsync(apiPath, content);
-
                 if (!response.IsSuccessStatusCode)
                 {
                     throw new HttpRequestException(

@@ -15,14 +15,18 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<Core2EnterpriseUser>
 {
     private MapperConfig _appConfig;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     /// <summary>
     /// Initializes a new instance of the CreateUser class.
     /// </summary>
     /// <param name="configReader">An implementation of IConfigReader for reading configuration settings.</param>
     /// <param name="authContext">An implementation of IAuthContext for handling authentication.</param>
-    public CreateUser(IConfigReader configReader, IAuthContext authContext)
-        : base(configReader, authContext) { }
+    public CreateUser(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory)
+        : base(configReader, authContext)
+    {
+        _httpClientFactory = httpClientFactory;
+    }
 
     /// <summary>
     /// Executes the creation of a new user asynchronously.
@@ -74,15 +78,15 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
 
         var token = await GetAuthenticationAsync(authConfig);
 
-        using (var httpClient = new HttpClient())
+        var httpClient = _httpClientFactory.CreateClient();
+
+        httpClient.SetAuthenticationHeaders(authConfig, token);
+
+        using (var response = await httpClient.PostAsJsonAsync(
+            _appConfig.UserProvisioningApiUrl,
+            Payload
+        ))
         {
-            httpClient.SetAuthenticationHeaders(authConfig, token);
-
-            var response = await httpClient.PostAsJsonAsync(
-                _appConfig.UserProvisioningApiUrl,
-                Payload
-            );
-
             if (!response.IsSuccessStatusCode)
             {
                 throw new HttpRequestException(
