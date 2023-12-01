@@ -354,11 +354,20 @@ public class NonSCIMUserProvider : ProviderBase
             return Task.FromResult(results.ToArray());
     }
 
+    [Obsolete("This method is obsolete. Use ReplaceAsync(Resource, string, string) instead.", true)]
     public override async Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier)
     {
         throw new NotImplementedException();
     }
 
+    /// <summary>
+    /// Update whole user asynchronously.
+    /// </summary>
+    /// <param name="resource">User resource to be updated.</param>
+    /// <param name="correlationIdentifier">Correlation identifier for tracking the operation.</param>
+    /// <param name="appId">Application ID associated with the user.</param>
+    /// <returns>Updated user resource.</returns>
+    /// <exception cref="HttpResponseException"></exception>
     public override async Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier, string appId = null)
     {
         if (resource.Identifier == null)
@@ -397,11 +406,10 @@ public class NonSCIMUserProvider : ProviderBase
     /// <summary>
     /// Deletes a user asynchronously.
     /// </summary>
-    /// <param name="resourceIdentifier"></param>
-    /// <param name="correlationIdentifier"></param>
-    /// <param name="appId"></param>
-    /// <returns></returns>
-    /// <exception cref="HttpResponseException"></exception>
+    /// <param name="resourceIdentifier">Identifier of the user to be deleted.</param>
+    /// <param name="correlationIdentifier">Correlation identifier for tracking the operation.</param>
+    /// <param name="appId">Application ID associated with the user.</param>
+    /// <exception cref="HttpResponseException"Exception thrown if the resource identifier is null or empty.</exception>
     public async override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier, string appId = null)
     {
         if (string.IsNullOrWhiteSpace(resourceIdentifier?.Identifier))
@@ -413,20 +421,28 @@ public class NonSCIMUserProvider : ProviderBase
     }
 
     /// <summary>
-    /// Updates a user asynchronously.
+    /// Performs a partial update on a user asynchronously.
     /// </summary>
-    /// <param name="patch"></param>
-    /// <param name="correlationIdentifier"></param>
-    /// <param name="appId"></param>
-    /// <returns></returns>
+    /// <param name="patch">Patch request containing the patch operations to be performed on the user.</param>
+    /// <param name="correlationIdentifier">Correlation identifier for tracking the operation.</param>
+    /// <param name="appId">Application ID associated with the user.</param>
     public async override Task UpdateAsync(IPatch patch, string correlationIdentifier, string appId = null)
     {
-        PatchRequest2 patchRequest =
-               patch.PatchRequest as PatchRequest2;
+        if (patch == null)
+        {
+            throw new ArgumentNullException(nameof(patch));
+        }
 
-        Core2EnterpriseUser user = new Core2EnterpriseUser();
-        user.Apply(patchRequest);
+        if (string.IsNullOrWhiteSpace(correlationIdentifier))
+        {
+            throw new ArgumentNullException(nameof(correlationIdentifier));
+        }
 
-        await _updateUser.UpdateAsync(user, appId, correlationIdentifier);
+        if (string.IsNullOrWhiteSpace(patch.ResourceIdentifier?.Identifier))
+        {
+            throw new ArgumentNullException(nameof(patch));
+        }
+
+        await _updateUser.UpdateAsync(patch, appId, correlationIdentifier);
     }
 }

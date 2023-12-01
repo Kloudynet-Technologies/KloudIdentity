@@ -3,7 +3,6 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.MapperCore;
-using KN.KloudIdentity.Mapper.MapperCore.User;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -17,99 +16,182 @@ namespace Microsoft.SCIM.WebHostSample;
 /// </summary>
 public class NonSCIMGroupProvider : ProviderBase
 {
-    [Obsolete("Use CreateAsync(Resource, string, string) instead.")]
     private readonly ICreateResource<Core2Group> _createGroup;
     private readonly IDeleteResource<Core2Group> _deleteGroup;
     private readonly IReplaceResource<Core2Group> _replaceGroup;
-
+    private readonly IUpdateResource<Core2Group> _updateGroup;
     /// <summary>
-    /// Constructor that initializes the NonSCIMGroupProvider with a resource creation service.
+    /// Constructor that initializes the NonSCIMGroupProvider with resource creation, deletion, and replacement services.
     /// </summary>
     /// <param name="createGroup">Service for creating resources of type Core2Group.</param>
     /// <param name="deleteGroup">Service for deleting resources of type Core2Group.</param>
-    public NonSCIMGroupProvider(ICreateResource<Core2Group> createGroup, IDeleteResource<Core2Group> deleteGroup, IReplaceResource<Core2Group> replaceGroup)
+    /// <param name="replaceGroup">Service for replacing resources of type Core2Group.</param>
+    /// <param name="updateGroup">Service for updating resources of type Core2Group.</param>
+    public NonSCIMGroupProvider(
+        ICreateResource<Core2Group> createGroup,
+        IDeleteResource<Core2Group> deleteGroup,
+        IReplaceResource<Core2Group> replaceGroup,
+        IUpdateResource<Core2Group> updateGroup
+    )
     {
         _createGroup = createGroup;
         _deleteGroup = deleteGroup;
         _replaceGroup = replaceGroup;
+        _updateGroup = updateGroup;
     }
 
     /// <summary>
-    /// Asynchronously creates a new group, updates metadata, assigns an identifier, and invokes the creation service.
+    /// Creates a new group resource asynchronously.
     /// </summary>
-    /// <param name="resource">The resource to be created.</param>
-    /// <param name="correlationIdentifier">Correlation identifier for tracking.</param>
-    /// <returns>The created resource.</returns>
-    /// <exception cref="HttpResponseException">Thrown for invalid input conditions.</exception>
-    public override async Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
+    /// <param name="resource">The group resource to be created.</param>
+    /// <param name="correlationIdentifier">A correlation identifier for tracking the operation.</param>
+    /// <param name="appId">The application ID associated with the group.</param>
+    /// <returns>The newly created group resource.</returns>
+    public override async Task<Resource> CreateAsync(Resource resource, string correlationIdentifier, string appId = null)
+    {
+        // Validation: Ensure the resource doesn't already have an identifier
+        if (resource.Identifier != null)
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        Core2Group group = resource as Core2Group;
+
+        // Validation: Ensure the group has a non-empty display name
+        if (string.IsNullOrWhiteSpace(group.DisplayName))
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        // Update Metadata
+        DateTime created = DateTime.UtcNow;
+        group.Metadata.Created = created;
+        group.Metadata.LastModified = created;
+
+        // Generate a unique identifier for the resource
+        string resourceIdentifier = Guid.NewGuid().ToString();
+        resource.Identifier = resourceIdentifier;
+
+        // Execute the creation service and return the created group
+        var createdGroup = await _createGroup.ExecuteAsync(group, appId, correlationIdentifier);
+        return createdGroup;
+    }
+
+    [Obsolete("Use CreateAsync(Resource, string, string) instead.")]
+    public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
     {
         throw new NotImplementedException();
     }
 
-    public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier, string appId = null)
+    /// <summary>
+    /// Deletes a group resource asynchronously.
+    /// </summary>
+    /// <param name="resourceIdentifier">The identifier of the group resource to be deleted.</param>
+    /// <param name="correlationIdentifier">A correlation identifier for tracking the operation.</param>
+    /// <param name="appId">The application ID associated with the group.</param>
+    /// <exception cref="HttpResponseException">Thrown if the resource identifier is null or empty.</exception>
+    public override async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier, string appId = null)
     {
-        throw new NotImplementedException();
+        // Validation: Ensure the resource identifier is not null or empty
+        if (string.IsNullOrWhiteSpace(resourceIdentifier?.Identifier))
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        // Execute the deletion service
+        await _deleteGroup.DeleteAsync(resourceIdentifier, appId, correlationIdentifier);
     }
 
     [Obsolete("Use DeleteAsync(IResourceIdentifier, string, string) instead.")]
-    public override Task DeleteAsync(
-        IResourceIdentifier resourceIdentifier,
-        string correlationIdentifier
-    )
+    public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Queries group resources based on specified parameters.
+    /// </summary>
+    /// <param name="parameters">The query parameters.</param>
+    /// <param name="correlationIdentifier">A correlation identifier for tracking the operation.</param>
+    /// <returns>An array of group resources matching the query parameters.</returns>
+    public override Task<Resource[]> QueryAsync(IQueryParameters parameters, string correlationIdentifier)
     {
         /*
-        * @TODO: Implement this method.
-        */
+         * @TODO: Implement this method.
+         * Perform logic to query and return groups based on the specified parameters.
+         */
         var groups = new List<Resource>();
         return Task.FromResult(groups.ToArray());
     }
 
     /// <summary>
-    /// Not implemented: Replaces a resource with the provided one.
+    /// Replaces a group resource asynchronously.
     /// </summary>
-    /// <param name="resource">The resource to be replaced.</param>
-    /// <param name="correlationIdentifier">Correlation identifier for tracking.</param>
-    /// <returns>Task representing the asynchronous operation.</returns>
-    /// <exception cref="NotImplementedException">Thrown to indicate the method is not implemented.</exception>
-    public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier, string appId = null)
+    /// <param name="resource">The group resource to be replaced.</param>
+    /// <param name="correlationIdentifier">A correlation identifier for tracking the operation.</param>
+    /// <param name="appId">The application ID associated with the group.</param>
+    /// <returns>The replaced group resource.</returns>
+    /// <exception cref="HttpResponseException">Thrown if the resource identifier is null or the display name is empty.</exception>
+    public override async Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier, string appId = null)
+    {
+        // Validation: Ensure the resource has an identifier
+        if (resource.Identifier == null)
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        Core2Group group = resource as Core2Group;
+
+        // Validation: Ensure the group has a non-empty display name
+        if (string.IsNullOrWhiteSpace(group.DisplayName))
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        // Update the last modified timestamp
+        group.Metadata.LastModified = DateTime.UtcNow;
+
+        return await _replaceGroup.ReplaceAsync(group, appId, correlationIdentifier);
+    }
+
+    [Obsolete("Use ReplaceAsync(Resource, string, string) instead.")]
+    public override Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier)
     {
         throw new NotImplementedException();
     }
 
-    [Obsolete("Use ReplaceAsync(IResourceRetrievalParameters, string, string) instead.")]
-    public override async Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier)
-    {
-        throw new NotImplementedException();
-    }
-
-    public override Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier, string appId = null)
-    {
-        throw new NotImplementedException();
-    }
-
-    public override Task<Resource> RetrieveAsync(
-        IResourceRetrievalParameters parameters,
-        string correlationIdentifier
-    )
-    {
-        throw new NotImplementedException();
-    }
-
-    [Obsolete("Use UpdateAsync(IResourceRetrievalParameters, string, string) instead.")]
     /// <summary>
-    /// Not implemented: Updates a resource with the provided patch.
+    /// Retrieves a group resource asynchronously based on retrieval parameters.
     /// </summary>
-    /// <param name="patch">The patch to be applied to the resource.</param>
-    /// <param name="correlationIdentifier">Correlation identifier for tracking.</param>
-    /// <returns>Task representing the asynchronous operation.</returns>
-    /// <exception cref="NotImplementedException">Thrown to indicate the method is not implemented.</exception>
+    /// <param name="parameters">The retrieval parameters.</param>
+    /// <param name="correlationIdentifier">A correlation identifier for tracking the operation.</param>
+    /// <returns>The retrieved group resource.</returns>
+    /// <exception cref="NotImplementedException">Thrown since retrieval is not implemented.</exception>
+    public override async Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier)
+    {
+        throw new HttpResponseException(HttpStatusCode.NotFound);
+    }
+
+    /// <summary>
+    /// Partially updates members of a group resource asynchronously.
+    /// </summary>
+    /// <param name="patch">The patch operation to be applied to the group resource.</param>
+    /// <param name="correlationIdentifier">A correlation identifier for tracking the operation.</param>
+    /// <param name="appId">The application ID associated with the group.</param>
+    public override async Task UpdateAsync(IPatch patch, string correlationIdentifier, string appId = null)
+    {
+        if (string.IsNullOrWhiteSpace(patch?.ResourceIdentifier?.Identifier))
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        await _updateGroup.UpdateAsync(patch, appId, correlationIdentifier);
+    }
+
+    [Obsolete("Use CreateAsync(Resource, string, string) instead.")]
     public override Task UpdateAsync(IPatch patch, string correlationIdentifier)
     {
         throw new NotImplementedException();
     }
-
-    public override Task UpdateAsync(IPatch patch, string correlationIdentifier, string appId = null)
-    {
-        throw new NotImplementedException();
-    }
 }
+

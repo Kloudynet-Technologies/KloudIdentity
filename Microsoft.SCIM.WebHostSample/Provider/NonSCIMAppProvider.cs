@@ -192,8 +192,40 @@ public class NonSCIMAppProvider : ProviderBase
         }
     }
 
-    public override Task UpdateAsync(IPatch patch, string correlationIdentifier, string appId = null)
+    /// <summary>
+    /// Updates a resource asynchronously.
+    /// </summary>
+    /// <param name="patch"></param>
+    /// <param name="correlationIdentifier"></param>
+    /// <param name="appId"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentException"></exception>
+    public override async Task UpdateAsync(IPatch patch, string correlationIdentifier, string appId = null)
     {
-        throw new NotImplementedException();
+        if (patch == null)
+        {
+            throw new ArgumentNullException(nameof(patch));
+        }
+
+        if (string.IsNullOrWhiteSpace(patch.ResourceIdentifier.Identifier))
+        {
+            throw new ArgumentException(nameof(patch));
+        }
+
+        if (string.IsNullOrWhiteSpace(patch.ResourceIdentifier.SchemaIdentifier))
+        {
+            throw new ArgumentException(nameof(patch));
+        }
+
+        if (patch.ResourceIdentifier.SchemaIdentifier.Equals(SchemaIdentifiers.Core2EnterpriseUser))
+        {
+            await _userProvider.UpdateAsync(patch, correlationIdentifier, appId);
+        }
+
+        if (patch.ResourceIdentifier.SchemaIdentifier.Equals(SchemaIdentifiers.Core2Group))
+        {
+            await _groupProvider.UpdateAsync(patch, correlationIdentifier, appId);
+        }
     }
 }
