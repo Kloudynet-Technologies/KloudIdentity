@@ -94,6 +94,8 @@ namespace Microsoft.SCIM.WebHostSample
 
             services.ConfigureMapperServices();
 
+            services.AddHttpClient();
+
             services.AddScoped<NonSCIMGroupProvider>();
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();

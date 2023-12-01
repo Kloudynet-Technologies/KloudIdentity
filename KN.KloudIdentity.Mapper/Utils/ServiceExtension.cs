@@ -24,7 +24,7 @@ public static class ServiceExtension
     public static void ConfigureMapperServices(this IServiceCollection services)
     {
         services.AddScoped<Context>();
-        
+
         services.AddScoped<AutoMapperConfig>();
         services.AddScoped<IAuthContext, AuthContextV1>();
         services.AddScoped<IAuthStrategy, ApiKeyStrategy>();
@@ -39,5 +39,10 @@ public static class ServiceExtension
         services.AddScoped<ICreateResource<Core2Group>, CreateGroup>();
         services.AddScoped<IDeleteResource<Core2Group>, DeleteGroup>();
         services.AddScoped<IReplaceResource<Core2Group>, ReplaceGroup>();
+        services.AddScoped<IUpdateResource<Core2Group>, UpdateGroup>();
+        services.AddScoped<IAddGroupMembers, AddMembersToGroup>();
+        services.AddScoped<IRemoveGroupMembers, RemoveGroupMembers>();
+        services.AddScoped<IRemoveAllGroupMembers, RemoveAllGroupMembers>();
+
     }
 }
