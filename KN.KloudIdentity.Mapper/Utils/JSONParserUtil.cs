@@ -73,8 +73,8 @@ namespace KN.KloudIdentity.Mapper.Utils
                 JSonDataType.String => value?.ToString(),
                 JSonDataType.Boolean => Boolean.TryParse(value?.ToString(), out bool boolValue) ? boolValue : default(bool?),
                 JSonDataType.Integer => Int32.TryParse(value?.ToString(), out int intValue) ? intValue : default(int?),
-                JSonDataType.Object => throw new NotImplementedException("Object type not implemented yet."),
-                JSonDataType.Array => ReadValueFromArray(value, schemaAttribute),
+                JSonDataType.Object => MakeJsonObject(resource, schemaAttribute),
+                JSonDataType.Array => MakeJsonArray(resource, value, schemaAttribute),
                 _ => default,
             };
         }
@@ -86,7 +86,7 @@ namespace KN.KloudIdentity.Mapper.Utils
         /// <param name="resource">The resource object to read the property from.</param>
         /// <param name="propertyName">The name of the property to read.</param>
         /// <returns>The value of the property, or null if the property is not found.</returns>
-        public static object? ReadProperty(T resource, string propertyName)
+        public static object? ReadProperty(dynamic resource, string propertyName)
         {
             var subProperties = propertyName.Split(':');
             if (subProperties.Length > 1)
@@ -144,12 +144,12 @@ namespace KN.KloudIdentity.Mapper.Utils
         }
 
         /// <summary>
-        /// Reads values from an array of dynamic objects based on the provided schema attribute.
+        /// Makes a JSON array based on the provided schema attribute.
         /// </summary>
         /// <param name="data">The array of dynamic objects to read values from.</param>
         /// <param name="schemaAttribute">The schema attribute specifying how to read values from the array.</param>
         /// <returns>A JArray containing the extracted values based on the schema attribute.</returns>
-        public static dynamic ReadValueFromArray(dynamic data, SchemaAttribute schemaAttribute)
+        public static dynamic MakeJsonArray(T resource, dynamic data, SchemaAttribute schemaAttribute)
         {
             var newArray = new JArray();
 
@@ -161,8 +161,10 @@ namespace KN.KloudIdentity.Mapper.Utils
                 // Iterate through each object in the array
                 foreach (var obj in data)
                 {
+                    var attrArray = schemaAttribute.ArrayElementMappingField.Split(':');
+
                     // Get the value of the specified property from the object
-                    var propertyValue = GetPropertyValue(obj, schemaAttribute.ArrayElementMappingField);
+                    var propertyValue = GetPropertyValue(obj, attrArray[attrArray.Length - 1]);
 
                     // If the property value is not null, convert and add it to the new array
                     if (propertyValue != null)
@@ -186,10 +188,38 @@ namespace KN.KloudIdentity.Mapper.Utils
             }
             else
             {
-                /*
-                 * @TODO: Handle nested objects in array
-                 * For complex data types, implement logic to handle nested objects in the array.
-                 */
+                // Iterate through each object in the array
+                foreach (var obj in data)
+                {
+                    // Create a dynamic object based on the child schema
+                    dynamic childObject = new System.Dynamic.ExpandoObject();
+
+                    foreach (var childSchema in schemaAttribute.ChildSchemas)
+                    {
+                        string urnPrefix = "urn:kn:ki:schema:";
+                        string attrUrn = childSchema.FieldName.Remove(0, urnPrefix.Length);
+                        var attrArray = attrUrn.Split(':');
+
+                        if (childSchema.DataType == JSonDataType.Array)
+                        {
+                            var childValue = GetPropertyValue(obj, childSchema.MappedAttribute);
+                            ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], MakeJsonArray(resource, childValue, childSchema));
+                            continue;
+                        }
+                        else
+                        {
+                            var childValue = GetPropertyValue(obj, childSchema.MappedAttribute);
+                            ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], childValue);
+                        }
+
+                    }
+
+                    // Convert the dynamic childObject to a JObject
+                    var childObjectJson = JObject.FromObject(childObject);
+
+                    newArray.Add(childObjectJson);
+                }
+
             }
 
             return newArray;
@@ -203,13 +233,57 @@ namespace KN.KloudIdentity.Mapper.Utils
         /// <returns>The value of the specified property, or null if the property is not found.</returns>
         private static object GetPropertyValue(dynamic obj, string propertyName)
         {
+            var attrArray = propertyName.Split(':');
             // Get the property information using reflection
-            var property = obj.GetType().GetProperty(propertyName);
+            var property = obj.GetType().GetProperty(attrArray[attrArray.Length - 1]);
 
             // Return the property value if the property is found, otherwise return null
             return property?.GetValue(obj);
         }
 
+        /// <summary>
+        /// Makes a JSON object based on the provided schema attribute.
+        /// </summary>
+        /// <param name="resource">The resource object to read the property from.</param>
+        /// <param name="schemaAttribute">The schema attribute specifying how to read values from the resource.</param>
+        /// <returns>
+        /// Returns a JObject containing the extracted values based on the schema attribute.
+        /// </returns>
+        private static object? MakeJsonObject(T resource, SchemaAttribute schemaAttribute)
+        {
+            dynamic childObject = new System.Dynamic.ExpandoObject();
 
+            foreach (var childSchema in schemaAttribute.ChildSchemas)
+            {
+                string urnPrefix = "urn:kn:ki:schema:";
+                string attrUrn = childSchema.FieldName.Remove(0, urnPrefix.Length);
+                var attrArray = attrUrn.Split(':');
+
+                if (childSchema.DataType == JSonDataType.Array)
+                {
+                    var childValue = ReadProperty(resource, childSchema.MappedAttribute);
+                    ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], MakeJsonArray(resource, childValue, childSchema));
+                    continue;
+                }
+                else
+                {
+                    if (childSchema.DataType == JSonDataType.Object)
+                    {
+                        var childValue = ReadProperty(resource, childSchema.MappedAttribute);
+                        ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], MakeJsonObject(resource, childSchema));
+                        continue;
+                    }
+                    else
+                    {
+                        var childValue = ReadProperty(resource, childSchema.MappedAttribute);
+                        ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], childValue);
+                    }
+
+                }
+
+            }
+
+            return JObject.FromObject(childObject);
+        }
     }
 }
