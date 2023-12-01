@@ -15,14 +15,16 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
     public class ReplaceGroup : OperationsBase<Core2Group>, IReplaceResource<Core2Group>
     {
         private MapperConfig _mapperConfig;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         /// <summary>
         /// Constructor for the ReplaceGroup class.
         /// </summary>
         /// <param name="configReader">Configuration reader.</param>
         /// <param name="authContext">Authentication context.</param>
-        public ReplaceGroup(IConfigReader configReader, IAuthContext authContext) : base(configReader, authContext)
+        public ReplaceGroup(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory) : base(configReader, authContext)
         {
+            _httpClientFactory = httpClientFactory;
         }
 
         /// <summary>
@@ -66,21 +68,18 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         {
             var authConfig = _mapperConfig.AuthConfig;
 
-            // Obtain authentication token.
             var token = await GetAuthenticationAsync(authConfig);
 
-            using (var httpClient = new HttpClient())
+            var httpClient = _httpClientFactory.CreateClient();
+
+            httpClient.SetAuthenticationHeaders(authConfig, token);
+
+            using (var response = await ProcessRequestAsync(_mapperConfig, httpClient))
             {
-                // Set headers based on authentication method.
-                httpClient.SetAuthenticationHeaders(authConfig, token);
-
-                var response = await ProcessRequestAsync(_mapperConfig, httpClient);
-
-                // Check if the request was successful; otherwise, throw an exception.
                 if (response != null && !response.IsSuccessStatusCode)
                 {
                     throw new HttpRequestException(
-                        $"Error updating user: {response.StatusCode} - {response.ReasonPhrase}"
+                        $"Error updating group: {response.StatusCode} - {response.ReasonPhrase}"
                     );
                 }
             }
