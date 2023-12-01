@@ -14,14 +14,16 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
     public class DeleteGroup : OperationsBase<Core2Group>, IDeleteResource<Core2Group>
     {
         private MapperConfig _appConfig;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         /// <summary>
         /// Initializes a new instance of the DeleteUser class.
         /// </summary>
         /// <param name="configReader">An implementation of IConfigReader for reading configuration settings.</param>
         /// <param name="authContext">An implementation of IAuthContext for handling authentication.</param>
-        public DeleteGroup(IConfigReader configReader, IAuthContext authContext) : base(configReader, authContext)
+        public DeleteGroup(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory) : base(configReader, authContext)
         {
+            _httpClientFactory = httpClientFactory;
         }
 
         /// <summary>
@@ -70,19 +72,21 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             var token = await GetAuthenticationAsync(authConfig);
 
-            using (var httpClient = new HttpClient())
+            var httpClient = _httpClientFactory.CreateClient();
+
+            httpClient.SetAuthenticationHeaders(authConfig, token);
+
+            // Build the API URL.
+            var apiUrl = DynamicApiUrlUtil.GetFullUrl(_appConfig.DELETEAPIForGroups, identifier);
+
+            using (var response = await httpClient.DeleteAsync(apiUrl))
             {
-                httpClient.SetAuthenticationHeaders(authConfig, token);
-
-                var apiUrl = DynamicApiUrlUtil.GetFullUrl(_appConfig.DELETEAPIForGroups, identifier);
-                var response = await httpClient.DeleteAsync(apiUrl);
-
                 if (!response.IsSuccessStatusCode)
                 {
                     throw new HttpRequestException(
                         $"HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}"
                     );
-                }                
+                }
             }
         }
 
