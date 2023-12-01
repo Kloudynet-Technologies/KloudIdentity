@@ -15,9 +15,9 @@ public interface IUpdateResource<T> : IAPIMapperBase<T> where T : Resource
     /// <summary>
     /// Updates a resource asynchronously.
     /// </summary>
-    /// <param name="resource">The resource to update.</param>
+    /// <param name="patch">The resource to update.</param>
     /// <param name="appId">The ID of the application.</param>
     /// <param name="correlationID">The correlation ID.</param>
-    /// <returns>The updated resource.</returns>
-    Task<Resource> UpdateAsync(Resource resource, string appId, string correlationID);
+    /// <returns></returns>
+    Task UpdateAsync(IPatch patch, string appId, string correlationID);
 }
