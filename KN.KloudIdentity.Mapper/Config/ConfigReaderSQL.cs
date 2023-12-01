@@ -93,6 +93,7 @@ namespace KN.KloudIdentity.Mapper.Config
             if (res != null)
             {
                 res.GroupSchema = res.GroupSchema.Where(gs => gs.ParentId == null).ToList();
+                res.UserSchema = res.UserSchema.Where(us => us.ParentId == null).ToList();
             }
 
             var mapperConfig = res.TransformToMapperConfig();
@@ -142,6 +143,10 @@ namespace KN.KloudIdentity.Mapper.Config
                     configModel.PUTAPIForGroups = config.PUTAPIForGroups;
                     configModel.DELETEAPIForGroups = config.DELETEAPIForGroups;
                     configModel.GETAPIForGroups = config.GETAPIForGroups;
+                    configModel.LISTAPIForGroups = config.LISTAPIForGroups;
+                    configModel.PATCHAPIForAddMemberToGroup = config.PATCHAPIForAddMemberToGroup;
+                    configModel.PATCHAPIForRemoveMemberFromGroup = config.PATCHAPIForRemoveMemberFromGroup;
+                    configModel.PATCHAPIForRemoveAllMembersFromGroup = config.PATCHAPIForRemoveAllMembersFromGroup;
 
                     _context.AppConfig.Update(configModel);
 

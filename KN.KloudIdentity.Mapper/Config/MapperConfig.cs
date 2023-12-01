@@ -80,6 +80,21 @@ public class MapperConfig
     public required string GroupProvisioningApiUrl { get; set; }
 
     /// <summary>
+    ///  PATCH API for adding member to group.
+    /// </summary>
+    public string? PATCHAPIForAddMemberToGroup { get; set; }
+
+    /// <summary>
+    /// PATCH API for removing member from group.
+    /// </summary>
+    public string? PATCHAPIForRemoveMemberFromGroup { get; set; }
+
+    /// <summary>
+    /// PATCH API for removing all members from group.
+    /// </summary>
+    public string? PATCHAPIForRemoveAllMembersFromGroup { get; set; }
+
+    /// <summary>
     /// User schema for the user provisioning API.
     /// </summary>
     public required IList<SchemaAttribute> UserSchema { get; set; }

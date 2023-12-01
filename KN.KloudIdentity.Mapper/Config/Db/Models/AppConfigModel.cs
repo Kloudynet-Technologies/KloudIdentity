@@ -35,6 +35,12 @@ public class AppConfigModel
 
     public string? LISTAPIForGroups { get; set; }
 
+    public string? PATCHAPIForAddMemberToGroup { get; set; }
+
+    public string? PATCHAPIForRemoveMemberFromGroup { get; set; }
+
+    public string? PATCHAPIForRemoveAllMembersFromGroup { get; set; }
+
     public AuthConfigModel AuthConfig { get; set; }
 
     public ICollection<UserSchemaModel> UserSchema { get; set; }
