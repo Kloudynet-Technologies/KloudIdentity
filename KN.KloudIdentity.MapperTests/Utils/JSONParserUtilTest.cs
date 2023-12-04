@@ -151,5 +151,151 @@ namespace KN.KloudIdentity.Tests.KN.KloudIdentity.Mapper.Utils
             }");
             Assert.Equal(expectedJson, result);
         }
+
+        [Fact]
+        public void Parse_ComplexObject_ReturnsExpectedJson_4()
+        {
+            // Arrange
+            var schemaAttributes = new List<SchemaAttribute>
+            {
+                new SchemaAttribute
+                {
+                    DataType = JSonDataType.Array,
+                    FieldName = "urn:kn:ki:schema:Emails",
+                    MappedAttribute = "ElectronicMailAddresses",
+                    ArrayElementType = JSonDataType.String,
+                    ArrayElementMappingField = "ElectronicMailAddresses:Value"
+                }
+            };
+            var resource = new Core2EnterpriseUser
+            {
+                ElectronicMailAddresses = new List<ElectronicMailAddress>
+                {
+                    new ElectronicMailAddress
+                    {
+                        Value = "a@b.com",
+                        ItemType = "work",
+                        Primary = true
+                    },
+                    new ElectronicMailAddress
+                    {
+                        Value = "test@gmail.com",
+                        ItemType = "home",
+                        Primary = false
+                    }
+                }
+            };
+
+            // Act
+            var result = JSONParserUtil<Core2EnterpriseUser>.Parse(schemaAttributes, resource);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.ContainsKey("Emails"));
+
+            var emailsArray = result["Emails"] as JArray;
+            Assert.NotNull(emailsArray);
+            Assert.Equal(2, emailsArray.Count);
+
+            // Assert
+            var expectedEmails = JArray.Parse(@"[
+                                ""a@b.com"",
+                                ""test@gmail.com""
+                            ]");
+            var actualJson = JObject.FromObject(result);
+
+            var actualEmails = actualJson["Emails"] as JArray;
+
+            Assert.NotNull(actualEmails);
+            Assert.Equal(expectedEmails, actualEmails, JToken.EqualityComparer);
+        }
+
+        [Fact]
+        public void Parse_ComplexObject_ReturnsExpectedJson_5()
+        {
+            // Arrange
+            var schemaAttributes = new List<SchemaAttribute>
+            {
+                new SchemaAttribute
+                {
+                    DataType = JSonDataType.Array,
+                    FieldName = "urn:kn:ki:schema:Emails",
+                    MappedAttribute = "ElectronicMailAddresses",
+                    ArrayElementType = JSonDataType.Object,
+                    ChildSchemas = new List<SchemaAttribute>
+                    {
+                        new SchemaAttribute
+                        {
+                            DataType = JSonDataType.String,
+                            FieldName = "urn:kn:ki:schema:Emails:Value",
+                            MappedAttribute = "Value"
+                        },
+                        new SchemaAttribute
+                        {
+                            DataType = JSonDataType.String,
+                            FieldName = "urn:kn:ki:schema:Emails:ItemType",
+                            MappedAttribute = "ItemType"
+                        },
+                        new SchemaAttribute
+                        {
+                            DataType = JSonDataType.Boolean,
+                            FieldName = "urn:kn:ki:schema:Emails:Primary",
+                            MappedAttribute = "Primary"
+                        }
+                    }
+                }
+            };
+
+            var resource = new Core2EnterpriseUser
+            {
+                ElectronicMailAddresses = new List<ElectronicMailAddress>
+                {
+                    new ElectronicMailAddress
+                    {
+                        Value = "work@gmail.com",
+                        ItemType = "work",
+                        Primary = true
+                    },
+                    new ElectronicMailAddress
+                    {
+                        Value = "home@gmail.com",
+                        ItemType = "home",
+                        Primary = false
+                    }
+                }
+            };
+
+            // Act
+            var result = JSONParserUtil<Core2EnterpriseUser>.Parse(schemaAttributes, resource);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.ContainsKey("Emails"));
+
+            var emailsArray = result["Emails"] as JArray;
+            Assert.NotNull(emailsArray);
+            Assert.Equal(2, emailsArray.Count);
+
+            // Assert
+            var expectedJson = JObject.Parse(@"{
+                ""Emails"": [
+                    {
+                        ""Value"": ""work@gmail.com"",
+                        ""ItemType"": ""work"",
+                        ""Primary"": true
+                    },
+                    {
+                        ""Value"": ""home@gmail.com"",
+                        ""ItemType"": ""home"",
+                        ""Primary"": false
+                    }
+                ]
+            }");
+            var actualJson = JObject.FromObject(result);
+
+            Assert.True(JObject.DeepEquals(expectedJson, actualJson));
+
+        }
+
     }
 }
