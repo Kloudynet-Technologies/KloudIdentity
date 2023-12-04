@@ -68,8 +68,8 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
                 string idField = GetFieldMapperValue(_appConfig, "Identifier", urnPrefix);
                 string usernameField = GetFieldMapperValue(_appConfig, "UserName", urnPrefix);
 
-                core2EntUsr.Identifier = user[idField].ToString();
-                core2EntUsr.UserName = user[usernameField].ToString();
+                core2EntUsr.Identifier = GetValueCaseInsensitive(user, idField);
+                core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
 
                 return core2EntUsr;
             }
@@ -103,5 +103,13 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
     public override Task MapAndPreparePayloadAsync()
     {
         throw new NotImplementedException();
+    }
+
+    private string GetValueCaseInsensitive(JObject jsonObject, string propertyName)
+    {
+        var property = jsonObject.Properties()
+            .FirstOrDefault(p => string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
+
+        return property?.Value.ToString();
     }
 }
