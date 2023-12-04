@@ -62,16 +62,6 @@ public class NonSCIMAppProvider : ProviderBase
         string correlationIdentifier
     )
     {
-        if (parameters.SchemaIdentifier.Equals(SchemaIdentifiers.Core2EnterpriseUser))
-        {
-            return _userProvider.RetrieveAsync(parameters, correlationIdentifier);
-        }
-
-        if (parameters.SchemaIdentifier.Equals(SchemaIdentifiers.Core2Group))
-        {
-            return _groupProvider.RetrieveAsync(parameters, correlationIdentifier);
-        }
-
         throw new NotImplementedException();
     }
 
@@ -227,5 +217,20 @@ public class NonSCIMAppProvider : ProviderBase
         {
             await _groupProvider.UpdateAsync(patch, correlationIdentifier, appId);
         }
+    }
+
+    public override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier, string appId = null)
+    {
+        if (parameters.SchemaIdentifier.Equals(SchemaIdentifiers.Core2EnterpriseUser))
+        {
+            return _userProvider.RetrieveAsync(parameters, correlationIdentifier, appId);
+        }
+
+        if (parameters.SchemaIdentifier.Equals(SchemaIdentifiers.Core2Group))
+        {
+            return _groupProvider.RetrieveAsync(parameters, correlationIdentifier, appId);
+        }
+
+        throw new NotImplementedException();
     }
 }

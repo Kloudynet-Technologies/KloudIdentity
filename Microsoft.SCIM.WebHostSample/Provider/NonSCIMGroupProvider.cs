@@ -167,6 +167,7 @@ public class NonSCIMGroupProvider : ProviderBase
     /// <param name="correlationIdentifier">A correlation identifier for tracking the operation.</param>
     /// <returns>The retrieved group resource.</returns>
     /// <exception cref="NotImplementedException">Thrown since retrieval is not implemented.</exception>
+    [Obsolete("Use RetrieveAsync(IResourceRetrievalParameters, string, string) instead.")]
     public override async Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier)
     {
         throw new HttpResponseException(HttpStatusCode.NotFound);
@@ -188,7 +189,12 @@ public class NonSCIMGroupProvider : ProviderBase
         await _updateGroup.UpdateAsync(patch, appId, correlationIdentifier);
     }
 
-    [Obsolete("Use CreateAsync(Resource, string, string) instead.")]
+    public override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier, string appId = null)
+    {
+        throw new NotImplementedException();
+    }
+
+    [Obsolete("Use UpdateAsync(IResourceRetrievalParameters, string, string) instead.")]
     public override Task UpdateAsync(IPatch patch, string correlationIdentifier)
     {
         throw new NotImplementedException();

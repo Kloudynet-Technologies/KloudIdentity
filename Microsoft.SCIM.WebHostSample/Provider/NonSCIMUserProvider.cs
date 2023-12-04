@@ -23,18 +23,21 @@ public class NonSCIMUserProvider : ProviderBase
     private readonly IDeleteResource<Core2EnterpriseUser> _deleteUser;
     private readonly IReplaceResource<Core2EnterpriseUser> _replaceUser;
     private readonly IUpdateResource<Core2EnterpriseUser> _updateUser;
+    private readonly IGetResource<Core2EnterpriseUser> _getUser;
 
     public NonSCIMUserProvider(
         ICreateResource<Core2EnterpriseUser> createUser,
         IDeleteResource<Core2EnterpriseUser> deleteUser,
         IReplaceResource<Core2EnterpriseUser> replaceUser,
-        IUpdateResource<Core2EnterpriseUser> updateUser
+        IUpdateResource<Core2EnterpriseUser> updateUser,
+        IGetResource<Core2EnterpriseUser> getUser
     )
     {
         _createUser = createUser;
         _deleteUser = deleteUser;
         _replaceUser = replaceUser;
         _updateUser = updateUser;
+        _getUser = getUser;
     }
 
     /// <summary>
@@ -100,39 +103,12 @@ public class NonSCIMUserProvider : ProviderBase
         throw new NotImplementedException();
     }
 
-    // @TODO: Implement retrieve
-    public override Task<Resource> RetrieveAsync(
+    [Obsolete("This method is obsolete. Use RetrieveAsync(IResourceRetrievalParameters, string, string) instead.", true)]
+    public override async Task<Resource> RetrieveAsync(
         IResourceRetrievalParameters parameters,
         string correlationIdentifier
     )
     {
-        if (parameters == null)
-        {
-            throw new ArgumentNullException(nameof(parameters));
-        }
-
-        if (string.IsNullOrWhiteSpace(correlationIdentifier))
-        {
-            throw new ArgumentNullException(nameof(correlationIdentifier));
-        }
-
-        if (string.IsNullOrEmpty(parameters?.ResourceIdentifier?.Identifier))
-        {
-            throw new ArgumentNullException(nameof(parameters));
-        }
-
-        Resource result = null;
-        string identifier = parameters.ResourceIdentifier.Identifier;
-
-        // if (this.storage.Users.ContainsKey(identifier))
-        // {
-        //     if (this.storage.Users.TryGetValue(identifier, out Core2EnterpriseUser user))
-        //     {
-        //         result = user as Resource;
-        //         return Task.FromResult(result);
-        //     }
-        // }
-
         throw new HttpResponseException(HttpStatusCode.NotFound);
     }
 
@@ -444,5 +420,29 @@ public class NonSCIMUserProvider : ProviderBase
         }
 
         await _updateUser.UpdateAsync(patch, appId, correlationIdentifier);
+    }
+
+    public async override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier, string appId = null)
+    {
+        if (parameters == null)
+        {
+            throw new ArgumentNullException(nameof(parameters));
+        }
+
+        if (string.IsNullOrWhiteSpace(correlationIdentifier))
+        {
+            throw new ArgumentNullException(nameof(correlationIdentifier));
+        }
+
+        if (string.IsNullOrEmpty(parameters?.ResourceIdentifier?.Identifier))
+        {
+            throw new ArgumentNullException(nameof(parameters));
+        }
+
+        Resource result = null;
+        string identifier = parameters.ResourceIdentifier.Identifier;
+
+        result = await _getUser.GetAsync(identifier, appId, correlationIdentifier) as Resource;
+        return result;
     }
 }

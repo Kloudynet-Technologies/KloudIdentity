@@ -166,5 +166,10 @@ namespace Microsoft.SCIM.WebHostSample.Provider
         {
             throw new NotImplementedException();
         }
+
+        public override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier, string appId = null)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

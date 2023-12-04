@@ -71,7 +71,6 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
     /// <exception cref="HttpRequestException">
     /// HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}
     /// </exception>
-
     private async Task CreateUserAsync()
     {
         var authConfig = _appConfig.AuthConfig;
