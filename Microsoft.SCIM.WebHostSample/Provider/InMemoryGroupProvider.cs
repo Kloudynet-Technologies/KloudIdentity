@@ -230,6 +230,11 @@ namespace Microsoft.SCIM.WebHostSample.Provider
             throw new HttpResponseException(HttpStatusCode.NotFound);
         }
 
+        public override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier, string appId = null)
+        {
+            throw new NotImplementedException();
+        }
+
         public override Task UpdateAsync(IPatch patch, string correlationIdentifier)
         {
             if (null == patch)

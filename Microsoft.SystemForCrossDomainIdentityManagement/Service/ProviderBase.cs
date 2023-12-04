@@ -430,9 +430,16 @@ namespace Microsoft.SCIM
             return result;
         }
 
+        [Obsolete("Use RetrieveAsync(IResourceRetrievalParameters, string, string) instead.")]
         public abstract Task<Resource> RetrieveAsync(
             IResourceRetrievalParameters parameters,
             string correlationIdentifier
+        );
+
+        public abstract Task<Resource> RetrieveAsync(
+            IResourceRetrievalParameters parameters,
+            string correlationIdentifier,
+            string appId = null
         );
 
         public virtual async Task<Resource> RetrieveAsync(
@@ -458,9 +465,20 @@ namespace Microsoft.SCIM
                 );
             }
 
+            string appId;
+            if (request.Request.Options.TryGetValue<string>(new HttpRequestOptionsKey<string>("appId"), out var appIdValue))
+            {
+                appId = appIdValue;
+            }
+            else
+            {
+                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidRequest);
+            }
+
             Resource result = await this.RetrieveAsync(
                     request.Payload,
-                    request.CorrelationIdentifier
+                    request.CorrelationIdentifier,
+                    appId
                 )
                 .ConfigureAwait(false);
             return result;
