@@ -20,6 +20,9 @@ public class NonSCIMGroupProvider : ProviderBase
     private readonly IDeleteResource<Core2Group> _deleteGroup;
     private readonly IReplaceResource<Core2Group> _replaceGroup;
     private readonly IUpdateResource<Core2Group> _updateGroup;
+
+    private readonly IGetResource<Core2Group> _getGroup;
+
     /// <summary>
     /// Constructor that initializes the NonSCIMGroupProvider with resource creation, deletion, and replacement services.
     /// </summary>
@@ -31,13 +34,15 @@ public class NonSCIMGroupProvider : ProviderBase
         ICreateResource<Core2Group> createGroup,
         IDeleteResource<Core2Group> deleteGroup,
         IReplaceResource<Core2Group> replaceGroup,
-        IUpdateResource<Core2Group> updateGroup
+        IUpdateResource<Core2Group> updateGroup,
+        IGetResource<Core2Group> getGroup
     )
     {
         _createGroup = createGroup;
         _deleteGroup = deleteGroup;
         _replaceGroup = replaceGroup;
         _updateGroup = updateGroup;
+        _getGroup = getGroup;
     }
 
     /// <summary>
@@ -189,9 +194,22 @@ public class NonSCIMGroupProvider : ProviderBase
         await _updateGroup.UpdateAsync(patch, appId, correlationIdentifier);
     }
 
-    public override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier, string appId = null)
+    /// <summary>
+    /// Gets the group resource asynchronously based on the given parameters.
+    /// </summary>
+    /// <param name="parameters"></param>
+    /// <param name="correlationIdentifier"></param>
+    /// <param name="appId"></param>
+    /// <returns></returns>
+    /// <exception cref="HttpResponseException"></exception>
+    public async override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier, string appId = null)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrWhiteSpace(parameters?.ResourceIdentifier?.Identifier))
+        {
+            throw new HttpResponseException(HttpStatusCode.BadRequest);
+        }
+
+        return await _getGroup.GetAsync(parameters.ResourceIdentifier.Identifier, appId, correlationIdentifier);
     }
 
     [Obsolete("Use UpdateAsync(IResourceRetrievalParameters, string, string) instead.")]
