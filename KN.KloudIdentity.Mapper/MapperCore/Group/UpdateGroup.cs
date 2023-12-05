@@ -5,6 +5,7 @@
 using KN.KloudIdentity.Mapper.Config;
 using Microsoft.SCIM;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Group
 {
@@ -66,11 +67,11 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             {
                 switch (operation.OperationName)
                 {
-                    case "add":
+                    case "Add":
                         ProcessAddOperation(operation.Value, addMembers);
                         break;
 
-                    case "remove":
+                    case "Remove":
                         ProcessRemoveOperation(operation.Value, removeMembers);
                         break;
 
@@ -106,11 +107,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         {
             dynamic data = JsonConvert.DeserializeObject(value);
 
-            foreach (var item in data)
+            if (data is JArray)
             {
-                string member = item.value;
-                addMembers.Add(member);
+                foreach (var item in data)
+                {
+                    string member = item.value;
+                    addMembers.Add(member);
+                }
             }
+
         }
 
         /// <summary>
