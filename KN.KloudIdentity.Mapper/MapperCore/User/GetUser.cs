@@ -4,6 +4,7 @@
 
 using System.Net.Http.Headers;
 using System.Web.Http;
+using Azure.Identity;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Utils;

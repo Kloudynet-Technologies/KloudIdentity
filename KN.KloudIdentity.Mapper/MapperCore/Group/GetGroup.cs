@@ -9,6 +9,7 @@ using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
+using System.Web.Http;
 
 namespace KN.KloudIdentity.Mapper;
 
@@ -51,14 +52,14 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
                 string idField = GetFieldMapperValue(_appConfig, "Identifier", urnPrefix);
                 string displayNameField = GetFieldMapperValue(_appConfig, "DisplayName", urnPrefix);
 
-                core2Group.Identifier = jObject[idField].ToString();
-                core2Group.DisplayName = jObject[displayNameField].ToString();
+                core2Group.Identifier = GetValueCaseInsensitive(jObject, idField);
+                core2Group.DisplayName = GetValueCaseInsensitive(jObject, displayNameField);
 
                 return core2Group;
             }
             else
             {
-                throw new Exception($"Error retrieving group. Status code: {response.StatusCode}");
+                throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
             }
         }
         else
@@ -83,5 +84,13 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
     public override Task MapAndPreparePayloadAsync()
     {
         throw new NotImplementedException();
+    }
+
+    private string GetValueCaseInsensitive(JObject jsonObject, string propertyName)
+    {
+        var property = jsonObject.Properties()
+            .FirstOrDefault(p => string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
+
+        return property?.Value.ToString();
     }
 }
