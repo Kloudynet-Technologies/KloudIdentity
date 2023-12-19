@@ -23,30 +23,21 @@ namespace KN.KloudIdentity.Mapper.Common.Encryption
         {
             using (Aes aes = Aes.Create())
             {
-                aes.Key = Encoding.ASCII.GetBytes(key);
-                aes.IV = Encoding.ASCII.GetBytes(iv);
+                aes.Key = Encoding.UTF8.GetBytes(key);
+                aes.IV = Encoding.UTF8.GetBytes(iv);
 
                 ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
 
-                byte[] encryptedBytes;
                 using (MemoryStream memoryStream = new MemoryStream())
                 {
-                    using (
-                        CryptoStream cryptoStream = new CryptoStream(
-                            memoryStream,
-                            encryptor,
-                            CryptoStreamMode.Write
-                        )
-                    )
+                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
                     {
                         byte[] plainBytes = Encoding.UTF8.GetBytes(text);
                         cryptoStream.Write(plainBytes, 0, plainBytes.Length);
                     }
 
-                    encryptedBytes = memoryStream.ToArray();
+                    return Convert.ToBase64String(memoryStream.ToArray());
                 }
-
-                return Convert.ToBase64String(encryptedBytes);
             }
         }
 
@@ -61,31 +52,23 @@ namespace KN.KloudIdentity.Mapper.Common.Encryption
         {
             using (Aes aes = Aes.Create())
             {
-                aes.Key = Encoding.ASCII.GetBytes(key);
-                aes.IV = Encoding.ASCII.GetBytes(iv);
+                aes.Key = Encoding.UTF8.GetBytes(key);
+                aes.IV = Encoding.UTF8.GetBytes(iv);
 
                 ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
 
                 byte[] cipherBytes = Convert.FromBase64String(cipherText);
 
-                string decryptedText;
                 using (MemoryStream memoryStream = new MemoryStream(cipherBytes))
                 {
-                    using (
-                        CryptoStream cryptoStream = new CryptoStream(
-                            memoryStream,
-                            decryptor,
-                            CryptoStreamMode.Read
-                        )
-                    )
+                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
                     {
-                        byte[] plainBytes = new byte[cipherBytes.Length];
-                        int bytesRead = cryptoStream.Read(plainBytes, 0, plainBytes.Length);
-                        decryptedText = Encoding.UTF8.GetString(plainBytes, 0, bytesRead);
+                        using (StreamReader reader = new StreamReader(cryptoStream))
+                        {
+                            return reader.ReadToEnd();
+                        }
                     }
                 }
-
-                return decryptedText;
             }
         }
     }
