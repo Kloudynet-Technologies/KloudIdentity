@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KN.KloudIdentity.Mapper", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KN.KloudIdentity.MapperTests", "KN.KloudIdentity.MapperTests\KN.KloudIdentity.MapperTests.csproj", "{2DE73ACC-F9C3-463E-A465-333FE29804E9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KN.KloudIdentity.MapperOverride", "KN.KloudIdentity.MapperOverride\KN.KloudIdentity.MapperOverride.csproj", "{CE8311EA-2438-4E4A-A155-20A5CA771824}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{2DE73ACC-F9C3-463E-A465-333FE29804E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2DE73ACC-F9C3-463E-A465-333FE29804E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2DE73ACC-F9C3-463E-A465-333FE29804E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE8311EA-2438-4E4A-A155-20A5CA771824}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE8311EA-2438-4E4A-A155-20A5CA771824}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE8311EA-2438-4E4A-A155-20A5CA771824}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE8311EA-2438-4E4A-A155-20A5CA771824}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

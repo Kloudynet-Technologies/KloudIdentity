@@ -40,6 +40,7 @@ namespace KN.KloudIdentity.Mapper.Utils
             else
             {
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                    "Zoho-oauthtoken",
                     token
                 );
             }

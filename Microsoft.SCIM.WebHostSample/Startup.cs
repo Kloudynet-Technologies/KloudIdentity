@@ -22,6 +22,8 @@ namespace Microsoft.SCIM.WebHostSample
     using Microsoft.IdentityModel.Tokens;
     using Microsoft.SCIM.WebHostSample.Provider;
     using Newtonsoft.Json;
+    using KN.KloudIdentity.Mapper.MapperCore;
+    using KN.KloudIdentity.MapperOverride;
 
     public class Startup
     {
@@ -100,6 +102,9 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();
             services.AddScoped<ExtractAppIdFilter>();
+
+            // Create user override.
+            services.AddScoped<ICreateResource<Core2EnterpriseUser>, CreateUser_Zoho>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

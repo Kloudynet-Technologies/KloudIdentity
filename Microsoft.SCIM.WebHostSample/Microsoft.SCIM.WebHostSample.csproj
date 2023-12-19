@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.SystemForCrossDomainIdentityManagement\Microsoft.SCIM.csproj" />
     <ProjectReference Include="..\KN.KloudIdentity.Mapper\KN.KloudIdentity.Mapper.csproj" />
+    <ProjectReference Include="..\KN.KloudIdentity.MapperOverride\KN.KloudIdentity.MapperOverride.csproj" />
   </ItemGroup>
 
   <ItemGroup>
