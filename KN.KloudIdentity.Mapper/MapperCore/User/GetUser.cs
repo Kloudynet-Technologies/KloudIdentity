@@ -25,12 +25,15 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
     private MapperConfig _appConfig;
     private readonly IConfiguration _configuration;
 
-    public GetUser(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    private readonly UserIdMapperUtil _userIdMapperUtil;
+
+    public GetUser(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory, IConfiguration configuration, UserIdMapperUtil userIdMapperUtil)
         : base(configReader, authContext)
     {
         _configReader = configReader;
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
+        _userIdMapperUtil = userIdMapperUtil;
     }
 
     /// <summary>
@@ -42,26 +45,29 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
     /// <returns>A task that represents the asynchronous operation. The task result contains the retrieved user.</returns>
     /// <exception cref="Exception">Error retrieving user.</exception>
     /// <exception cref="ApplicationException">GET API for users is not configured.</exception>
-    public async Task<Core2EnterpriseUser> GetAsync(string identifier, string appId, string correlationID)
+    public virtual async Task<Core2EnterpriseUser> GetAsync(string identifier, string appId, string correlationID)
     {
         AppId = appId;
         CorrelationID = correlationID;
 
         _appConfig = await GetAppConfigAsync();
 
-        if(_appConfig.GETAPIForUsers != null && _appConfig.GETAPIForUsers != string.Empty)
-        {            
+        if (_appConfig.GETAPIForUsers != null && _appConfig.GETAPIForUsers != string.Empty)
+        {
             var token = await GetAuthenticationAsync(_appConfig.AuthConfig);
+
+            // @TODO: Get the created user id from the database based on app config setting.
+            var userId = _userIdMapperUtil.GetCreatedUserId(identifier, appId);
 
             var client = _httpClientFactory.CreateClient();
             client.SetAuthenticationHeaders(_appConfig.AuthConfig, token);
-            var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(_appConfig.GETAPIForUsers, identifier));
+            var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(_appConfig.GETAPIForUsers, userId));
 
-            if(response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
                 var user = JsonConvert.DeserializeObject<JObject>(content);
-                
+
                 var core2EntUsr = new Core2EnterpriseUser();
 
                 string urnPrefix = _configuration["urnPrefix"];
@@ -88,7 +94,7 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
     private string GetFieldMapperValue(MapperConfig mapperConfig, string fieldName, string urnPrefix)
     {
         var field = mapperConfig.UserSchema.FirstOrDefault(f => f.MappedAttribute == fieldName);
-        if(field != null)
+        if (field != null)
         {
             return field.FieldName.Remove(0, urnPrefix.Length);
         }

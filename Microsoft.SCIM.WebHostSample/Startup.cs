@@ -24,6 +24,7 @@ namespace Microsoft.SCIM.WebHostSample
     using Newtonsoft.Json;
     using KN.KloudIdentity.Mapper.MapperCore;
     using KN.KloudIdentity.MapperOverride;
+    using Microsoft.IdentityModel.Logging;
 
     public class Startup
     {
@@ -74,8 +75,20 @@ namespace Microsoft.SCIM.WebHostSample
                 }
                 else
                 {
-                    options.Authority = this.configuration["Token:TokenIssuer"];
-                    options.Audience = this.configuration["Token:TokenAudience"];
+                    // options.Authority = this.configuration["Token:TokenIssuer"];
+                    // options.Audience = this.configuration["Token:TokenAudience"];
+
+                    // @TODO: This is a temporary workaround to allow the sample to run without proper token issuer.
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        ValidateLifetime = false,
+                        ValidateIssuerSigningKey = false,
+                        ValidIssuer = this.configuration["Token:TokenIssuer"],
+                        ValidAudience = this.configuration["Token:TokenAudience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.configuration["Token:IssuerSigningKey"]))
+                    };
                     options.Events = new JwtBearerEvents
                     {
                         OnTokenValidated = context =>
@@ -105,6 +118,9 @@ namespace Microsoft.SCIM.WebHostSample
 
             // Create user override.
             services.AddScoped<ICreateResource<Core2EnterpriseUser>, CreateUser_Zoho>();
+
+            // Get user override.
+            services.AddScoped<IGetResource<Core2EnterpriseUser>, GetUser_Zoho>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -116,13 +132,13 @@ namespace Microsoft.SCIM.WebHostSample
             }
 
             // Migrate database
-            using (var scope = app.ApplicationServices.CreateScope())
-            {
-                var services = scope.ServiceProvider;
+            // using (var scope = app.ApplicationServices.CreateScope())
+            // {
+            //     var services = scope.ServiceProvider;
 
-                var context = services.GetRequiredService<Context>();
-                context.Database.Migrate();
-            }
+            //     var context = services.GetRequiredService<Context>();
+            //     context.Database.Migrate();
+            // }
 
             app.UseHsts();
             app.UseRouting();
@@ -137,6 +153,8 @@ namespace Microsoft.SCIM.WebHostSample
                 {
                     endpoints.MapDefaultControllerRoute();
                 });
+
+            IdentityModelEventSource.ShowPII = true;
         }
 
         private Task AuthenticationFailed(AuthenticationFailedContext arg)

@@ -1,13 +1,15 @@
 ﻿using KN.KloudIdentity.Mapper;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.MapperCore.User;
+using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.MapperOverride;
 
 public class CreateUser_Zoho : CreateUser
 {
-    public CreateUser_Zoho(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory) : base(configReader, authContext, httpClientFactory)
+    public CreateUser_Zoho(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory, UserIdMapperUtil userIdMapperUtil)
+        : base(configReader, authContext, httpClientFactory, userIdMapperUtil)
     {
     }
 

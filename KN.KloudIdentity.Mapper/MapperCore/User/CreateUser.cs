@@ -4,7 +4,9 @@
 
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Utils;
+using Microsoft.Identity.Client;
 using Microsoft.SCIM;
+using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
@@ -17,15 +19,18 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
     private MapperConfig _appConfig;
     private readonly IHttpClientFactory _httpClientFactory;
 
+    private readonly UserIdMapperUtil _userIdMapperUtil;
+
     /// <summary>
     /// Initializes a new instance of the CreateUser class.
     /// </summary>
     /// <param name="configReader">An implementation of IConfigReader for reading configuration settings.</param>
     /// <param name="authContext">An implementation of IAuthContext for handling authentication.</param>
-    public CreateUser(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory)
+    public CreateUser(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory, UserIdMapperUtil userIdMapperUtil)
         : base(configReader, authContext)
     {
         _httpClientFactory = httpClientFactory;
+        _userIdMapperUtil = userIdMapperUtil;
     }
 
     /// <summary>
@@ -35,7 +40,7 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
     /// <param name="appId">The ID of the application.</param>
     /// <param name="correlationID">The correlation ID.</param>
     /// <returns>The created user resource.</returns>
-    public async Task<Core2EnterpriseUser> ExecuteAsync(
+    public virtual async Task<Core2EnterpriseUser> ExecuteAsync(
         Core2EnterpriseUser resource,
         string appId,
         string correlationID
@@ -92,6 +97,18 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
                     $"Error creating user: {response.StatusCode} - {response.ReasonPhrase}"
                 );
             }
+
+            // @TODO: Create user ID mapper entry based on app config setting.
+            var createdUser = await response.Content.ReadAsAsync<JObject>();
+            var createdUserId = createdUser["users"][0]["details"]["id"].ToString();
+
+            CreateUserIdMapper(
+                _userIdMapperUtil,
+                createdUserId,
+                Resource.Identifier,
+                AppId,
+                CorrelationID
+            );
         }
     }
 }
