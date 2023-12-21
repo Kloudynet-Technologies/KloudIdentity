@@ -18,7 +18,7 @@ public class Context : DbContext
         : base(options)
     {
         this.configuration = configuration;
-        //  Database.EnsureCreated();
+        // Database.EnsureCreated();
     }
 
     public DbSet<AppConfigModel> AppConfig { get; set; }
@@ -28,6 +28,8 @@ public class Context : DbContext
     public DbSet<UserSchemaModel> UserSchema { get; set; }
 
     public DbSet<GroupSchemaModel> GroupSchema { get; set; }
+
+    public DbSet<UserIdMapperModel> UserIdMap { get; set; }
 
     /// <summary>
     /// This method configures the database context.

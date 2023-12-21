@@ -44,6 +44,7 @@ public static class ServiceExtension
         services.AddScoped<IRemoveGroupMembers, RemoveGroupMembers>();
         services.AddScoped<IRemoveAllGroupMembers, RemoveAllGroupMembers>();
         services.AddScoped<IGetResource<Core2Group>, GetGroup>();
+        services.AddScoped<UserIdMapperUtil>();
 
     }
 }

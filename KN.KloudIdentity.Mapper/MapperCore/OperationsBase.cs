@@ -48,4 +48,24 @@ public abstract class OperationsBase<T> : IAPIMapperBase<T> where T : Resource
     {
         return await _authContext.GetTokenAsync(config);
     }
+
+    public void CreateUserIdMapper(UserIdMapperUtil userIdMapperUtil, string createdUserId, string identifier, string appId, string correlationId)
+    {
+        if (string.IsNullOrEmpty(createdUserId))
+        {
+            throw new ArgumentNullException(nameof(createdUserId));
+        }
+
+        if (string.IsNullOrEmpty(identifier))
+        {
+            throw new ArgumentNullException(nameof(identifier));
+        }
+
+        if (string.IsNullOrEmpty(appId))
+        {
+            throw new ArgumentNullException(nameof(appId));
+        }
+
+        userIdMapperUtil.AddUserIdMapper(identifier, createdUserId, appId);
+    }
 }

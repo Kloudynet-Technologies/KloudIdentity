@@ -51,4 +51,6 @@ public interface IAPIMapperBase<T> where T : Resource
     /// </summary>
     /// <returns></returns>
     Task MapAndPreparePayloadAsync();
+
+    void CreateUserIdMapper(UserIdMapperUtil userIdMapperUtil, string createdUserId, string identifier, string appId, string correlationId);
 }
