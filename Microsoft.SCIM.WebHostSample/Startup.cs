@@ -132,13 +132,13 @@ namespace Microsoft.SCIM.WebHostSample
             }
 
             // Migrate database
-            // using (var scope = app.ApplicationServices.CreateScope())
-            // {
-            //     var services = scope.ServiceProvider;
+            using (var scope = app.ApplicationServices.CreateScope())
+            {
+                var services = scope.ServiceProvider;
 
-            //     var context = services.GetRequiredService<Context>();
-            //     context.Database.Migrate();
-            // }
+                var context = services.GetRequiredService<Context>();
+                context.Database.Migrate();
+            }
 
             app.UseHsts();
             app.UseRouting();

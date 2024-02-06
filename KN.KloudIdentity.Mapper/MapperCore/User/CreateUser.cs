@@ -101,14 +101,6 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
             // @TODO: Create user ID mapper entry based on app config setting.
             var createdUser = await response.Content.ReadAsAsync<JObject>();
             var createdUserId = createdUser["users"][0]["details"]["id"].ToString();
-
-            CreateUserIdMapper(
-                _userIdMapperUtil,
-                createdUserId,
-                Resource.Identifier,
-                AppId,
-                CorrelationID
-            );
         }
     }
 }

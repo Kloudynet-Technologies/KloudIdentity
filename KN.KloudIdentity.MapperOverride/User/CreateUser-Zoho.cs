@@ -24,8 +24,8 @@ public class CreateUser_Zoho : CreateUser
                     ["first_name"] = Resource.Name.GivenName,
                     ["last_name"] = Resource.Name.FamilyName,
                     ["email"] = Resource.UserName,
-                    ["role"] = "6049807000000026008",
-                    ["profile"] = "6049807000000026014"
+                    ["role"] = "6073302000000026005",
+                    ["profile"] = "6073302000000026014"
                 }
             }
         };
