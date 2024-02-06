@@ -3,6 +3,7 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
@@ -22,6 +23,7 @@ public abstract class OperationsBase<T> : IAPIMapperBase<T> where T : Resource
 
     private readonly IConfigReader _configReader;
     private readonly IAuthContext _authContext;
+    private readonly IGetFullAppConfigQuery _getFullAppConfigQuery;
 
     public OperationsBase(IConfigReader configReader, IAuthContext authContext)
     {

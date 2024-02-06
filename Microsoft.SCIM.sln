@@ -11,6 +11,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KN.KloudIdentity.Mapper", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KN.KloudIdentity.MapperTests", "KN.KloudIdentity.MapperTests\KN.KloudIdentity.MapperTests.csproj", "{2DE73ACC-F9C3-463E-A465-333FE29804E9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KN.KloudIdentity.Mapper.Domain", "KN.KloudIdentity.Mapper.Domain\KN.KloudIdentity.Mapper.Domain.csproj", "{2CB006BB-EF21-4677-AEB8-CC21204D5602}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KN.KloudIdentity.Mapper.Infrastructure", "KN.KloudIdentity.Mapper.Infrastructure\KN.KloudIdentity.Mapper.Infrastructure.csproj", "{2E495687-1D6E-413C-A1C7-00DDEA795F1E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +37,14 @@ Global
 		{2DE73ACC-F9C3-463E-A465-333FE29804E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2DE73ACC-F9C3-463E-A465-333FE29804E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2DE73ACC-F9C3-463E-A465-333FE29804E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CB006BB-EF21-4677-AEB8-CC21204D5602}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CB006BB-EF21-4677-AEB8-CC21204D5602}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CB006BB-EF21-4677-AEB8-CC21204D5602}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CB006BB-EF21-4677-AEB8-CC21204D5602}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E495687-1D6E-413C-A1C7-00DDEA795F1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E495687-1D6E-413C-A1C7-00DDEA795F1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E495687-1D6E-413C-A1C7-00DDEA795F1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E495687-1D6E-413C-A1C7-00DDEA795F1E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

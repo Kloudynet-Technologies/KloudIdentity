@@ -22,6 +22,9 @@ namespace Microsoft.SCIM.WebHostSample
     using Microsoft.IdentityModel.Tokens;
     using Microsoft.SCIM.WebHostSample.Provider;
     using Newtonsoft.Json;
+    using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+    using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
+    using System;
 
     public class Startup
     {
@@ -95,6 +98,10 @@ namespace Microsoft.SCIM.WebHostSample
             services.ConfigureMapperServices();
 
             services.AddHttpClient();
+            services.AddHttpClient<IGetFullAppConfigQuery, GetFullAppConfigQuery>(client =>
+            {
+                client.BaseAddress = new Uri(this.configuration["MgtPortalUrl"]);
+            });
 
             services.AddScoped<NonSCIMGroupProvider>();
             services.AddScoped<NonSCIMUserProvider>();

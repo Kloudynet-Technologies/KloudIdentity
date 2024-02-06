@@ -17,6 +17,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.SystemForCrossDomainIdentityManagement\Microsoft.SCIM.csproj" />
+    <ProjectReference Include="..\KN.KloudIdentity.Mapper.Domain\KN.KloudIdentity.Mapper.Domain.csproj" />
+    <ProjectReference Include="..\KN.KloudIdentity.Mapper.Infrastructure\KN.KloudIdentity.Mapper.Infrastructure.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
