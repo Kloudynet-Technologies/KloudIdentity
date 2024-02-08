@@ -3,6 +3,8 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using Microsoft.SCIM;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -14,7 +16,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
     /// </summary>
     public class UpdateGroup : OperationsBase<Core2Group>, IUpdateResource<Core2Group>
     {
-        private MapperConfig _appConfig;
+        private AppConfig _appConfig;
         private readonly IAddGroupMembers _addGroupMembers;
         private readonly IRemoveGroupMembers _removeGroupMembers;
         private readonly IRemoveAllGroupMembers _removeAllGroupMembers;
@@ -27,24 +29,17 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <param name="addGroupMembers">An implementation of IAddGroupMembers for adding members to a group.</param>
         /// <param name="removeGroupMembers">An implementation of IRemoveGroupMembers for removing specific members from a group.</param>
         /// <param name="removeAllGroupMembers">An implementation of IRemoveAllGroupMembers for removing all members from a group.</param>
-        public UpdateGroup(IConfigReader configReader, IAuthContext authContext,
+        public UpdateGroup(
+            IAuthContext authContext,
             IAddGroupMembers addGroupMembers,
             IRemoveGroupMembers removeGroupMembers,
-            IRemoveAllGroupMembers removeAllGroupMembers)
-            : base(configReader, authContext)
+            IRemoveAllGroupMembers removeAllGroupMembers,
+            IGetFullAppConfigQuery getFullAppConfigQuery)
+            : base(authContext, getFullAppConfigQuery)
         {
             _addGroupMembers = addGroupMembers;
             _removeGroupMembers = removeGroupMembers;
             _removeAllGroupMembers = removeAllGroupMembers;
-        }
-
-        /// <summary>
-        /// Map and prepare the payload to be sent to the API asynchronously.
-        /// </summary>
-        /// <returns>Task representing the asynchronous operation.</returns>
-        public override async Task MapAndPreparePayloadAsync()
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>

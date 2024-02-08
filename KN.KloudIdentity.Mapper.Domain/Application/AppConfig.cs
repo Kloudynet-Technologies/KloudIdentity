@@ -14,6 +14,6 @@ public record AppConfig
     public string? AADClientId { get; init; }
     public AuthenticationMethods AuthenticationMethod { get; init; }
     public required dynamic AuthenticationDetails { get; set; }
-    public required ICollection<AttributeSchema> UserAttributeSchemas { get; set; }
-    public ICollection<AttributeSchema>? GroupAttributeSchemas { get; set; }
+    public required IEnumerable<AttributeSchema> UserAttributeSchemas { get; set; }
+    public IEnumerable<AttributeSchema>? GroupAttributeSchemas { get; set; }
 }

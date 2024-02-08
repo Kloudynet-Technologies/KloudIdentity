@@ -7,6 +7,7 @@ using System.Security.Authentication;
 using System.Text.Json;
 using KN.KloudIdentity.Mapper.Auth;
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Authentication;
 
 namespace KN.KloudIdentity.Mapper;
 
@@ -15,26 +16,28 @@ namespace KN.KloudIdentity.Mapper;
 /// </summary>
 public class OAuth2Strategy : IAuthStrategy
 {
-    public AuthenticationMethod AuthenticationMethod => AuthenticationMethod.OAuth2;
+    public AuthenticationMethods AuthenticationMethod => AuthenticationMethods.OIDC_ClientCrd;
 
     /// <summary>
     /// Gets the auth token for OAuth2.
     /// </summary>
     /// <param name="authConfig"></param>
     /// <returns></returns>
-    public async Task<string> GetTokenAsync(AuthConfig authConfig)
+    public async Task<string> GetTokenAsync(dynamic authConfig)
     {
         ValidateParameters(authConfig);
 
+        var oauth2Auth = authConfig as OAuth2ClientCrdAuthentication;
+
         var client = new HttpClient();
-        var request = new HttpRequestMessage(HttpMethod.Post, authConfig.OAuth2TokenUrl)
+        var request = new HttpRequestMessage(HttpMethod.Post, oauth2Auth.TokenUrl)
         {
             Content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                { "client_id", authConfig.ClientId },
-                { "client_secret", authConfig.ClientSecret },
-                { "scope", authConfig.Scope },
-                { "grant_type", authConfig.GrantType }
+                { "client_id", oauth2Auth.ClientId },
+                { "client_secret", oauth2Auth.ClientSecret },
+                { "scope", oauth2Auth.Scopes?.FirstOrDefault() },
+                { "grant_type", "client_credentials" }
             })
         };
 
@@ -58,36 +61,28 @@ public class OAuth2Strategy : IAuthStrategy
     /// </summary>
     /// <param name="authConfig"></param>
     /// <exception cref="ArgumentNullException"></exception>
-    private void ValidateParameters(AuthConfig authConfig)
+    private void ValidateParameters(dynamic authConfig)
     {
-        if (authConfig == null)
+        if (authConfig is null or not OAuth2ClientCrdAuthentication)
         {
             throw new ArgumentNullException(nameof(authConfig));
         }
 
-        if (string.IsNullOrWhiteSpace(authConfig.OAuth2TokenUrl))
+        var oauth2Auth = authConfig as OAuth2ClientCrdAuthentication;
+
+        if (string.IsNullOrWhiteSpace(oauth2Auth.TokenUrl))
         {
-            throw new ArgumentNullException(nameof(authConfig.OAuth2TokenUrl));
+            throw new ArgumentNullException(nameof(oauth2Auth.TokenUrl));
         }
 
-        if (string.IsNullOrWhiteSpace(authConfig.ClientId))
+        if (string.IsNullOrWhiteSpace(oauth2Auth.ClientId))
         {
-            throw new ArgumentNullException(nameof(authConfig.ClientId));
+            throw new ArgumentNullException(nameof(oauth2Auth.ClientId));
         }
 
-        if (string.IsNullOrWhiteSpace(authConfig.ClientSecret))
+        if (string.IsNullOrWhiteSpace(oauth2Auth.ClientSecret))
         {
-            throw new ArgumentNullException(nameof(authConfig.ClientSecret));
-        }
-
-        if (string.IsNullOrWhiteSpace(authConfig.Scope))
-        {
-            throw new ArgumentNullException(nameof(authConfig.Scope));
-        }
-
-        if (string.IsNullOrWhiteSpace(authConfig.GrantType))
-        {
-            throw new ArgumentNullException(nameof(authConfig.GrantType));
+            throw new ArgumentNullException(nameof(oauth2Auth.ClientSecret));
         }
     }
 }

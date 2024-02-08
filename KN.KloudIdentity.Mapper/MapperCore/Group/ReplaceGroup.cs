@@ -3,8 +3,11 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
+using Newtonsoft.Json.Linq;
 using System.Text;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Group
@@ -14,7 +17,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
     /// </summary>
     public class ReplaceGroup : OperationsBase<Core2Group>, IReplaceResource<Core2Group>
     {
-        private MapperConfig _mapperConfig;
+        private AppConfig _appConfig;
         private readonly IHttpClientFactory _httpClientFactory;
 
         /// <summary>
@@ -22,17 +25,13 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// </summary>
         /// <param name="configReader">Configuration reader.</param>
         /// <param name="authContext">Authentication context.</param>
-        public ReplaceGroup(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory) : base(configReader, authContext)
+        public ReplaceGroup(
+            IAuthContext authContext,
+            IHttpClientFactory httpClientFactory,
+            IGetFullAppConfigQuery getFullAppConfigQuery)
+            : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
-        }
-
-        /// <summary>
-        /// Asynchronously maps and prepares the payload for user replacement.
-        /// </summary>
-        public override async Task MapAndPreparePayloadAsync()
-        {
-            Payload = JSONParserUtil<Resource>.Parse(_mapperConfig.GroupSchema, Resource);
         }
 
         /// <summary>
@@ -48,15 +47,14 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             string correlationID
         )
         {
-            AppId = appId;
-            Resource = resource;
-            CorrelationID = correlationID;
+            _appConfig = await GetAppConfigAsync(appId);
 
-            _mapperConfig = await GetAppConfigAsync();
+            var payload = await MapAndPreparePayloadAsync(
+                _appConfig.GroupAttributeSchemas!.ToList(),
+                resource
+            );
 
-            await MapAndPreparePayloadAsync();
-
-            await ReplaceGroupAsync();
+            await ReplaceGroupAsync(payload, resource);
 
             return resource;
         }
@@ -64,17 +62,17 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <summary>
         /// Private asynchronous method for handling authentication and sending the user replacement request.
         /// </summary>
-        private async Task ReplaceGroupAsync()
+        private async Task ReplaceGroupAsync(JObject payload, Core2Group resource)
         {
-            var authConfig = _mapperConfig.AuthConfig;
+            var authConfig = _appConfig.AuthenticationDetails;
 
             var token = await GetAuthenticationAsync(authConfig);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            httpClient.SetAuthenticationHeaders(authConfig, token);
+            httpClient = Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, authConfig, token);
 
-            using (var response = await ProcessRequestAsync(_mapperConfig, httpClient))
+            using (var response = await ProcessRequestAsync(_appConfig, httpClient, resource, payload))
             {
                 if (response != null && !response.IsSuccessStatusCode)
                 {
@@ -88,24 +86,24 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <summary>
         /// Processes the group replacement request based on the specified API configuration and HTTP client.
         /// </summary>
-        /// <param name="mapperConfig">The mapper configuration containing API details.</param>
+        /// <param name="appConfig">The mapper configuration containing API details.</param>
         /// <param name="httpClient">The HTTP client used for making API requests.</param>
         /// <returns>
         /// A task representing the asynchronous operation. 
         /// The task result is an <see cref="HttpResponseMessage"/> if an HTTP request is made, or null if no request is made.
         /// </returns>
-        private async Task<HttpResponseMessage?> ProcessRequestAsync(MapperConfig mapperConfig, HttpClient httpClient)
+        private async Task<HttpResponseMessage?> ProcessRequestAsync(AppConfig appConfig, HttpClient httpClient, Core2Group resource, JObject payload)
         {
-            if (!string.IsNullOrWhiteSpace(mapperConfig.PUTAPIForGroups))
+            if (appConfig.GroupURIs!.Put != null)
             {
-                var apiPath = DynamicApiUrlUtil.GetFullUrl(mapperConfig.PUTAPIForGroups, Resource.Identifier);
+                var apiPath = DynamicApiUrlUtil.GetFullUrl(appConfig.GroupURIs.Put.ToString(), resource.Identifier);
 
-                return await httpClient.PutAsJsonAsync(apiPath, Payload);
+                return await httpClient.PutAsJsonAsync(apiPath, payload);
             }
-            else if (!string.IsNullOrWhiteSpace(mapperConfig.PATCHAPIForGroups))
+            else if (appConfig.GroupURIs.Patch != null)
             {
-                var apiPath = DynamicApiUrlUtil.GetFullUrl(mapperConfig.PATCHAPIForGroups, Resource.Identifier);
-                var jsonPayload = Payload.ToString();
+                var apiPath = DynamicApiUrlUtil.GetFullUrl(appConfig.GroupURIs.Patch.ToString(), resource.Identifier);
+                var jsonPayload = payload.ToString();
                 var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
                 return await httpClient.PatchAsync(apiPath, content);

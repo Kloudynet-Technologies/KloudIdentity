@@ -3,8 +3,11 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
+using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
@@ -14,7 +17,6 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 /// </summary>
 public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<Core2EnterpriseUser>
 {
-    private MapperConfig _appConfig;
     private readonly IHttpClientFactory _httpClientFactory;
 
     /// <summary>
@@ -22,8 +24,11 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
     /// </summary>
     /// <param name="configReader">An implementation of IConfigReader for reading configuration settings.</param>
     /// <param name="authContext">An implementation of IAuthContext for handling authentication.</param>
-    public CreateUser(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory)
-        : base(configReader, authContext)
+    public CreateUser(
+        IAuthContext authContext,
+        IHttpClientFactory httpClientFactory,
+        IGetFullAppConfigQuery getFullAppConfigQuery)
+        : base(authContext, getFullAppConfigQuery)
     {
         _httpClientFactory = httpClientFactory;
     }
@@ -41,26 +46,13 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
         string correlationID
     )
     {
-        AppId = appId;
-        Resource = resource;
-        CorrelationID = correlationID;
+        var appConfig = await GetAppConfigAsync(appId);
 
-        _appConfig = await GetAppConfigAsync();
+        var payload = await MapAndPreparePayloadAsync(appConfig.UserAttributeSchemas.ToList(), resource);
 
-        await MapAndPreparePayloadAsync();
-
-        await CreateUserAsync();
+        await CreateUserAsync(appConfig, payload);
 
         return resource;
-    }
-
-    /// <summary>
-    /// Map and prepare the payload to be sent to the API asynchronously.
-    /// </summary>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    public override async Task MapAndPreparePayloadAsync()
-    {
-        Payload = JSONParserUtil<Resource>.Parse(_appConfig.UserSchema, Resource);
     }
 
     /// <summary>
@@ -71,19 +63,17 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
     /// <exception cref="HttpRequestException">
     /// HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}
     /// </exception>
-    private async Task CreateUserAsync()
+    private async Task CreateUserAsync(AppConfig appConfig, JObject payload)
     {
-        var authConfig = _appConfig.AuthConfig;
-
-        var token = await GetAuthenticationAsync(authConfig);
+        var token = await base.GetAuthenticationAsync(appConfig);
 
         var httpClient = _httpClientFactory.CreateClient();
 
-        httpClient.SetAuthenticationHeaders(authConfig, token);
+        httpClient = Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationDetails, token);
 
         using (var response = await httpClient.PostAsJsonAsync(
-            _appConfig.UserProvisioningApiUrl,
-            Payload
+            appConfig.UserURIs.Post,
+            payload
         ))
         {
             if (!response.IsSuccessStatusCode)

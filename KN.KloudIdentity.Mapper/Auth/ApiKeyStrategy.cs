@@ -4,6 +4,7 @@
 
 using KN.KloudIdentity.Mapper.Auth;
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Authentication;
 
 namespace KN.KloudIdentity.Mapper;
 
@@ -12,7 +13,7 @@ namespace KN.KloudIdentity.Mapper;
 /// </summary>
 public class ApiKeyStrategy : IAuthStrategy
 {
-    public AuthenticationMethod AuthenticationMethod => AuthenticationMethod.ApiKey;
+    public AuthenticationMethods AuthenticationMethod => AuthenticationMethods.APIKey;
 
     /// <summary>
     /// Gets an authentication API Key using the provided authentication configuration.
@@ -20,12 +21,13 @@ public class ApiKeyStrategy : IAuthStrategy
     /// <param name="authConfig">The authentication configuration containing the API key.</param>
     /// <returns>The authentication token (API key) as a string.</returns>
     /// <exception cref="NotImplementedException">Thrown when the API key is not implemented.</exception>
-    public async Task<string> GetTokenAsync(AuthConfig authConfig)
+    public async Task<string> GetTokenAsync(dynamic authConfig)
     {
         ValidateParameters(authConfig);
+        var apiKeyAuth = authConfig as APIKeyAuthentication;
 
-        if (!string.IsNullOrWhiteSpace(authConfig.ApiKey))
-            return await Task.FromResult(authConfig.ApiKey);
+        if (!string.IsNullOrWhiteSpace(apiKeyAuth?.APIKey))
+            return await Task.FromResult(apiKeyAuth.APIKey);
 
         // TODO: Implement API key retrieval from a server.
         throw new NotImplementedException();
@@ -36,9 +38,9 @@ public class ApiKeyStrategy : IAuthStrategy
     /// </summary>
     /// <param name="authConfig">The authentication configuration.</param>
     /// <exception cref="ArgumentNullException">Thrown when the authentication configuration is null.</exception>
-    private void ValidateParameters(AuthConfig authConfig)
+    private void ValidateParameters(dynamic authConfig)
     {
-        if (authConfig == null)
+        if (authConfig == null || authConfig is not APIKeyAuthentication)
         {
             throw new ArgumentNullException(nameof(authConfig));
         }

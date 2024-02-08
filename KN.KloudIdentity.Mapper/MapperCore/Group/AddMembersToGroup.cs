@@ -3,6 +3,8 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 using Newtonsoft.Json;
@@ -15,7 +17,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
     /// </summary>
     public class AddMembersToGroup : OperationsBase<Core2Group>, IAddGroupMembers
     {
-        private MapperConfig _appConfig;
+        private AppConfig _appConfig;
         private readonly IHttpClientFactory _httpClientFactory;
 
         /// <summary>
@@ -23,19 +25,10 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// </summary>
         /// <param name="configReader">Configuration reader service.</param>
         /// <param name="authContext">Authentication context service.</param>
-        public AddMembersToGroup(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory) : base(configReader, authContext)
+        public AddMembersToGroup(IAuthContext authContext, IHttpClientFactory httpClientFactory, IGetFullAppConfigQuery getFullAppConfigQuery)
+            : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
-        }
-
-        /// <summary>
-        /// Implementation of the MapAndPreparePayloadAsync method.
-        /// This method is not implemented in this class.
-        /// </summary>
-        /// <returns>Task representing the asynchronous operation.</returns>
-        public override Task MapAndPreparePayloadAsync()
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -48,11 +41,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>Task representing the asynchronous operation.</returns>
         public async Task AddAsync(string groupId, List<string> members, string appId, string correlationID)
         {
-            // Set properties
-            AppId = appId;
-            CorrelationID = correlationID;
-
-            _appConfig = await GetAppConfigAsync();
+            _appConfig = await GetAppConfigAsync(appId);
 
             await AddMembersToGroupAsync(groupId, members);
         }
@@ -65,23 +54,23 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>Task representing the asynchronous operation.</returns>
         private async Task AddMembersToGroupAsync(string groupId, List<string> members)
         {
-            var authConfig = _appConfig.AuthConfig;
+            var authConfig = _appConfig.AuthenticationDetails;
 
             var token = await GetAuthenticationAsync(authConfig);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            httpClient.SetAuthenticationHeaders(authConfig, token);
+            httpClient = Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, authConfig, token);
 
             // Construct the API path for adding members to the group
-            var apiPath = DynamicApiUrlUtil.GetFullUrl(_appConfig.PATCHAPIForAddMemberToGroup, groupId);
+            var apiPath = DynamicApiUrlUtil.GetFullUrl(_appConfig.GroupURIs!.Patch!.ToString(), groupId);
 
             var jsonPayload = JsonConvert.SerializeObject(members);
 
             var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
             using (var response = await httpClient.PatchAsync(apiPath, content))
-            { 
+            {
                 if (!response.IsSuccessStatusCode)
                 {
                     throw new HttpRequestException(

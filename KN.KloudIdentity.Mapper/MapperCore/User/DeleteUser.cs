@@ -3,6 +3,8 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 
@@ -10,7 +12,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
 {
     public class DeleteUser : OperationsBase<Core2EnterpriseUser>, IDeleteResource<Core2EnterpriseUser>
     {
-        private MapperConfig _appConfig;
+        private AppConfig _appConfig;
         private readonly IHttpClientFactory _httpClientFactory;
 
         /// <summary>
@@ -18,7 +20,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// </summary>
         /// <param name="configReader">An implementation of IConfigReader for reading configuration settings.</param>
         /// <param name="authContext">An implementation of IAuthContext for handling authentication.</param>
-        public DeleteUser(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory) : base(configReader, authContext)
+        public DeleteUser(IAuthContext authContext, IHttpClientFactory httpClientFactory, IGetFullAppConfigQuery getFullAppConfigQuery)
+            : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
         }
@@ -32,23 +35,14 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <returns>A Task representing the asynchronous operation.</returns>
         public async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string appId, string correlationID)
         {
-            // Set application ID and correlation ID.
-            AppId = appId;
-            CorrelationID = correlationID;
-
             // Retrieve application configuration asynchronously.
-            _appConfig = await GetAppConfigAsync();
+            _appConfig = await GetAppConfigAsync(appId);
 
             // Validate the request.
             ValidatedRequest(resourceIdentifier.Identifier, _appConfig);
 
             // Initiate the asynchronous deletion of a user/resource.
             await DeleteUserAsync(resourceIdentifier.Identifier);
-        }
-
-        public override Task MapAndPreparePayloadAsync()
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -60,15 +54,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <exception cref="HttpRequestException">Thrown when the HTTP request fails.</exception>
         private async Task DeleteUserAsync(string identifier)
         {
-            var authConfig = _appConfig.AuthConfig;
+            var authConfig = _appConfig.AuthenticationDetails;
 
             var token = await GetAuthenticationAsync(authConfig);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            httpClient.SetAuthenticationHeaders(authConfig, token);
+            httpClient = Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationDetails, token);
 
-            var apiUrl = DynamicApiUrlUtil.GetFullUrl(_appConfig.DELETEAPIForUsers, identifier);
+            var apiUrl = DynamicApiUrlUtil.GetFullUrl(_appConfig.UserURIs.Delete!.ToString(), identifier);
 
             using (var response = await httpClient.DeleteAsync(apiUrl))
             {
@@ -85,17 +79,17 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// Validates the request by checking if the identifier and DELETEAPIForUsers are null or empty.
         /// </summary>
         /// <param name="identifier">The identifier to be validated.</param>
-        /// <param name="mapperConfig">The mapper configuration containing DELETEAPIForUsers.</param>
+        /// <param name="appConfig">The mapper configuration containing DELETEAPIForUsers.</param>
         /// <exception cref="ArgumentNullException">Thrown when the identifier or DELETEAPIForUsers is null or empty.</exception>
-        private void ValidatedRequest(string identifier, MapperConfig mapperConfig)
+        private void ValidatedRequest(string identifier, AppConfig appConfig)
         {
             if (string.IsNullOrWhiteSpace(identifier))
             {
                 throw new ArgumentNullException(nameof(identifier), "Identifier cannot be null or empty");
             }
-            if (string.IsNullOrWhiteSpace(mapperConfig.DELETEAPIForUsers))
+            if (appConfig.UserURIs == null || appConfig.UserURIs.Delete == null)
             {
-                throw new ArgumentNullException(nameof(mapperConfig.DELETEAPIForUsers), "DELETEAPIForUsers cannot be null or empty");
+                throw new ArgumentNullException(nameof(appConfig.UserURIs.Delete), "Delete endpoint cannot be null or empty");
             }
         }
 

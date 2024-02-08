@@ -3,8 +3,11 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
+using Newtonsoft.Json.Linq;
 using System.Text;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User
@@ -13,7 +16,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         : OperationsBase<Core2EnterpriseUser>,
             IUpdateResource<Core2EnterpriseUser>
     {
-        private MapperConfig _appConfig;
+        private AppConfig _appConfig;
         private readonly IHttpClientFactory _httpClientFactory;
 
         /// <summary>
@@ -21,35 +24,25 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// </summary>
         /// <param name="configReader">An implementation of IConfigReader for reading configuration settings.</param>
         /// <param name="authContext">An implementation of IAuthContext for handling authentication.</param>
-        public UpdateUser(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory)
-            : base(configReader, authContext)
+        public UpdateUser(IAuthContext authContext, IHttpClientFactory httpClientFactory, IGetFullAppConfigQuery getFullAppConfigQuery)
+            : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
         }
 
-        public override async Task MapAndPreparePayloadAsync()
-        {
-            Payload = JSONParserUtil<Resource>.Parse(_appConfig.UserSchema, Resource);
-        }
-
         public async Task UpdateAsync(IPatch patch, string appId, string correlationID)
         {
-            PatchRequest2 patchRequest =
-             patch.PatchRequest as PatchRequest2;
+            PatchRequest2 patchRequest = patch.PatchRequest as PatchRequest2;
 
             Core2EnterpriseUser user = new Core2EnterpriseUser();
             user.Apply(patchRequest);
             user.Identifier = patch.ResourceIdentifier.Identifier;
 
-            AppId = appId;
-            CorrelationID = correlationID;
-            Resource = user;
+            _appConfig = await GetAppConfigAsync(appId);
 
-            _appConfig = await GetAppConfigAsync();
+            var payload = await MapAndPreparePayloadAsync(_appConfig.UserAttributeSchemas.ToList(), user);
 
-            await MapAndPreparePayloadAsync();
-
-            await UpdateUserAsync();
+            await UpdateUserAsync(user, payload);
         }
 
         /// <summary>
@@ -60,19 +53,19 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <exception cref="HttpRequestException">
         /// HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}
         /// </exception>
-        private async Task UpdateUserAsync()
+        private async Task UpdateUserAsync(Core2EnterpriseUser resource, JObject payload)
         {
-            var authConfig = _appConfig.AuthConfig;
+            var authConfig = _appConfig.AuthenticationDetails;
 
             var token = await GetAuthenticationAsync(authConfig);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            httpClient.SetAuthenticationHeaders(authConfig, token);
+            httpClient = Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, authConfig, token);
 
-            var apiPath = DynamicApiUrlUtil.GetFullUrl(_appConfig.PATCHAPIForUsers, Resource.Identifier);
+            var apiPath = DynamicApiUrlUtil.GetFullUrl(_appConfig.UserURIs.Patch!.ToString(), resource.Identifier);
 
-            var jsonPayload = Payload.ToString();
+            var jsonPayload = payload.ToString();
 
             var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 

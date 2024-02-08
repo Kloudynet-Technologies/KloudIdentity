@@ -1,4 +1,6 @@
 ﻿using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 
@@ -9,7 +11,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
     /// </summary>
     public class RemoveAllGroupMembers : OperationsBase<Core2Group>, IRemoveAllGroupMembers
     {
-        private MapperConfig _appConfig;
+        private AppConfig _appConfig;
         private readonly IHttpClientFactory _httpClientFactory;
 
         /// <summary>
@@ -19,21 +21,11 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <param name="authContext">The authentication context.</param>
         /// <param name="httpClientFactory">Factory for creating HttpClient instances.</param>
         public RemoveAllGroupMembers(
-            IConfigReader configReader,
             IAuthContext authContext,
-            IHttpClientFactory httpClientFactory) : base(configReader, authContext)
+            IHttpClientFactory httpClientFactory,
+            IGetFullAppConfigQuery getFullAppConfigQuery) : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
-        }
-
-        /// <summary>
-        /// Not implemented in this class.
-        /// </summary>
-        /// <returns>NotImplementedException.</returns>
-        /// <exception cref="NotImplementedException"></exception>
-        public override Task MapAndPreparePayloadAsync()
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -45,10 +37,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>Task representing the asynchronous operation.</returns>
         public async Task RemoveAsync(string groupId, string appId, string correlationID)
         {
-            AppId = appId;
-            CorrelationID = correlationID;
-
-            _appConfig = await GetAppConfigAsync();
+            _appConfig = await GetAppConfigAsync(appId);
 
             await RemoveAllGroupMembersAsync(groupId);
         }
@@ -61,15 +50,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <exception cref="Exception">Thrown if the removal operation fails.</exception>
         private async Task RemoveAllGroupMembersAsync(string groupId)
         {
-            var authConfig = _appConfig.AuthConfig;
+            var authConfig = _appConfig.AuthenticationDetails;
 
             var token = await GetAuthenticationAsync(authConfig);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            httpClient.SetAuthenticationHeaders(authConfig, token);
+            httpClient = Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, authConfig, token);
 
-            var apiPath = DynamicApiUrlUtil.GetFullUrl(_appConfig.PATCHAPIForRemoveAllMembersFromGroup, groupId);
+            var apiPath = DynamicApiUrlUtil.GetFullUrl(_appConfig.GroupURIs!.Patch!.ToString(), groupId);
 
             using (var response = await httpClient.PatchAsync(apiPath, null))
             {

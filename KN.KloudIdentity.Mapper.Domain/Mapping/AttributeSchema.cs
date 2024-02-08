@@ -5,5 +5,5 @@ public record AttributeSchema : SchemaBase
     /// <summary>
     /// If the destination field is an object, this property contains the child schema.
     /// </summary>
-    public virtual ICollection<ChildSchema> ChildSchemas { get; init; }
+    public virtual ICollection<AttributeSchema> ChildSchemas { get; init; }
 }

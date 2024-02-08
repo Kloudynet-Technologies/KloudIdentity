@@ -4,6 +4,7 @@
 
 using System.Security.Authentication;
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
 
 namespace KN.KloudIdentity.Mapper;
 
@@ -27,18 +28,18 @@ public class AuthContextV1 : IAuthContext
     /// <summary>
     /// Gets the authentication token using the provided authentication configuration.
     /// </summary>
-    /// <param name="authConfig">The authentication configuration model</param>
+    /// <param name="appConfig">The authentication configuration model</param>
     /// <returns>The authentication token as a string.</returns>
     /// <exception cref="AuthenticationException">Thrown when authentication fails.</exception>
-    public async Task<string> GetTokenAsync(AuthConfig authConfig)
+    public async Task<string> GetTokenAsync(dynamic appConfig)
     {
-        _authStrategy = _authStrategies.FirstOrDefault(x => x.AuthenticationMethod == authConfig.AuthenticationMethod);
+        _authStrategy = _authStrategies.FirstOrDefault(x => x.AuthenticationMethod == appConfig.AuthenticationMethod);
 
         if (_authStrategy == null)
         {
-            throw new AuthenticationException($"Authentication method {authConfig.AuthenticationMethod} is not supported.");
+            throw new AuthenticationException($"Authentication method {appConfig.AuthenticationMethod} is not supported.");
         }
 
-        return await _authStrategy.GetTokenAsync(authConfig);
+        return await _authStrategy.GetTokenAsync(appConfig);
     }
 }

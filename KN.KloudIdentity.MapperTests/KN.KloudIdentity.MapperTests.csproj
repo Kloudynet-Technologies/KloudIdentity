@@ -23,11 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Utils\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\KN.KloudIdentity.Mapper\KN.KloudIdentity.Mapper.csproj" />
+    <ProjectReference Include="..\KN.KloudIdentity.Mapper.Domain\KN.KloudIdentity.Mapper.Domain.csproj" />
   </ItemGroup>
 
 </Project>

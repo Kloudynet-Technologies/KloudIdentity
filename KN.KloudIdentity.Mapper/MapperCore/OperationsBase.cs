@@ -3,8 +3,11 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore;
+using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
 
@@ -16,37 +19,43 @@ namespace KN.KloudIdentity.Mapper;
 /// <typeparam name="T">The type of resource that the mapper operates on.</typeparam>
 public abstract class OperationsBase<T> : IAPIMapperBase<T> where T : Resource
 {
-    public required string AppId { get; set; }
-    public required T Resource { get; set; }
-    public string? CorrelationID { get; set; }
-    public required JObject Payload { get; set; }
-
-    private readonly IConfigReader _configReader;
     private readonly IAuthContext _authContext;
     private readonly IGetFullAppConfigQuery _getFullAppConfigQuery;
 
-    public OperationsBase(IConfigReader configReader, IAuthContext authContext)
+    public OperationsBase(
+        IAuthContext authContext,
+        IGetFullAppConfigQuery getFullAppConfigQuery)
     {
-        _configReader = configReader;
         _authContext = authContext;
+        _getFullAppConfigQuery = getFullAppConfigQuery;
     }
 
-    public abstract Task MapAndPreparePayloadAsync();
+    public virtual Task<JObject> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, T resource)
+    {
+        var payload = JSONParserUtil<Resource>.Parse(schema, resource);
+        return Task.FromResult(payload);
+    }
 
     /// <summary>
     /// Gets the application configuration asynchronously.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation. The task result contains the mapper configuration.</returns>
-    public virtual async Task<MapperConfig> GetAppConfigAsync()
+    public virtual async Task<AppConfig> GetAppConfigAsync(string appId)
     {
-        return await _configReader.GetConfigAsync(AppId);
+        var result = await _getFullAppConfigQuery.GetAsync(appId);
+        if (result == null)
+        {
+            throw new KeyNotFoundException($"App configuration not found for app ID {appId}.");
+        }
+
+        return result;
     }
 
     /// <summary>
     /// Gets the authentication token asynchronously.
     /// </summary>
     /// <returns>The authentication token.</returns>
-    public virtual async Task<string> GetAuthenticationAsync(AuthConfig config)
+    public virtual async Task<string> GetAuthenticationAsync(AppConfig config)
     {
         return await _authContext.GetTokenAsync(config);
     }

@@ -4,6 +4,8 @@
 
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Configuration;
@@ -16,10 +18,11 @@ namespace KN.KloudIdentity.Mapper;
 public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private MapperConfig _appConfig;
+    private AppConfig _appConfig;
     private readonly IConfiguration _configuration;
 
-    public GetGroup(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory, IConfiguration configuration) : base(configReader, authContext)
+    public GetGroup(IAuthContext authContext, IHttpClientFactory httpClientFactory, IConfiguration configuration, IGetFullAppConfigQuery getFullAppConfigQuery)
+        : base(authContext, getFullAppConfigQuery)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
@@ -27,20 +30,17 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
 
     public async Task<Core2Group> GetAsync(string identifier, string appId, string correlationID)
     {
-        AppId = appId;
-        CorrelationID = correlationID;
+        _appConfig = await GetAppConfigAsync(appId);
 
-        _appConfig = await GetAppConfigAsync();
-
-        if(_appConfig.GETAPIForGroups != null && _appConfig.GETAPIForGroups != string.Empty)
+        if (_appConfig.GroupURIs!.Get != null && _appConfig.GroupURIs!.Get != null)
         {
-            var token = await GetAuthenticationAsync(_appConfig.AuthConfig);
+            var token = await GetAuthenticationAsync(_appConfig.AuthenticationDetails);
 
             var client = _httpClientFactory.CreateClient();
-            client.SetAuthenticationHeaders(_appConfig.AuthConfig, token);
-            var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(_appConfig.GETAPIForGroups, identifier));
+            client = Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationDetails, token);
+            var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(_appConfig.GroupURIs.Get.ToString(), identifier));
 
-            if(response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
                 var jObject = JObject.Parse(content);
@@ -68,22 +68,17 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
         }
     }
 
-    private string GetFieldMapperValue(MapperConfig mapperConfig, string fieldName, string urnPrefix)
+    private string GetFieldMapperValue(AppConfig appConfig, string fieldName, string urnPrefix)
     {
-        var field = mapperConfig.GroupSchema.FirstOrDefault(f => f.MappedAttribute == fieldName);
-        if(field != null)
+        var field = appConfig.GroupAttributeSchemas!.FirstOrDefault(f => f.SourceValue == fieldName);
+        if (field != null)
         {
-            return field.FieldName.Remove(0, urnPrefix.Length);
+            return field.DestinationField.Remove(0, urnPrefix.Length);
         }
         else
         {
             throw new NotFoundException(fieldName + " field not found in the user schema.");
         }
-    }
-
-    public override Task MapAndPreparePayloadAsync()
-    {
-        throw new NotImplementedException();
     }
 
     private string GetValueCaseInsensitive(JObject jsonObject, string propertyName)

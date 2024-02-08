@@ -3,8 +3,11 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
+using Newtonsoft.Json.Linq;
 using System.Net.Http.Json;
 using System.Text;
 
@@ -17,7 +20,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         : OperationsBase<Core2EnterpriseUser>,
             IReplaceResource<Core2EnterpriseUser>
     {
-        private MapperConfig _mapperConfig;
+        private AppConfig _appConfig;
         private readonly IHttpClientFactory _httpClientFactory;
 
         /// <summary>
@@ -25,18 +28,10 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// </summary>
         /// <param name="configReader">Configuration reader.</param>
         /// <param name="authContext">Authentication context.</param>
-        public ReplaceUser(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory)
-            : base(configReader, authContext)
+        public ReplaceUser(IAuthContext authContext, IHttpClientFactory httpClientFactory, IGetFullAppConfigQuery getFullAppConfigQuery)
+            : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
-        }
-
-        /// <summary>
-        /// Asynchronously maps and prepares the payload for user replacement.
-        /// </summary>
-        public override async Task MapAndPreparePayloadAsync()
-        {
-            Payload = JSONParserUtil<Resource>.Parse(_mapperConfig.UserSchema, Resource);
         }
 
         /// <summary>
@@ -52,15 +47,11 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             string correlationID
         )
         {
-            AppId = appId;
-            Resource = resource;
-            CorrelationID = correlationID;
+            _appConfig = await GetAppConfigAsync(appId);
 
-            _mapperConfig = await GetAppConfigAsync();
+            var payload = await MapAndPreparePayloadAsync(_appConfig.UserAttributeSchemas.ToList(), resource);
 
-            await MapAndPreparePayloadAsync();
-
-            await ReplaceUserAsync();
+            await ReplaceUserAsync(payload, resource);
 
             return resource;
         }
@@ -68,9 +59,9 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <summary>
         /// Private asynchronous method for handling authentication and sending the user replacement request.
         /// </summary>
-        private async Task ReplaceUserAsync()
+        private async Task ReplaceUserAsync(JObject payload, Core2EnterpriseUser resource)
         {
-            var authConfig = _mapperConfig.AuthConfig;
+            var authConfig = _appConfig.AuthenticationDetails;
 
             // Obtain authentication token.
             var token = await GetAuthenticationAsync(authConfig);
@@ -78,9 +69,9 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             var httpClient = _httpClientFactory.CreateClient();
 
             // Set headers based on authentication method.
-            httpClient.SetAuthenticationHeaders(authConfig, token);
+            httpClient = Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, authConfig, token);
 
-            using (var response = await ProcessRequestAsync(_mapperConfig, httpClient))
+            using (var response = await ProcessRequestAsync(_appConfig, httpClient, payload, resource))
             {
                 // Check if the request was successful; otherwise, throw an exception.
                 if (response != null && !response.IsSuccessStatusCode)
@@ -95,24 +86,24 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <summary>
         /// Processes the user replacement request based on the specified API configuration and HTTP client.
         /// </summary>
-        /// <param name="mapperConfig">The mapper configuration containing API details.</param>
+        /// <param name="appConfig">The mapper configuration containing API details.</param>
         /// <param name="httpClient">The HTTP client used for making API requests.</param>
         /// <returns>
         /// A task representing the asynchronous operation. 
         /// The task result is an <see cref="HttpResponseMessage"/> if an HTTP request is made, or null if no request is made.
         /// </returns>
-        private async Task<HttpResponseMessage?> ProcessRequestAsync(MapperConfig mapperConfig, HttpClient httpClient)
+        private async Task<HttpResponseMessage?> ProcessRequestAsync(AppConfig appConfig, HttpClient httpClient, JObject payload, Core2EnterpriseUser resource)
         {
-            if (!string.IsNullOrWhiteSpace(mapperConfig.PUTAPIForUsers))
+            if (appConfig.UserURIs.Put != null)
             {
-                var apiPath = DynamicApiUrlUtil.GetFullUrl(mapperConfig.PUTAPIForUsers, Resource.Identifier);
+                var apiPath = DynamicApiUrlUtil.GetFullUrl(appConfig.UserURIs.Put!.ToString(), resource.Identifier);
 
-                return await httpClient.PutAsJsonAsync(apiPath, Payload);
+                return await httpClient.PutAsJsonAsync(apiPath, payload);
             }
-            else if (!string.IsNullOrWhiteSpace(mapperConfig.PATCHAPIForUsers))
+            else if (appConfig.UserURIs.Patch != null)
             {
-                var apiPath = DynamicApiUrlUtil.GetFullUrl(mapperConfig.PATCHAPIForUsers, Resource.Identifier);
-                var jsonPayload = Payload.ToString();
+                var apiPath = DynamicApiUrlUtil.GetFullUrl(appConfig.UserURIs.Patch.ToString(), resource.Identifier);
+                var jsonPayload = payload.ToString();
                 var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
                 return await httpClient.PatchAsync(apiPath, content);

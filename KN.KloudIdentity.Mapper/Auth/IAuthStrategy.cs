@@ -4,15 +4,16 @@
 
 using KN.KloudIdentity.Mapper.Auth;
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Authentication;
 
 namespace KN.KloudIdentity.Mapper;
 
 public interface IAuthStrategy
 {
-    AuthenticationMethod AuthenticationMethod { get; }
+    AuthenticationMethods AuthenticationMethod { get; }
 
     /// <summary>
     /// Gets the auth token.
     /// </summary>
-    Task<string> GetTokenAsync(AuthConfig authConfig);
+    Task<string> GetTokenAsync(dynamic authConfig);
 }

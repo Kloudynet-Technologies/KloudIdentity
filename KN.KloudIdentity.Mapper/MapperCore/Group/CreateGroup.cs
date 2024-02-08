@@ -2,9 +2,11 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
+using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Group
 {
@@ -14,7 +16,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
     /// </summary>
     public class CreateGroup : OperationsBase<Core2Group>, ICreateResource<Core2Group>
     {
-        private MapperConfig _appConfig;
+        private AppConfig _appConfig;
         private readonly IHttpClientFactory _httpClientFactory;
 
         /// <summary>
@@ -22,8 +24,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// </summary>
         /// <param name="configReader">An implementation of IConfigReader for reading configuration settings.</param>
         /// <param name="authContext">An implementation of IAuthContext for handling authentication.</param>
-        public CreateGroup(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory)
-            : base(configReader, authContext)
+        public CreateGroup(IAuthContext authContext, IHttpClientFactory httpClientFactory, IGetFullAppConfigQuery getFullAppConfigQuery)
+            : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
         }
@@ -37,26 +39,13 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>The created group resource.</returns>
         public async Task<Core2Group> ExecuteAsync(Core2Group resource, string appId, string correlationID)
         {
-            AppId = appId;
-            Resource = resource;
-            CorrelationID = correlationID;
+            _appConfig = await GetAppConfigAsync(appId);
 
-            _appConfig = await GetAppConfigAsync();
+            var payload = await MapAndPreparePayloadAsync(_appConfig.GroupAttributeSchemas!.ToList(), resource);
 
-            await MapAndPreparePayloadAsync();
-
-            await CreateGroupAsync();
+            await CreateGroupAsync(payload);
 
             return resource;
-        }
-
-        /// <summary>
-        /// Map and prepare the payload to be sent to the API asynchronously.
-        /// </summary>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        public override async Task MapAndPreparePayloadAsync()
-        {
-            Payload = JSONParserUtil<Resource>.Parse(_appConfig.GroupSchema, Resource);
         }
 
         /// <summary>
@@ -67,19 +56,19 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <exception cref="HttpRequestException">
         /// HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}
         /// </exception>
-        private async Task CreateGroupAsync()
+        private async Task CreateGroupAsync(JObject payload)
         {
-            var authConfig = _appConfig.AuthConfig;
+            var authConfig = _appConfig.AuthenticationDetails;
 
             var token = await GetAuthenticationAsync(authConfig);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            httpClient.SetAuthenticationHeaders(authConfig, token);
+            httpClient = Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, authConfig, token);
 
             using (var response = await httpClient.PostAsJsonAsync(
-                 _appConfig.GroupProvisioningApiUrl,
-                 Payload
+                 _appConfig.GroupURIs!.Post!.ToString(),
+                 payload
              ))
             {
                 if (!response.IsSuccessStatusCode)

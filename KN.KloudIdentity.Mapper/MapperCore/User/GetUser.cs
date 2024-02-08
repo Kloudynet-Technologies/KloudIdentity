@@ -7,6 +7,8 @@ using System.Web.Http;
 using Azure.Identity;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.SCIM;
@@ -20,15 +22,13 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 /// </summary>
 public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2EnterpriseUser>
 {
-    private readonly IConfigReader _configReader;
     private readonly IHttpClientFactory _httpClientFactory;
-    private MapperConfig _appConfig;
+    private AppConfig _appConfig;
     private readonly IConfiguration _configuration;
 
-    public GetUser(IConfigReader configReader, IAuthContext authContext, IHttpClientFactory httpClientFactory, IConfiguration configuration)
-        : base(configReader, authContext)
+    public GetUser(IAuthContext authContext, IHttpClientFactory httpClientFactory, IConfiguration configuration, IGetFullAppConfigQuery getFullAppConfigQuery, IConfigReader configReader)
+        : base(authContext, getFullAppConfigQuery)
     {
-        _configReader = configReader;
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
     }
@@ -44,24 +44,21 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
     /// <exception cref="ApplicationException">GET API for users is not configured.</exception>
     public async Task<Core2EnterpriseUser> GetAsync(string identifier, string appId, string correlationID)
     {
-        AppId = appId;
-        CorrelationID = correlationID;
+        _appConfig = await GetAppConfigAsync(appId);
 
-        _appConfig = await GetAppConfigAsync();
-
-        if(_appConfig.GETAPIForUsers != null && _appConfig.GETAPIForUsers != string.Empty)
-        {            
-            var token = await GetAuthenticationAsync(_appConfig.AuthConfig);
+        if (_appConfig.UserURIs.Get != null && _appConfig.UserURIs.Get != null)
+        {
+            var token = await GetAuthenticationAsync(_appConfig.AuthenticationDetails);
 
             var client = _httpClientFactory.CreateClient();
-            client.SetAuthenticationHeaders(_appConfig.AuthConfig, token);
-            var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(_appConfig.GETAPIForUsers, identifier));
+            client = Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationDetails, token);
+            var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(_appConfig.UserURIs.Get.ToString(), identifier));
 
-            if(response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
                 var user = JsonConvert.DeserializeObject<JObject>(content);
-                
+
                 var core2EntUsr = new Core2EnterpriseUser();
 
                 string urnPrefix = _configuration["urnPrefix"];
@@ -85,25 +82,17 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
         }
     }
 
-    private string GetFieldMapperValue(MapperConfig mapperConfig, string fieldName, string urnPrefix)
+    private string GetFieldMapperValue(AppConfig appConfig, string fieldName, string urnPrefix)
     {
-        var field = mapperConfig.UserSchema.FirstOrDefault(f => f.MappedAttribute == fieldName);
-        if(field != null)
+        var field = appConfig.UserAttributeSchemas.FirstOrDefault(f => f.SourceValue == fieldName);
+        if (field != null)
         {
-            return field.FieldName.Remove(0, urnPrefix.Length);
+            return field.DestinationField.Remove(0, urnPrefix.Length);
         }
         else
         {
             throw new NotFoundException(fieldName + " field not found in the user schema.");
         }
-    }
-
-    /// <summary>
-    /// Maps and prepare the payload to be sent to the API.
-    /// </summary>
-    public override Task MapAndPreparePayloadAsync()
-    {
-        throw new NotImplementedException();
     }
 
     private string GetValueCaseInsensitive(JObject jsonObject, string propertyName)

@@ -4,6 +4,7 @@
 
 using KN.KloudIdentity.Mapper.Auth;
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Authentication;
 using System.Net.Http.Headers;
 
 namespace KN.KloudIdentity.Mapper.Utils
@@ -18,7 +19,7 @@ namespace KN.KloudIdentity.Mapper.Utils
         /// <param name="token">Authentication token.</param>
         public static void SetAuthenticationHeaders(
             this HttpClient httpClient,
-            AuthConfig authConfig,
+            dynamic authConfig,
             string token
         )
         {
@@ -27,15 +28,17 @@ namespace KN.KloudIdentity.Mapper.Utils
 
             if (authConfig.AuthenticationMethod == AuthenticationMethod.ApiKey)
             {
-                if (string.IsNullOrWhiteSpace(authConfig.ApiKeyHeader))
+                var apiKeyAuth = authConfig as APIKeyAuthentication;
+
+                if (string.IsNullOrWhiteSpace(apiKeyAuth.AuthHeaderName))
                 {
                     throw new ArgumentNullException(
-                        nameof(authConfig.ApiKeyHeader),
+                        nameof(apiKeyAuth.AuthHeaderName),
                         "ApiKeyHeaderName cannot be null or empty when AuthenticationMethod is ApiKey"
                     );
                 }
 
-                httpClient.DefaultRequestHeaders.Add(authConfig.ApiKeyHeader, token);
+                httpClient.DefaultRequestHeaders.Add(apiKeyAuth.AuthHeaderName, token);
             }
             else
             {

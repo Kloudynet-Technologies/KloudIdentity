@@ -3,6 +3,8 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
 
@@ -17,38 +19,38 @@ public interface IAPIMapperBase<T> where T : Resource
     /// <summary>
     /// Gets or sets the ID of the application.
     /// </summary>
-    string AppId { get; set; }
+    // string AppId { get; set; }
 
     /// <summary>
     /// SCIM object coming from the Azure AD.
     /// </summary>
-    T Resource { get; set; }
+    // T Resource { get; set; }
 
     /// <summary>
     /// Gets or sets the correlation ID for Azure AD.
     /// </summary>
-    string? CorrelationID { get; set; }
+    // string? CorrelationID { get; set; }
 
     /// <summary>
     /// Gets or sets the payload to be sent to the API.
     /// </summary>
-    JObject Payload { get; set; }
+    // JObject Payload { get; set; }
 
     /// <summary>
     /// Gets the application configuration asynchronously.
     /// </summary>
     /// <returns></returns>
-    Task<MapperConfig> GetAppConfigAsync();
+    Task<AppConfig> GetAppConfigAsync(string appId);
 
     /// <summary>
     /// Gets the authentication token asynchronously.
     /// </summary>
     /// <returns></returns>
-    Task<string> GetAuthenticationAsync(AuthConfig config);
+    Task<string> GetAuthenticationAsync(AppConfig config);
 
     /// <summary>
     /// Map and prepare the payload to be sent to the API asynchronously.
     /// </summary>
     /// <returns></returns>
-    Task MapAndPreparePayloadAsync();
+    Task<JObject> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, T resource);
 }
