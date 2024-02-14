@@ -51,4 +51,9 @@ public record SchemaBase
     /// If the destination type is an array, this property will contain the type of the array elements.
     /// </summary>
     public JsonDataTypes ArrayDataType { get; init; }
+
+    /// <summary>
+    /// If the destination type is an array, this property will contain the name of the field that contains the array elements.
+    /// </summary>
+    public string? ArrayElementFieldName { get; init; }
 }
