@@ -32,7 +32,7 @@ public partial class JSONParserUtilTests
                     IsRequired = true,
                     DestinationType = JsonDataTypes.Array,
                     ArrayDataType = JsonDataTypes.String,
-                    ArrayElementFieldName = "urn:kn:ki:schema:usernames",
+                    ArrayElementFieldName = "UserName",
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                 }
             };
@@ -49,7 +49,7 @@ public partial class JSONParserUtilTests
         // Assert
         var expectedJson = JObject.Parse(@"{
                 ""id"": 1,
-                ""username"": []
+                ""usernames"": [""johndoe@email.com""]
             }");
 
         Assert.Equal(expectedJson, result);
