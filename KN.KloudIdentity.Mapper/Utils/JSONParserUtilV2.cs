@@ -164,12 +164,22 @@ public class JSONParserUtilV2<T> where T : Resource
     /// <returns>A JArray containing the extracted values based on the schema attribute.</returns>
     public static dynamic MakeJsonArray(T resource, AttributeSchema schemaAttribute)
     {
-        var data = ReadProperty(resource, schemaAttribute.SourceValue) as IEnumerable;
-        if (data == null || data is not IEnumerable<object>)
+        var data = ReadProperty(resource, schemaAttribute.SourceValue);
+
+        if (data is not IEnumerable<object>)
         {
-            // Since the source data is null, returns an empty array.
+            if (schemaAttribute.IsRequired && data == null)
+            {
+                return new JArray(schemaAttribute.DefaultValue ?? "");
+            }
+            if (data is not null)
+            {
+                return new JArray(data);
+            }
+
             return new JArray();
         }
+
 
         var newArray = new JArray();
 
@@ -179,7 +189,7 @@ public class JSONParserUtilV2<T> where T : Resource
             schemaAttribute.ArrayDataType == JsonDataTypes.Boolean)
         {
             // Iterate through each object in the array
-            foreach (var obj in data)
+            foreach (var obj in data as IEnumerable)
             {
                 var attrArray = schemaAttribute.ArrayElementFieldName!.Split(':');
 
@@ -202,6 +212,13 @@ public class JSONParserUtilV2<T> where T : Resource
                         case JsonDataTypes.Boolean:
                             newArray.Add(Boolean.TryParse(propertyValue?.ToString(), out bool boolValue) ? boolValue : default(bool?));
                             break;
+                    }
+                }
+                else
+                {
+                    if (schemaAttribute.IsRequired)
+                    {
+                        newArray.Add(schemaAttribute.DefaultValue ?? "");
                     }
                 }
             }
