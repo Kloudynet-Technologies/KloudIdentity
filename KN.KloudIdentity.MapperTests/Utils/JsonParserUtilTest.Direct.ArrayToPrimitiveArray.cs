@@ -122,6 +122,53 @@ public partial class JSONParserUtilTests
     }
 
     [Fact]
+    public void PrimitiveToStringArrayAttribute_Empty()
+    {
+        // Arrange
+        var AttributeSchemas = new List<AttributeSchema>
+            {
+                new AttributeSchema
+                {
+                    MappingType = MappingTypes.Direct,
+                    SourceValue = "Identifier",
+                    DefaultValue = "N/A",
+                    DestinationField = "urn:kn:ki:schema:id",
+                    IsRequired = true,
+                    DestinationType = JsonDataTypes.Number,
+                    MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
+                },
+                new AttributeSchema
+                {
+                    MappingType = MappingTypes.Direct,
+                    SourceValue = "UserName",
+                    DestinationField = "urn:kn:ki:schema:usernames",
+                    IsRequired = false,
+                    DestinationType = JsonDataTypes.Array,
+                    ArrayDataType = JsonDataTypes.String,
+                    ArrayElementFieldName = "urn:kn:ki:schema:usernames",
+                    MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
+                }
+            };
+
+        var resource = new Core2EnterpriseUser
+        {
+            Identifier = "001",
+            UserName = ""
+        };
+
+        // Act
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchemas, resource);
+
+        // Assert
+        var expectedJson = JObject.Parse(@"{
+                ""id"": 1,
+                ""username"": []
+            }");
+
+        Assert.Equal(expectedJson, result);
+    }
+
+    [Fact]
     public void ArrayToStringArrayAttribute_DefaultValue()
     {
         // Arrange
@@ -395,4 +442,195 @@ public partial class JSONParserUtilTests
         Assert.Equal(expectedJson, result);
     }
 
+    [Fact]
+    public void ObjectToStringArrayAttribute_EmptyStr()
+    {
+        // Arrange
+        var AttributeSchemas = new List<AttributeSchema>
+        {
+                new AttributeSchema
+                {
+                    MappingType = MappingTypes.Direct,
+                    SourceValue = "Identifier",
+                    DefaultValue = "N/A",
+                    DestinationField = "urn:kn:ki:schema:id",
+                    IsRequired = true,
+                    DestinationType = JsonDataTypes.String,
+                    MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
+                },
+
+                new AttributeSchema
+                {
+                    MappingType = MappingTypes.Direct,
+                    SourceValue = "Name:Formatted",
+                    DefaultValue = "N/A",
+                    DestinationField = "urn:kn:ki:schema:Names",
+                    IsRequired = true,
+                    DestinationType = JsonDataTypes.Array,
+                    ArrayDataType = JsonDataTypes.String,
+                    ArrayElementFieldName = "name:formatted",
+                    MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
+                }
+            };
+
+        var resource = new Core2EnterpriseUser
+        {
+            Identifier = "001",
+            Name = new Name
+            {
+                GivenName = "John",
+                FamilyName = "Doe",
+                Formatted = ""
+            }
+
+        };
+
+        // Act
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchemas, resource);
+
+        // Assert
+        var expectedJson = JObject.Parse(@"{
+                ""id"": ""001"",
+                ""names"": [""N/A""]
+            }");
+
+        Assert.Equal(expectedJson, result);
+    }
+
+    [Fact]
+    public void ObjectToIntegerArrayAttribute_Null()
+    {
+        // Arrange
+        var AttributeSchemas = new List<AttributeSchema>
+        {
+                new AttributeSchema
+                {
+                    MappingType = MappingTypes.Direct,
+                    SourceValue = "ExternalIdentifier",
+                    DestinationField = "urn:kn:ki:schema:id",
+                    IsRequired = false,
+                    DestinationType = JsonDataTypes.Number,
+                    MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
+                },
+
+                new AttributeSchema
+                {
+                    MappingType = MappingTypes.Direct,
+                    SourceValue = "EnterpriseExtension:EmployeeNumber",
+                    DefaultValue = "0",
+                    DestinationField = "urn:kn:ki:schema:employeeNumbers",
+                    IsRequired = true,
+                    DestinationType = JsonDataTypes.Array,
+                    ArrayDataType = JsonDataTypes.Number,
+                    ArrayElementFieldName = "EnterpriseExtension:EmployeeNumber",
+                    MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
+                }
+            };
+
+        var resource = new Core2EnterpriseUser
+        {
+            ExternalIdentifier = "1001",
+            EnterpriseExtension = new ExtensionAttributeEnterpriseUser2
+            {
+                Manager = new Manager
+                {
+                    Value = "John Doe"
+                },
+                EmployeeNumber = null,
+                Department = null
+            }
+        };
+
+
+        // Act
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchemas, resource);
+
+        // Assert
+        var expectedJson = JObject.Parse(@"{
+                ""id"": ""1001"",
+                ""employeeNumbers"": [0]
+            }");
+
+        Assert.Equal(expectedJson, result);
+    }
+    [Fact]
+    public void ArrayToStringArrayAttribute_SkipNullOrEmpty()
+    {
+        // Arrange
+        var AttributeSchemas = new List<AttributeSchema>
+            {
+                new AttributeSchema
+                {
+                    MappingType = MappingTypes.Direct,
+                    SourceValue = "Identifier",
+                    DefaultValue = "N/A",
+                    DestinationField = "urn:kn:ki:schema:id",
+                    IsRequired = true,
+                    DestinationType = JsonDataTypes.Number,
+                    MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
+                },
+                new AttributeSchema
+                {
+                    MappingType = MappingTypes.Direct,
+                    SourceValue = "Addresses",
+                    DestinationField = "urn:kn:ki:schema:PostalCodes",
+                    IsRequired = false,
+                    DestinationType = JsonDataTypes.Array,
+                    ArrayDataType = JsonDataTypes.String,
+                    ArrayElementFieldName = "urn:kn:ki:schema:addresses:PostalCode",
+                    MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
+                }
+            };
+
+        var resource = new Core2EnterpriseUser
+        {
+            Identifier = "001",
+            Addresses = new List<Address>
+            {
+                new Address
+                {
+                    StreetAddress = "1234 Main St",
+                    Locality = "Anytown",
+                    Region = "TX",
+                    PostalCode = "12345",
+                    Country = "USA"
+                },
+                new Address
+                {
+                    StreetAddress = "5678 Elm St",
+                    Locality = "Othertown",
+                    Region = "TX",
+                    PostalCode = "54321",
+                    Country = "USA"
+                },
+                new Address
+                {
+                    StreetAddress = "91011 Oak St",
+                    Locality = "AnotherTown",
+                    Region = "TX",
+                    PostalCode = null,
+                    Country = "USA"
+                },
+                new Address
+                {
+                    StreetAddress = "1213 Pine St",
+                    Locality = "YetAnotherTown",
+                    Region = "TX",
+                    PostalCode = "",
+                    Country = "USA"
+                }
+            }
+        };
+
+        // Act
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchemas, resource);
+
+        // Assert
+        var expectedJson = JObject.Parse(@"{
+                ""id"": 1,
+                ""streetAddresses"": [""12345"", ""54321""]
+            }");
+
+        Assert.Equal(expectedJson, result);
+    }
 }

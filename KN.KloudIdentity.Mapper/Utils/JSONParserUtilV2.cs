@@ -168,58 +168,35 @@ public class JSONParserUtilV2<T> where T : Resource
 
         if (data is not IEnumerable<object>)
         {
-            if (schemaAttribute.IsRequired && data == null)
-            {
-                return new JArray(schemaAttribute.DefaultValue ?? "");
-            }
-            if (data is not null)
-            {
-                return new JArray(data);
-            }
+            if (schemaAttribute.IsRequired && string.IsNullOrEmpty(data?.ToString()))
+                return new JArray(ParseValue(schemaAttribute.DefaultValue, schemaAttribute.ArrayDataType));
+
+            if (!string.IsNullOrEmpty(data?.ToString()))
+                return new JArray(ParseValue(data?.ToString(), schemaAttribute.ArrayDataType));
 
             return new JArray();
         }
 
-
         var newArray = new JArray();
 
         // Check if the array element type is a simple data type (String, Integer, Boolean)
-        if (schemaAttribute.ArrayDataType == JsonDataTypes.String ||
-            schemaAttribute.ArrayDataType == JsonDataTypes.Number ||
-            schemaAttribute.ArrayDataType == JsonDataTypes.Boolean)
+        if (IsSimpleDataType(schemaAttribute.ArrayDataType))
         {
-            // Iterate through each object in the array
             foreach (var obj in data as IEnumerable)
             {
                 var attrArray = schemaAttribute.ArrayElementFieldName!.Split(':');
-
-                // Get the value of the specified property from the object
                 var propertyValue = GetPropertyValue(obj, attrArray[attrArray.Length - 1]);
+                var propertyValueString = propertyValue?.ToString();
 
-                // If the property value is not null, convert and add it to the new array
-                if (propertyValue != null)
+                if (string.IsNullOrEmpty(propertyValueString) && schemaAttribute.IsRequired)
                 {
-                    switch (schemaAttribute.ArrayDataType)
-                    {
-                        case JsonDataTypes.String:
-                            newArray.Add(propertyValue.ToString());
-                            break;
-
-                        case JsonDataTypes.Number:
-                            newArray.Add(Int32.TryParse(propertyValue?.ToString(), out int intValue) ? intValue : default(int?));
-                            break;
-
-                        case JsonDataTypes.Boolean:
-                            newArray.Add(Boolean.TryParse(propertyValue?.ToString(), out bool boolValue) ? boolValue : default(bool?));
-                            break;
-                    }
+                    newArray.Add(ParseValue(schemaAttribute.DefaultValue, schemaAttribute.ArrayDataType));
+                    continue;
                 }
-                else
+                if (!string.IsNullOrEmpty(propertyValueString?.ToString()))
                 {
-                    if (schemaAttribute.IsRequired)
-                    {
-                        newArray.Add(schemaAttribute.DefaultValue ?? "");
-                    }
+                    var parsedValue = ParseValue(propertyValueString, schemaAttribute.ArrayDataType);
+                    newArray.Add(parsedValue);
                 }
             }
         }
@@ -263,6 +240,24 @@ public class JSONParserUtilV2<T> where T : Resource
         }
 
         return newArray;
+    }
+
+    private static bool IsSimpleDataType(JsonDataTypes dataType)
+    {
+        return dataType == JsonDataTypes.String ||
+               dataType == JsonDataTypes.Number ||
+               dataType == JsonDataTypes.Boolean;
+    }
+
+    private static dynamic ParseValue(string? value, JsonDataTypes dataType)
+    {
+        return dataType switch
+        {
+            JsonDataTypes.String => value ?? "",
+            JsonDataTypes.Number => int.TryParse(value, out var intValue) ? intValue : default(int?),
+            JsonDataTypes.Boolean => bool.TryParse(value, out var boolValue) ? boolValue : default(bool?),
+            _ => throw new NotSupportedException($"Unsupported array data type: {dataType}")
+        };
     }
 
     /// <summary>
