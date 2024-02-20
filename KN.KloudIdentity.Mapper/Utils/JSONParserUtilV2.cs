@@ -164,45 +164,39 @@ public class JSONParserUtilV2<T> where T : Resource
     /// <returns>A JArray containing the extracted values based on the schema attribute.</returns>
     public static dynamic MakeJsonArray(T resource, AttributeSchema schemaAttribute)
     {
-        var data = ReadProperty(resource, schemaAttribute.SourceValue) as IEnumerable;
-        if (data == null || data is not IEnumerable<object>)
+        var data = ReadProperty(resource, schemaAttribute.SourceValue);
+
+        if (data is not IEnumerable<object>)
         {
-            // Since the source data is null, returns an empty array.
+            if (schemaAttribute.IsRequired && string.IsNullOrEmpty(data?.ToString()))
+                return new JArray(ParseValue(schemaAttribute.DefaultValue, schemaAttribute.ArrayDataType));
+
+            if (!string.IsNullOrEmpty(data?.ToString()))
+                return new JArray(ParseValue(data?.ToString(), schemaAttribute.ArrayDataType));
+
             return new JArray();
         }
 
         var newArray = new JArray();
 
         // Check if the array element type is a simple data type (String, Integer, Boolean)
-        if (schemaAttribute.ArrayDataType == JsonDataTypes.String ||
-            schemaAttribute.ArrayDataType == JsonDataTypes.Number ||
-            schemaAttribute.ArrayDataType == JsonDataTypes.Boolean)
+        if (IsSimpleDataType(schemaAttribute.ArrayDataType))
         {
-            // Iterate through each object in the array
-            foreach (var obj in data)
+            foreach (var obj in data as IEnumerable)
             {
                 var attrArray = schemaAttribute.ArrayElementFieldName!.Split(':');
-
-                // Get the value of the specified property from the object
                 var propertyValue = GetPropertyValue(obj, attrArray[attrArray.Length - 1]);
+                var propertyValueString = propertyValue?.ToString();
 
-                // If the property value is not null, convert and add it to the new array
-                if (propertyValue != null)
+                if (string.IsNullOrEmpty(propertyValueString) && schemaAttribute.IsRequired)
                 {
-                    switch (schemaAttribute.ArrayDataType)
-                    {
-                        case JsonDataTypes.String:
-                            newArray.Add(propertyValue.ToString());
-                            break;
-
-                        case JsonDataTypes.Number:
-                            newArray.Add(Int32.TryParse(propertyValue?.ToString(), out int intValue) ? intValue : default(int?));
-                            break;
-
-                        case JsonDataTypes.Boolean:
-                            newArray.Add(Boolean.TryParse(propertyValue?.ToString(), out bool boolValue) ? boolValue : default(bool?));
-                            break;
-                    }
+                    newArray.Add(ParseValue(schemaAttribute.DefaultValue, schemaAttribute.ArrayDataType));
+                    continue;
+                }
+                if (!string.IsNullOrEmpty(propertyValueString?.ToString()))
+                {
+                    var parsedValue = ParseValue(propertyValueString, schemaAttribute.ArrayDataType);
+                    newArray.Add(parsedValue);
                 }
             }
         }
@@ -246,6 +240,24 @@ public class JSONParserUtilV2<T> where T : Resource
         }
 
         return newArray;
+    }
+
+    private static bool IsSimpleDataType(JsonDataTypes dataType)
+    {
+        return dataType == JsonDataTypes.String ||
+               dataType == JsonDataTypes.Number ||
+               dataType == JsonDataTypes.Boolean;
+    }
+
+    private static dynamic ParseValue(string? value, JsonDataTypes dataType)
+    {
+        return dataType switch
+        {
+            JsonDataTypes.String => value ?? "",
+            JsonDataTypes.Number => int.TryParse(value, out var intValue) ? intValue : default(int?),
+            JsonDataTypes.Boolean => bool.TryParse(value, out var boolValue) ? boolValue : default(bool?),
+            _ => throw new NotSupportedException($"Unsupported array data type: {dataType}")
+        };
     }
 
     /// <summary>
