@@ -6,7 +6,7 @@ using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using Xunit;
 
-namespace KN.KloudIdentity.Tests.KN.KloudIdentity.Mapper.Utils
+namespace KN.KloudIdentity.MapperTests
 {
     public partial class JSONParserUtilTests
     {

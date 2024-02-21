@@ -36,12 +36,27 @@ public class JSONParserUtilV2<T> where T : Resource
                     }
                     nestedObject = (JObject)nestedObject[nestedPropertyName];
                 }
-                nestedObject[attrArray[attrArray.Length - 1]] = GetValue(resource, schemaAttribute);
+
+                if (schemaAttribute.MappingType == MappingTypes.Direct)
+                {
+                    nestedObject[attrArray[attrArray.Length - 1]] = GetValue(resource, schemaAttribute);
+                }
+                else if (schemaAttribute.MappingType == MappingTypes.Constant)
+                {
+                    nestedObject[attrArray[attrArray.Length - 1]] = schemaAttribute.SourceValue;
+                }
             }
             else
             {
                 // Top-level property
-                jObject[attrArray[0]] = GetValue(resource, schemaAttribute);
+                if (schemaAttribute.MappingType == MappingTypes.Direct)
+                {
+                    jObject[attrArray[0]] = GetValue(resource, schemaAttribute);
+                }
+                else if (schemaAttribute.MappingType == MappingTypes.Constant)
+                {
+                    jObject[attrArray[0]] = schemaAttribute.SourceValue;
+                }
             }
         }
 
@@ -61,7 +76,7 @@ public class JSONParserUtilV2<T> where T : Resource
         {
             JsonDataTypes.String => GetValue<string>(resource, schemaAttribute),
             JsonDataTypes.Boolean => GetValue<bool>(resource, schemaAttribute),
-            JsonDataTypes.Number => GetValue<int>(resource, schemaAttribute),
+            JsonDataTypes.Number => GetValue<long>(resource, schemaAttribute),
             JsonDataTypes.Object => MakeJsonObject(resource, schemaAttribute),
             JsonDataTypes.Array => MakeJsonArray(resource, schemaAttribute),
             _ => default,
@@ -134,23 +149,43 @@ public class JSONParserUtilV2<T> where T : Resource
         {
             if (value == null)
             {
-                throw new ArgumentException($"Property {prop} is null");
+                return value;
             }
 
-            Type valueType = value.GetType();
-            if (typeof(IEnumerable).IsAssignableFrom(valueType) && valueType.IsGenericType)
+            int index = 0;
+            string propName = prop;
+
+            var indArr = prop.Split('[');
+            if (indArr.Length > 1)
             {
-                value = value[0];
+                index = int.Parse(indArr[1].Replace("]", ""));
+                propName = indArr[0];
             }
 
-            var propertyInfo = value.GetType().GetProperty(prop);
-
+            var propertyInfo = value.GetType().GetProperty(propName);
             if (propertyInfo == null)
             {
-                throw new ArgumentException($"Property {prop} not found on type {value.GetType().Name}");
+                throw new ArgumentException($"Property {propName} not found on type {value.GetType().Name}");
             }
 
-            value = propertyInfo.GetValue(value);
+            Type propertyType = propertyInfo.PropertyType;
+
+            if (typeof(IEnumerable).IsAssignableFrom(propertyType) && propertyType.IsGenericType)
+            {
+                var collection = propertyInfo.GetValue(value, null) as IEnumerable<object>;
+                if (collection != null && index < collection.Count())
+                {
+                    value = collection.ElementAt(index);
+                }
+                else
+                {
+                    value = null;
+                }
+            }
+            else
+            {
+                value = propertyInfo.GetValue(value);
+            }
         }
 
         return value;
@@ -309,12 +344,27 @@ public class JSONParserUtilV2<T> where T : Resource
                 }
                 else
                 {
-                    var childValue = ReadProperty(resource, childSchema.SourceValue);
+                    // var childValue = ReadProperty(resource, childSchema.SourceValue);
+                    dynamic childValue;
+                    switch (childSchema.DestinationType)
+                    {
+                        case JsonDataTypes.String:
+                            childValue = GetValue<string>(resource, childSchema);
+                            break;
+                        case JsonDataTypes.Boolean:
+                            childValue = GetValue<bool>(resource, childSchema);
+                            break;
+                        case JsonDataTypes.Number:
+                            childValue = GetValue<long>(resource, childSchema);
+                            break;
+                        default:
+                            childValue = default;
+                            break;
+                    }
+
                     ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], childValue);
                 }
-
             }
-
         }
 
         return JObject.FromObject(childObject);
