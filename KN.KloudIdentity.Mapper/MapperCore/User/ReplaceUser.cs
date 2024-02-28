@@ -71,15 +71,14 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// </summary>
         private async Task ReplaceUserAsync(JObject payload, Core2EnterpriseUser resource)
         {
-            var authConfig = _appConfig.AuthenticationDetails;
 
             // Obtain authentication token.
-            var token = await GetAuthenticationAsync(authConfig);
+            var token = await GetAuthenticationAsync(_appConfig);
 
             var httpClient = _httpClientFactory.CreateClient();
 
             // Set headers based on authentication method.
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, authConfig, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, _appConfig.AuthenticationDetails, token);
 
             using (var response = await ProcessRequestAsync(_appConfig, httpClient, payload, resource))
             {

@@ -26,6 +26,7 @@ namespace Microsoft.SCIM.WebHostSample
     using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
     using System;
     using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
+    using KN.KI.LogAggregator.Library.Abstractions;
 
     public class Startup
     {
@@ -111,6 +112,12 @@ namespace Microsoft.SCIM.WebHostSample
                     this.configuration["RabbitMQ:QueueName_In"]
                 );
             });
+
+            services.AddTransient<IKloudIdentityLogger>(pub => new KN.KI.LogAggregator.Library.Implementations.RabbitMQPublisher(
+                     this.configuration["RabbitMQ:Host"],
+                     this.configuration["RabbitMQ:UserName"],
+                     this.configuration["RabbitMQ:Password"]));
+
             services.AddScoped<IGetFullAppConfigQuery, GetFullAppConfigQuery>();
 
             services.AddScoped<NonSCIMGroupProvider>();
