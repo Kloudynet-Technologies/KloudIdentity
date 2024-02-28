@@ -2,7 +2,9 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using KN.KloudIdentity.Mapper.Config;
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
@@ -22,16 +24,22 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
     {
         private AppConfig _appConfig;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IKloudIdentityLogger _logger;
 
         /// <summary>
         /// Constructor for the ReplaceUser class.
         /// </summary>
         /// <param name="configReader">Configuration reader.</param>
         /// <param name="authContext">Authentication context.</param>
-        public ReplaceUser(IAuthContext authContext, IHttpClientFactory httpClientFactory, IGetFullAppConfigQuery getFullAppConfigQuery)
+        public ReplaceUser(IAuthContext authContext,
+            IHttpClientFactory httpClientFactory,
+            IGetFullAppConfigQuery getFullAppConfigQuery,
+            IKloudIdentityLogger logger
+            )
             : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
         /// <summary>
@@ -52,6 +60,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             var payload = await MapAndPreparePayloadAsync(_appConfig.UserAttributeSchemas.ToList(), resource);
 
             await ReplaceUserAsync(payload, resource);
+
+            _ = CreateLogAsync(_appConfig, resource.Identifier, correlationID);
 
             return resource;
         }
@@ -112,6 +122,27 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             {
                 throw new ArgumentNullException("PUTAPIForUsers and PATCHAPIForUsers cannot both be null or empty");
             }
+        }
+
+        private async Task CreateLogAsync(AppConfig appConfig, string identifier, string correlationID)
+        {
+            var eventInfo = $"Replace User to the #{appConfig.AppName}({appConfig.AppId})";
+            var logMessage = $"Replace user for the id {identifier}";
+
+            var logEntity = new CreateLogEntity(
+                LogType.Edit.ToString(),
+                LogSeverities.Information,
+                eventInfo,
+                logMessage,
+                correlationID,
+                AppConstant.LoggerName,
+                DateTime.UtcNow,
+                AppConstant.User,
+                null,
+                null
+            );
+
+            await _logger.CreateLogAsync(logEntity);
         }
 
     }

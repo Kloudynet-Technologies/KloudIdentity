@@ -2,7 +2,9 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using KN.KloudIdentity.Mapper.Config;
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
@@ -18,6 +20,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<Core2EnterpriseUser>
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IKloudIdentityLogger _logger;
 
     /// <summary>
     /// Initializes a new instance of the CreateUser class.
@@ -27,10 +30,12 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
     public CreateUser(
         IAuthContext authContext,
         IHttpClientFactory httpClientFactory,
-        IGetFullAppConfigQuery getFullAppConfigQuery)
+        IGetFullAppConfigQuery getFullAppConfigQuery,
+        IKloudIdentityLogger logger)
         : base(authContext, getFullAppConfigQuery)
     {
         _httpClientFactory = httpClientFactory;
+        _logger = logger;
     }
 
     /// <summary>
@@ -51,6 +56,8 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
         var payload = await MapAndPreparePayloadAsync(appConfig.UserAttributeSchemas.ToList(), resource);
 
         await CreateUserAsync(appConfig, payload);
+
+        _ = CreateLogAsync(appConfig, correlationID);
 
         return resource;
     }
@@ -84,5 +91,26 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
             }
         }
     }
+
+    private async Task CreateLogAsync(AppConfig appConfig, string correlationID)
+    {
+        var logMessage = $"User created to the application #{appConfig.AppName}({appConfig.AppId})";
+
+        var logEntity = new CreateLogEntity(
+            LogType.Provision.ToString(),
+            LogSeverities.Information,
+            "User created successfully",
+            logMessage,
+            correlationID,
+            AppConstant.LoggerName,
+            DateTime.UtcNow,
+            AppConstant.User,
+            null,
+            null
+        );
+
+        await _logger.CreateLogAsync(logEntity);
+    }
+
 }
 

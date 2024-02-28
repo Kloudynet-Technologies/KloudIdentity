@@ -2,7 +2,9 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using KN.KloudIdentity.Mapper.Config;
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
@@ -19,6 +21,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
     {
         private AppConfig _appConfig;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IKloudIdentityLogger _logger;
 
         /// <summary>
         /// Constructor for the RemoveMembersFromGroup class.
@@ -28,9 +31,11 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         public RemoveGroupMembers(
             IAuthContext authContext,
             IHttpClientFactory httpClientFactory,
-            IGetFullAppConfigQuery getFullAppConfigQuery) : base(authContext, getFullAppConfigQuery)
+            IGetFullAppConfigQuery getFullAppConfigQuery,
+            IKloudIdentityLogger logger) : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
         /// <summary>
@@ -47,6 +52,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             _appConfig = await GetAppConfigAsync(appId);
 
             await RemoveMembersToGroupAsync(groupId, members);
+
+            _= CreateLogAsync(_appConfig, groupId, correlationID);
         }
 
         /// <summary>
@@ -84,6 +91,27 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
                     );
                 }
             }
+        }
+
+        private async Task CreateLogAsync(AppConfig appConfig, string identifier, string correlationID)
+        {
+            var eventInfo = $"Removed Members from the #{appConfig.AppName}({appConfig.AppId})";
+            var logMessage = $"Removed members for the id {identifier}";
+
+            var logEntity = new CreateLogEntity(
+                LogType.Deprovision.ToString(),
+                LogSeverities.Information,
+                eventInfo,
+                logMessage,
+                correlationID,
+                AppConstant.LoggerName,
+                DateTime.UtcNow,
+                AppConstant.User,
+                null,
+                null
+            );
+
+            await _logger.CreateLogAsync(logEntity);
         }
     }
 

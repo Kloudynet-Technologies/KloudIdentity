@@ -2,7 +2,9 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using KN.KloudIdentity.Mapper.Config;
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
@@ -18,16 +20,21 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
     {
         private AppConfig _appConfig;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IKloudIdentityLogger _logger;
 
         /// <summary>
         /// Initializes a new instance of the CreateUser class.
         /// </summary>
         /// <param name="configReader">An implementation of IConfigReader for reading configuration settings.</param>
         /// <param name="authContext">An implementation of IAuthContext for handling authentication.</param>
-        public UpdateUser(IAuthContext authContext, IHttpClientFactory httpClientFactory, IGetFullAppConfigQuery getFullAppConfigQuery)
+        public UpdateUser(IAuthContext authContext,
+            IHttpClientFactory httpClientFactory,
+            IGetFullAppConfigQuery getFullAppConfigQuery,
+            IKloudIdentityLogger logger)
             : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
         public async Task UpdateAsync(IPatch patch, string appId, string correlationID)
@@ -43,6 +50,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             var payload = await MapAndPreparePayloadAsync(_appConfig.UserAttributeSchemas.ToList(), user);
 
             await UpdateUserAsync(user, payload);
+
+            _ = CreateLogAsync(_appConfig, user.Identifier, correlationID);
         }
 
         /// <summary>
@@ -78,6 +87,27 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
                     );
                 }
             }
+        }
+
+        private async Task CreateLogAsync(AppConfig appConfig, string identifier, string correlationID)
+        {
+            var eventInfo = $"Updated User to the #{appConfig.AppName}({appConfig.AppId})";
+            var logMessage = $"Updated user for the id {identifier}";
+
+            var logEntity = new CreateLogEntity(
+                LogType.Edit.ToString(),
+                LogSeverities.Information,
+                eventInfo,
+                logMessage,
+                correlationID,
+                AppConstant.LoggerName,
+                DateTime.UtcNow,
+                AppConstant.User,
+                null,
+                null
+            );
+
+            await _logger.CreateLogAsync(logEntity);
         }
 
     }

@@ -3,6 +3,7 @@
 namespace Microsoft.SCIM
 {
     using System;
+    using KN.KI.LogAggregator.Library.Abstractions;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
 
@@ -11,8 +12,8 @@ namespace Microsoft.SCIM
     [ApiController]
     public sealed class GroupsController : ControllerTemplate<Core2Group>
     {
-        public GroupsController(IProvider provider, IMonitor monitor)
-            : base(provider, monitor)
+        public GroupsController(IProvider provider, IMonitor monitor, IKloudIdentityLogger logger)
+            : base(provider, monitor, logger)
         {
         }
 

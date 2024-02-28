@@ -25,7 +25,7 @@ public class GetFullAppConfigQuery : IGetFullAppConfigQuery
         // _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "token");
 
         // Call the API here.
-        var response = await _httpClient.GetAsync($"/api/api/applications/{appId}?requireFullInfo=true", cancellationToken);
+        var response = await _httpClient.GetAsync($"/api/applications/{appId}?requireFullInfo=true", cancellationToken);
         response.EnsureSuccessStatusCode();
 
         // Deserialize the response here.

@@ -2,7 +2,6 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using Microsoft.SCIM;
@@ -20,7 +19,6 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         private readonly IAddGroupMembers _addGroupMembers;
         private readonly IRemoveGroupMembers _removeGroupMembers;
         private readonly IRemoveAllGroupMembers _removeAllGroupMembers;
-
         /// <summary>
         /// Initializes a new instance of the UpdateGroup class.
         /// </summary>

@@ -2,6 +2,9 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
@@ -18,16 +21,22 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
     {
         private AppConfig _appConfig;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IKloudIdentityLogger _logger;
 
         /// <summary>
         /// Initializes a new instance of the CreateGroup class.
         /// </summary>
         /// <param name="configReader">An implementation of IConfigReader for reading configuration settings.</param>
         /// <param name="authContext">An implementation of IAuthContext for handling authentication.</param>
-        public CreateGroup(IAuthContext authContext, IHttpClientFactory httpClientFactory, IGetFullAppConfigQuery getFullAppConfigQuery)
+        public CreateGroup(IAuthContext authContext,
+            IHttpClientFactory httpClientFactory,
+            IGetFullAppConfigQuery getFullAppConfigQuery,
+            IKloudIdentityLogger logger
+            )
             : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
         /// <summary>
@@ -44,6 +53,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             var payload = await MapAndPreparePayloadAsync(_appConfig.GroupAttributeSchemas!.ToList(), resource);
 
             await CreateGroupAsync(payload);
+
+            _ = CreateLogAsync(_appConfig, correlationID);
 
             return resource;
         }
@@ -78,6 +89,26 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
                     );
                 }
             }
+        }
+
+        private async Task CreateLogAsync(AppConfig appConfig, string correlationID)
+        {
+            var logMessage = $"Group created to the application #{appConfig.AppName}({appConfig.AppId})";
+
+            var logEntity = new CreateLogEntity(
+                LogType.Provision.ToString(),
+                LogSeverities.Information,
+                "Group created successfully",
+                logMessage,
+                correlationID,
+                AppConstant.LoggerName,
+                DateTime.UtcNow,
+                AppConstant.User,
+                null,
+                null
+            );
+
+            await _logger.CreateLogAsync(logEntity);
         }
     }
 }

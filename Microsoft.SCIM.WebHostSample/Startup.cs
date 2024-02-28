@@ -25,6 +25,8 @@ namespace Microsoft.SCIM.WebHostSample
     using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
     using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
     using System;
+    using KN.KI.LogAggregator.Library.Abstractions;
+    using KN.KI.LogAggregator.Library.Implementations;
 
     public class Startup
     {
@@ -107,6 +109,10 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();
             services.AddScoped<ExtractAppIdFilter>();
+            services.AddTransient<IKloudIdentityLogger>(pub => new RabbitMQPublisher(
+                    this.configuration["RabbitMQ:Host"],
+                    this.configuration["RabbitMQ:UserName"],
+                    this.configuration["RabbitMQ:Password"]));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -2,7 +2,9 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using KN.KloudIdentity.Mapper.Config;
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
@@ -17,16 +19,22 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
     {
         private AppConfig _appConfig;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IKloudIdentityLogger _logger;
 
         /// <summary>
         /// Initializes a new instance of the DeleteUser class.
         /// </summary>
         /// <param name="configReader">An implementation of IConfigReader for reading configuration settings.</param>
         /// <param name="authContext">An implementation of IAuthContext for handling authentication.</param>
-        public DeleteGroup(IAuthContext authContext, IHttpClientFactory httpClientFactory, IGetFullAppConfigQuery getFullAppConfigQuery)
+        public DeleteGroup(IAuthContext authContext,
+            IHttpClientFactory httpClientFactory,
+            IGetFullAppConfigQuery getFullAppConfigQuery,
+            IKloudIdentityLogger logger
+            )
             : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
         /// <summary>
@@ -45,6 +53,9 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             // Initiate the asynchronous deletion of a user/resource.
             await DeleteGroupAsync(resourceIdentifier.Identifier);
+
+            // Log the operation.
+            _ = CreateLogAsync(_appConfig, resourceIdentifier.Identifier, correlationID);
         }
 
         /// <summary>
@@ -94,6 +105,27 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             {
                 throw new ArgumentNullException(nameof(appConfig.GroupURIs.Delete), "DELETEAPIForGroups cannot be null or empty");
             }
+        }
+
+        private async Task CreateLogAsync(AppConfig appConfig, string identifier, string correlationID)
+        {
+            var eventInfo = $"Delete Group from the #{appConfig.AppName}({appConfig.AppId})";
+            var logMessage = $"Delete group for the id {identifier}";
+
+            var logEntity = new CreateLogEntity(
+                LogType.Deprovision.ToString(),
+                LogSeverities.Information,
+                eventInfo,
+                logMessage,
+                correlationID,
+                AppConstant.LoggerName,
+                DateTime.UtcNow,
+                AppConstant.User,
+                null,
+                null
+            );
+
+            await _logger.CreateLogAsync(logEntity);
         }
     }
 }

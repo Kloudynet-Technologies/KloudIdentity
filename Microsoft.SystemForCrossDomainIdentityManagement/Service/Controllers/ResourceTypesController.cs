@@ -7,6 +7,7 @@ namespace Microsoft.SCIM
     using System.Net;
     using System.Net.Http;
     using System.Web.Http;
+    using KN.KI.LogAggregator.Library.Abstractions;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
 
@@ -15,8 +16,8 @@ namespace Microsoft.SCIM
     [ApiController]
     public sealed class ResourceTypesController : ControllerTemplate
     {
-        public ResourceTypesController(IProvider provider, IMonitor monitor)
-            : base(provider, monitor)
+        public ResourceTypesController(IProvider provider, IMonitor monitor, IKloudIdentityLogger logger)
+            : base(provider, monitor, logger)
         {
         }
 

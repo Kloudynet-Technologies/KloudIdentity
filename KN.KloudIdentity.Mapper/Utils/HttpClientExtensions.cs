@@ -2,9 +2,9 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using KN.KloudIdentity.Mapper.Auth;
-using KN.KloudIdentity.Mapper.Config;
-using KN.KloudIdentity.Mapper.Domain.Authentication;
+
+using  KN.KloudIdentity.Mapper.Domain.Authentication;
+using Newtonsoft.Json;
 using System.Net.Http.Headers;
 
 namespace KN.KloudIdentity.Mapper.Utils
@@ -23,12 +23,14 @@ namespace KN.KloudIdentity.Mapper.Utils
             string token
         )
         {
-            if (authConfig.AuthenticationMethod == AuthenticationMethod.None)
+            if (authConfig.AuthenticationMethod == AuthenticationMethods.None)
                 return;
 
-            if (authConfig.AuthenticationMethod == AuthenticationMethod.ApiKey)
+            if (authConfig.AuthenticationMethod == AuthenticationMethods.APIKey)
             {
-                var apiKeyAuth = authConfig as APIKeyAuthentication;
+                string jsonString = authConfig.AuthenticationDetails.GetRawText();
+
+                APIKeyAuthentication apiKeyAuth = JsonConvert.DeserializeObject<APIKeyAuthentication>(jsonString);
 
                 if (string.IsNullOrWhiteSpace(apiKeyAuth.AuthHeaderName))
                 {
