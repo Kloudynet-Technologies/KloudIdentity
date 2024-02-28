@@ -48,7 +48,7 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
 
         if (_appConfig.UserURIs.Get != null && _appConfig.UserURIs.Get != null)
         {
-            var token = await GetAuthenticationAsync(_appConfig.AuthenticationDetails);
+            var token = await GetAuthenticationAsync(_appConfig);
 
             var client = _httpClientFactory.CreateClient();
             Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethod, _appConfig.AuthenticationDetails, token);
