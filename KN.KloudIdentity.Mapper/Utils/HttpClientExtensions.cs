@@ -2,8 +2,7 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-
-using  KN.KloudIdentity.Mapper.Domain.Authentication;
+using KN.KloudIdentity.Mapper.Domain.Authentication;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 
@@ -19,20 +18,19 @@ namespace KN.KloudIdentity.Mapper.Utils
         /// <param name="token">Authentication token.</param>
         public static void SetAuthenticationHeaders(
             this HttpClient httpClient,
+            AuthenticationMethods method,
             dynamic authConfig,
             string token
         )
         {
-            if (authConfig.AuthenticationMethod == AuthenticationMethods.None)
+            if (method == AuthenticationMethods.None)
                 return;
 
-            if (authConfig.AuthenticationMethod == AuthenticationMethods.APIKey)
+            if (method == AuthenticationMethods.APIKey)
             {
-                string jsonString = authConfig.AuthenticationDetails.GetRawText();
+                APIKeyAuthentication apiKeyAuth = JsonConvert.DeserializeObject<APIKeyAuthentication>(authConfig.ToString());
 
-                APIKeyAuthentication apiKeyAuth = JsonConvert.DeserializeObject<APIKeyAuthentication>(jsonString);
-
-                if (string.IsNullOrWhiteSpace(apiKeyAuth.AuthHeaderName))
+                if (string.IsNullOrWhiteSpace(apiKeyAuth!.AuthHeaderName))
                 {
                     throw new ArgumentNullException(
                         nameof(apiKeyAuth.AuthHeaderName),

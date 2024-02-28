@@ -4,10 +4,8 @@
 
 using System.Net;
 using System.Security.Authentication;
-using System.Text.Json;
-using KN.KloudIdentity.Mapper.Auth;
-using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
+using Newtonsoft.Json;
 
 namespace KN.KloudIdentity.Mapper;
 
@@ -25,9 +23,8 @@ public class OAuth2Strategy : IAuthStrategy
     /// <returns></returns>
     public async Task<string> GetTokenAsync(dynamic authConfig)
     {
-        ValidateParameters(authConfig);
-
-        var oauth2Auth = authConfig as OAuth2ClientCrdAuthentication;
+        OAuth2ClientCrdAuthentication oauth2Auth;
+        ValidateParameters(authConfig, out oauth2Auth);
 
         var client = new HttpClient();
         var request = new HttpRequestMessage(HttpMethod.Post, oauth2Auth.TokenUrl)
@@ -49,7 +46,7 @@ public class OAuth2Strategy : IAuthStrategy
             throw new AuthenticationException(responseContent);
         }
 
-        var tokenResponse = JsonSerializer.Deserialize<HttpResponseMessage>(responseContent);
+        var tokenResponse = System.Text.Json.JsonSerializer.Deserialize<HttpResponseMessage>(responseContent);
 
         string token = await tokenResponse.Content.ReadAsStringAsync();
 
@@ -61,14 +58,14 @@ public class OAuth2Strategy : IAuthStrategy
     /// </summary>
     /// <param name="authConfig"></param>
     /// <exception cref="ArgumentNullException"></exception>
-    private void ValidateParameters(dynamic authConfig)
+    private void ValidateParameters(dynamic authConfig, out OAuth2ClientCrdAuthentication oauth2Auth)
     {
-        if (authConfig is null or not OAuth2ClientCrdAuthentication)
+        oauth2Auth = JsonConvert.DeserializeObject<OAuth2ClientCrdAuthentication>(authConfig.ToString());
+
+        if (oauth2Auth is null || authConfig is null)
         {
             throw new ArgumentNullException(nameof(authConfig));
         }
-
-        var oauth2Auth = authConfig as OAuth2ClientCrdAuthentication;
 
         if (string.IsNullOrWhiteSpace(oauth2Auth.TokenUrl))
         {

@@ -79,7 +79,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             var httpClient = _httpClientFactory.CreateClient();
 
             // Set headers based on authentication method.
-            httpClient = Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, authConfig, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, authConfig, token);
 
             using (var response = await ProcessRequestAsync(_appConfig, httpClient, payload, resource))
             {

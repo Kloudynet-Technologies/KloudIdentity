@@ -76,7 +76,7 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
 
         var httpClient = _httpClientFactory.CreateClient();
 
-        httpClient = Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationDetails, token);
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethod, appConfig.AuthenticationDetails, token);
 
         using (var response = await httpClient.PostAsJsonAsync(
             appConfig.UserURIs.Post,

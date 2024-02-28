@@ -2,16 +2,16 @@
 using System.Text.Json;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
 
 namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
 
 public class GetFullAppConfigQuery : IGetFullAppConfigQuery
 {
-    private readonly HttpClient _httpClient;
-
-    public GetFullAppConfigQuery(HttpClient httpClient)
+    private readonly RabbitMQPublisher _rabbitMQPublisher;
+    public GetFullAppConfigQuery(RabbitMQPublisher rabbitMQPublisher)
     {
-        _httpClient = httpClient;
+        _rabbitMQPublisher = rabbitMQPublisher;
     }
 
     public async Task<AppConfig?> GetAsync(string appId, CancellationToken cancellationToken = default)
@@ -21,20 +21,12 @@ public class GetFullAppConfigQuery : IGetFullAppConfigQuery
             throw new ArgumentNullException(nameof(appId));
         }
 
-        // Set the token here.
-        // _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "token");
+        string? response = null;
+        var correlationId = Guid.NewGuid().ToString();
+        _rabbitMQPublisher.Publish(appId, correlationId);
 
-        // Call the API here.
-        var response = await _httpClient.GetAsync($"/api/applications/{appId}?requireFullInfo=true", cancellationToken);
-        response.EnsureSuccessStatusCode();
+        response = _rabbitMQPublisher.Consume(correlationId);
 
-        // Deserialize the response here.
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (string.IsNullOrWhiteSpace(content))
-        {
-            return null;
-        }
-
-        return JsonSerializer.Deserialize<AppConfig>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        return JsonSerializer.Deserialize<AppConfig>(response, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 }
