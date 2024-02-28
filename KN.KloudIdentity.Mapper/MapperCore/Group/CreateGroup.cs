@@ -47,7 +47,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <param name="correlationID">The correlation ID.</param>
         /// <returns>The created group resource.</returns>
         public async Task<Core2Group> ExecuteAsync(Core2Group resource, string appId, string correlationID)
-        {
+         {
             _appConfig = await GetAppConfigAsync(appId);
 
             var payload = await MapAndPreparePayloadAsync(_appConfig.GroupAttributeSchemas!.ToList(), resource);
@@ -69,13 +69,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// </exception>
         private async Task CreateGroupAsync(JObject payload)
         {
-            var authConfig = _appConfig.AuthenticationDetails;
 
-            var token = await GetAuthenticationAsync(authConfig);
+            var token = await GetAuthenticationAsync(_appConfig);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, authConfig, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, _appConfig.AuthenticationDetails, token);
 
             using (var response = await httpClient.PostAsJsonAsync(
                  _appConfig.GroupURIs!.Post!.ToString(),

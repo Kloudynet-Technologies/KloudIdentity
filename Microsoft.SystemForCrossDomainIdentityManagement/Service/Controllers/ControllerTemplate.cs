@@ -634,7 +634,7 @@ namespace Microsoft.SCIM
                     monitor.Report(notification);
                 }
 
-                return this.BadRequest();
+                return this.ScimError(HttpStatusCode.BadRequest, argumentException.Message, correlationIdentifier, argumentException);
             }
             catch (NotImplementedException notImplementedException)
             {
@@ -679,7 +679,7 @@ namespace Microsoft.SCIM
                 if (httpResponseException.Response.StatusCode == HttpStatusCode.Conflict)
                     return this.Conflict();
                 else
-                    return this.BadRequest();
+                    return this.ScimError(HttpStatusCode.BadRequest, httpResponseException.Message, correlationIdentifier, httpResponseException);
             }
             catch (Exception exception)
             {
