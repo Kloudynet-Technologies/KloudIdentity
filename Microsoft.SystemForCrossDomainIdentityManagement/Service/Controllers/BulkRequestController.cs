@@ -4,6 +4,7 @@
 
 namespace Microsoft.SCIM
 {
+    using KN.KI.LogAggregator.Library.Abstractions;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using System;
@@ -18,8 +19,8 @@ namespace Microsoft.SCIM
     [ApiController]
     public sealed class BulkRequestController : ControllerTemplate
     {
-        public BulkRequestController(IProvider provider, IMonitor monitor)
-            : base(provider, monitor)
+        public BulkRequestController(IProvider provider, IMonitor monitor, IKloudIdentityLogger logger)
+            : base(provider, monitor, logger)
         {
         }
 

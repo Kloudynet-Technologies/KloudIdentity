@@ -2,11 +2,11 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using System.Net.Http.Headers;
 using System.Web.Http;
-using Azure.Identity;
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
-using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
@@ -25,12 +25,20 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
     private readonly IHttpClientFactory _httpClientFactory;
     private AppConfig _appConfig;
     private readonly IConfiguration _configuration;
+    private readonly IKloudIdentityLogger _logger;
 
-    public GetUser(IAuthContext authContext, IHttpClientFactory httpClientFactory, IConfiguration configuration, IGetFullAppConfigQuery getFullAppConfigQuery, IConfigReader configReader)
+    public GetUser(IAuthContext authContext,
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration,
+        IGetFullAppConfigQuery getFullAppConfigQuery,
+        IConfigReader configReader,
+        IKloudIdentityLogger logger
+        )
         : base(authContext, getFullAppConfigQuery)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
+        _logger = logger;
     }
 
     /// <summary>
@@ -69,6 +77,8 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
                 core2EntUsr.Identifier = GetValueCaseInsensitive(user, idField);
                 core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
 
+                _ = CreateLogAsync(_appConfig, identifier, correlationID);
+
                 return core2EntUsr;
             }
             else
@@ -101,5 +111,26 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
             .FirstOrDefault(p => string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
 
         return property?.Value.ToString();
+    }
+
+    private async Task CreateLogAsync(AppConfig appConfig, string identifier, string correlationID)
+    {
+        var eventInfo = $"Get user from #{appConfig.AppName}({appConfig.AppId})";
+        var logMessage = $"Get user for the id {identifier}";
+
+        var logEntity = new CreateLogEntity(
+            LogType.Read.ToString(),
+            LogSeverities.Information,
+            eventInfo,
+            logMessage,
+            correlationID,
+            AppConstant.LoggerName,
+            DateTime.UtcNow,
+            AppConstant.User,
+            null,
+            null
+        );
+
+        await _logger.CreateLogAsync(logEntity);
     }
 }

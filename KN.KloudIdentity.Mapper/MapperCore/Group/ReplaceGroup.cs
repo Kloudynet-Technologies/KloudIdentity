@@ -2,7 +2,9 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using KN.KloudIdentity.Mapper.Config;
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
@@ -19,6 +21,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
     {
         private AppConfig _appConfig;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IKloudIdentityLogger _logger;
 
         /// <summary>
         /// Constructor for the ReplaceGroup class.
@@ -28,10 +31,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         public ReplaceGroup(
             IAuthContext authContext,
             IHttpClientFactory httpClientFactory,
-            IGetFullAppConfigQuery getFullAppConfigQuery)
+            IGetFullAppConfigQuery getFullAppConfigQuery,
+            IKloudIdentityLogger logger)
             : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
         /// <summary>
@@ -55,6 +60,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             );
 
             await ReplaceGroupAsync(payload, resource);
+
+            _ = CreateLogAsync(_appConfig, resource.Identifier, correlationID);
 
             return resource;
         }
@@ -112,6 +119,27 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             {
                 throw new ArgumentNullException("PUTAPIForGroups and PATCHAPIForGroups cannot both be null or empty");
             }
+        }
+
+        private async Task CreateLogAsync(AppConfig appConfig, string identifier, string correlationID)
+        {
+            var eventInfo = $"Replace Group to the #{appConfig.AppName}({appConfig.AppId})";
+            var logMessage = $"Replace group for the id {identifier}";
+
+            var logEntity = new CreateLogEntity(
+                LogType.Edit.ToString(),
+                LogSeverities.Information,
+                eventInfo,
+                logMessage,
+                correlationID,
+                AppConstant.LoggerName,
+                DateTime.UtcNow,
+                AppConstant.User,
+                null,
+                null
+            );
+
+            await _logger.CreateLogAsync(logEntity);
         }
     }
 }

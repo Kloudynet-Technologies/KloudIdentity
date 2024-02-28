@@ -2,12 +2,13 @@
 
 namespace Microsoft.SCIM
 {
+    using KN.KI.LogAggregator.Library.Abstractions;
     using System;
 
     public sealed class RootController : ControllerTemplate<Resource>
     {
-        public RootController(IProvider provider, IMonitor monitor)
-            : base(provider, monitor)
+        public RootController(IProvider provider, IMonitor monitor, IKloudIdentityLogger logger)
+            : base(provider, monitor, logger)
         {
         }
 

@@ -9,6 +9,9 @@ using System.Net;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Config.Db;
+using KN.KI.LogAggregator.Library;
 
 namespace KN.KloudIdentity.Mapper.Common.Exceptions
 {
@@ -17,12 +20,12 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
     /// </summary>
     public class GlobalExceptionHandlingMiddleware
     {
-        private readonly ILogger<GlobalExceptionHandlingMiddleware> _logger;
+        private readonly IKloudIdentityLogger _logger;
         private readonly RequestDelegate _next;
 
         public GlobalExceptionHandlingMiddleware(
             RequestDelegate next,
-            ILogger<GlobalExceptionHandlingMiddleware> logger
+            IKloudIdentityLogger logger
         )
         {
             _next = next;
@@ -65,7 +68,8 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
                 exModel.Message = message;
                 exModel.Title = title;
                 exModel.Details = exception.StackTrace;
-                _logger.LogInformation($"{exception.GetType().Name}. Message: [{message}].");
+
+                _ = CreateLogAsync(context, exception);
             }
 
             switch (exception)
@@ -116,7 +120,31 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
 
             await context.Response.WriteAsync(errorJson);
 
-            _logger.LogError(exception, "Unhandled exception occurred.");
+        }
+
+        private async Task CreateLogAsync(HttpContext context, Exception exception)
+        {
+            var exceptionType = exception.GetType().Name;
+            var eventInfo = $@"path: [{context.Request.Method}]{context.Request.Path} - {exceptionType}";
+
+            await _logger.CreateLogAsync(new CreateLogEntity(
+                LogType.Error.ToString(),
+                LogSeverities.Error,
+                eventInfo,
+                null,
+                context.TraceIdentifier,
+                "KN.KloudyIdentity.SCIM",
+                DateTime.UtcNow,
+                "system",
+                exception?.Message,
+                new ExceptionInfo(
+                    exception?.Message,
+                    exception?.StackTrace,
+                    exception?.InnerException?.Message,
+                    exception?.InnerException?.StackTrace
+                    )
+
+                ));
         }
     }
 }
