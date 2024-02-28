@@ -25,6 +25,7 @@ namespace Microsoft.SCIM.WebHostSample
     using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
     using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
     using System;
+    using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
 
     public class Startup
     {
@@ -98,15 +99,25 @@ namespace Microsoft.SCIM.WebHostSample
             services.ConfigureMapperServices();
 
             services.AddHttpClient();
-            services.AddHttpClient<IGetFullAppConfigQuery, GetFullAppConfigQuery>(client =>
+
+            services.AddScoped<RabbitMQPublisher>(pub =>
             {
-                client.BaseAddress = new Uri(this.configuration["MgtPortalUrl"]);
+                return new RabbitMQPublisher(
+                    this.configuration["RabbitMQ:Username"],
+                    this.configuration["RabbitMQ:Password"],
+                    this.configuration["RabbitMQ:Host"],
+                    this.configuration["RabbitMQ:ExchangeName"],
+                    this.configuration["RabbitMQ:QueueName_Out"],
+                    this.configuration["RabbitMQ:QueueName_In"]
+                );
             });
+            services.AddScoped<IGetFullAppConfigQuery, GetFullAppConfigQuery>();
 
             services.AddScoped<NonSCIMGroupProvider>();
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();
             services.AddScoped<ExtractAppIdFilter>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

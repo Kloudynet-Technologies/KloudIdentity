@@ -2,9 +2,11 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
+using System.Dynamic;
 using KN.KloudIdentity.Mapper.Auth;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
+using Newtonsoft.Json;
 
 namespace KN.KloudIdentity.Mapper;
 
@@ -23,8 +25,9 @@ public class ApiKeyStrategy : IAuthStrategy
     /// <exception cref="NotImplementedException">Thrown when the API key is not implemented.</exception>
     public async Task<string> GetTokenAsync(dynamic authConfig)
     {
-        ValidateParameters(authConfig);
-        var apiKeyAuth = authConfig as APIKeyAuthentication;
+        APIKeyAuthentication apiKeyAuth;
+
+        ValidateParameters(authConfig, out apiKeyAuth);
 
         if (!string.IsNullOrWhiteSpace(apiKeyAuth?.APIKey))
             return await Task.FromResult(apiKeyAuth.APIKey);
@@ -38,9 +41,11 @@ public class ApiKeyStrategy : IAuthStrategy
     /// </summary>
     /// <param name="authConfig">The authentication configuration.</param>
     /// <exception cref="ArgumentNullException">Thrown when the authentication configuration is null.</exception>
-    private void ValidateParameters(dynamic authConfig)
+    private void ValidateParameters(dynamic authConfig, out APIKeyAuthentication authentication)
     {
-        if (authConfig == null || authConfig is not APIKeyAuthentication)
+        authentication = JsonConvert.DeserializeObject<APIKeyAuthentication>(authConfig.ToString());
+
+        if (authConfig is null || authentication is null)
         {
             throw new ArgumentNullException(nameof(authConfig));
         }

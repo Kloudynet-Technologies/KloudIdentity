@@ -60,7 +60,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            httpClient = Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationDetails, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, _appConfig.AuthenticationDetails, token);
 
             var apiUrl = DynamicApiUrlUtil.GetFullUrl(_appConfig.UserURIs.Delete!.ToString(), identifier);
 

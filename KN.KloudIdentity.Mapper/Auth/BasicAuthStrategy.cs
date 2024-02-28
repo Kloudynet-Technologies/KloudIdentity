@@ -5,6 +5,7 @@
 using KN.KloudIdentity.Mapper.Auth;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
+using Newtonsoft.Json;
 
 namespace KN.KloudIdentity.Mapper;
 
@@ -41,12 +42,11 @@ public class BasicAuthStrategy : IAuthStrategy
     /// <exception cref="ArgumentNullException"></exception>
     private void ValidateParameters(dynamic authConfig)
     {
-        if (authConfig == null || authConfig is not BasicAuthentication)
+        var basicAuth = JsonConvert.DeserializeObject<BasicAuthentication>(authConfig.ToString());
+        if (authConfig is null || basicAuth is null)
         {
             throw new ArgumentNullException(nameof(authConfig));
         }
-
-        var basicAuth = authConfig as BasicAuthentication;
 
         if (string.IsNullOrWhiteSpace(basicAuth?.Password))
         {

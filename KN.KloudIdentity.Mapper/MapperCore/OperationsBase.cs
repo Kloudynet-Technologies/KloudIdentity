@@ -32,7 +32,7 @@ public abstract class OperationsBase<T> : IAPIMapperBase<T> where T : Resource
 
     public virtual Task<JObject> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, T resource)
     {
-        var payload = JSONParserUtil<Resource>.Parse(schema, resource);
+        var payload = JSONParserUtilV2<Resource>.Parse(schema, resource);
         return Task.FromResult(payload);
     }
 

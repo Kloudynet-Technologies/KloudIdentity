@@ -40,6 +40,6 @@ public class AuthContextV1 : IAuthContext
             throw new AuthenticationException($"Authentication method {appConfig.AuthenticationMethod} is not supported.");
         }
 
-        return await _authStrategy.GetTokenAsync(appConfig);
+        return await _authStrategy.GetTokenAsync((appConfig as AppConfig).AuthenticationDetails);
     }
 }

@@ -64,7 +64,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            httpClient = Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, authConfig, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, authConfig, token);
 
             using (var response = await httpClient.PostAsJsonAsync(
                  _appConfig.GroupURIs!.Post!.ToString(),
