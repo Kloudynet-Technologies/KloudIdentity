@@ -66,7 +66,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         {
             var authConfig = _appConfig.AuthenticationDetails;
 
-            var token = await GetAuthenticationAsync(authConfig);
+            var token = await GetAuthenticationAsync(_appConfig);
 
             var httpClient = _httpClientFactory.CreateClient();
 
