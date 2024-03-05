@@ -133,8 +133,8 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
                 eventInfo,
                 null,
                 context.TraceIdentifier,
-                "KN.KloudyIdentity.SCIM",
-                DateTime.UtcNow,
+                "KN.KloudIdentity.SCIM",
+                DateTime.UtcNow, 
                 "system",
                 exception?.Message,
                 new ExceptionInfo(
