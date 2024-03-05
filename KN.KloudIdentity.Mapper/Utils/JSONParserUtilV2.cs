@@ -201,7 +201,7 @@ public class JSONParserUtilV2<T> where T : Resource
     {
         var data = ReadProperty(resource, schemaAttribute.SourceValue);
 
-        if (data is not IEnumerable<object>)
+        if (data is not IEnumerable<object> && schemaAttribute.ArrayDataType != JsonDataTypes.Object)
         {
             if (schemaAttribute.IsRequired && string.IsNullOrEmpty(data?.ToString()))
                 return new JArray(ParseValue(schemaAttribute.DefaultValue, schemaAttribute.ArrayDataType));
@@ -237,44 +237,8 @@ public class JSONParserUtilV2<T> where T : Resource
         }
         else
         {
-            // @TODO: Implement object array handling.
-
-            // Iterate through each object in the array
-            foreach (var obj in data as IEnumerable<object>)
-            {
-                // Create a dynamic object based on the child schema
-                dynamic childObject = new System.Dynamic.ExpandoObject();
-
-                foreach (var childSchema in schemaAttribute.ChildSchemas)
-                {
-                    string urnPrefix = "urn:kn:ki:schema:";
-                    string attrUrn = childSchema.DestinationField.Remove(0, urnPrefix.Length);
-                    var attrArray = attrUrn.Split(':');
-
-
-                    var childValue = GetPropertyValue(obj, childSchema.SourceValue);
-                    ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], childValue);
-
-                    // if (childSchema.DestinationType == JsonDataTypes.Array)
-                    // {
-                    //     var childValue = GetPropertyValue(obj, childSchema.SourceValue);
-                    //     ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], MakeJsonArray(resource, childValue, childSchema));
-                    //     continue;
-                    // }
-                    // else
-                    // {
-                    //     var childValue = GetPropertyValue(obj, childSchema.SourceValue);
-                    //     ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], childValue);
-                    // }
-                }
-
-                // Convert the dynamic childObject to a JObject
-                var childObjectJson = JObject.FromObject(childObject);
-
-                newArray.Add(childObjectJson);
-            }
-
-            throw new NotImplementedException("Object array handling is not implemented yet.");
+            var objVal = MakeJsonObject(resource, schemaAttribute);
+            newArray.Add(objVal);
         }
 
         return newArray;
@@ -349,20 +313,29 @@ public class JSONParserUtilV2<T> where T : Resource
                 {
                     // var childValue = ReadProperty(resource, childSchema.SourceValue);
                     dynamic childValue;
-                    switch (childSchema.DestinationType)
+
+                    if (childSchema.MappingType == MappingTypes.Constant)
                     {
-                        case JsonDataTypes.String:
-                            childValue = GetValue<string>(resource, childSchema);
-                            break;
-                        case JsonDataTypes.Boolean:
-                            childValue = GetValue<bool>(resource, childSchema);
-                            break;
-                        case JsonDataTypes.Number:
-                            childValue = GetValue<long>(resource, childSchema);
-                            break;
-                        default:
-                            childValue = default;
-                            break;
+                        childValue = childSchema.SourceValue;
+                    }
+                    else
+                    {
+                        switch (childSchema.DestinationType)
+                        {
+                            case JsonDataTypes.String:
+                                childValue = GetValue<string>(resource, childSchema);
+                                break;
+                            case JsonDataTypes.Boolean:
+                                childValue = GetValue<bool>(resource, childSchema);
+                                break;
+                            case JsonDataTypes.Number:
+                                childValue = GetValue<long>(resource, childSchema);
+                                break;
+                            default:
+                                childValue = default;
+                                break;
+                        }
+
                     }
 
                     ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], childValue);
