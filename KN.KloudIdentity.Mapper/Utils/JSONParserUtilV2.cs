@@ -199,6 +199,16 @@ public class JSONParserUtilV2<T> where T : Resource
     /// <returns>A JArray containing the extracted values based on the schema attribute.</returns>
     public static dynamic MakeJsonArray(T resource, AttributeSchema schemaAttribute)
     {
+        var newArray = new JArray();
+
+        if (schemaAttribute.ArrayDataType == JsonDataTypes.Object)
+        {
+            var objVal = MakeJsonObject(resource, schemaAttribute);
+            newArray.Add(objVal);
+
+            return newArray;
+        }
+
         var data = ReadProperty(resource, schemaAttribute.SourceValue);
 
         if (data is not IEnumerable<object> && schemaAttribute.ArrayDataType != JsonDataTypes.Object)
@@ -211,8 +221,6 @@ public class JSONParserUtilV2<T> where T : Resource
 
             return new JArray();
         }
-
-        var newArray = new JArray();
 
         // Check if the array element type is a simple data type (String, Integer, Boolean)
         if (IsSimpleDataType(schemaAttribute.ArrayDataType))
@@ -235,11 +243,11 @@ public class JSONParserUtilV2<T> where T : Resource
                 }
             }
         }
-        else
-        {
-            var objVal = MakeJsonObject(resource, schemaAttribute);
-            newArray.Add(objVal);
-        }
+        //else
+        //{
+        //    var objVal = MakeJsonObject(resource, schemaAttribute);
+        //    newArray.Add(objVal);
+        //}
 
         return newArray;
     }
