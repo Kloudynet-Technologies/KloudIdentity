@@ -61,7 +61,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             await ReplaceGroupAsync(payload, resource);
 
-            _ = CreateLogAsync(_appConfig, resource.Identifier, correlationID);
+            await CreateLogAsync(_appConfig, resource.Identifier, correlationID);
 
             return resource;
         }
@@ -127,6 +127,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             var logMessage = $"Replace group for the id {identifier}";
 
             var logEntity = new CreateLogEntity(
+                identifier,
                 LogType.Edit.ToString(),
                 LogSeverities.Information,
                 eventInfo,

@@ -55,7 +55,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             await DeleteGroupAsync(resourceIdentifier.Identifier);
 
             // Log the operation.
-            _ = CreateLogAsync(_appConfig, resourceIdentifier.Identifier, correlationID);
+            await CreateLogAsync(_appConfig, resourceIdentifier.Identifier, correlationID);
         }
 
         /// <summary>
@@ -113,6 +113,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             var logMessage = $"Delete group for the id {identifier}";
 
             var logEntity = new CreateLogEntity(
+                identifier,
                 LogType.Deprovision.ToString(),
                 LogSeverities.Information,
                 eventInfo,

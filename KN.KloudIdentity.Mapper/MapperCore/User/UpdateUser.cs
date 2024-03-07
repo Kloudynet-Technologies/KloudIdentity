@@ -51,7 +51,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
 
             await UpdateUserAsync(user, payload);
 
-            _ = CreateLogAsync(_appConfig, user.Identifier, correlationID);
+            await CreateLogAsync(_appConfig, user.Identifier, correlationID);
         }
 
         /// <summary>
@@ -95,6 +95,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             var logMessage = $"Updated user for the id {identifier}";
 
             var logEntity = new CreateLogEntity(
+                identifier,
                 LogType.Edit.ToString(),
                 LogSeverities.Information,
                 eventInfo,

@@ -24,7 +24,7 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
     private readonly IConfiguration _configuration;
     private readonly IKloudIdentityLogger _logger;
 
-    public GetGroup(IAuthContext authContext, 
+    public GetGroup(IAuthContext authContext,
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
         IGetFullAppConfigQuery getFullAppConfigQuery,
@@ -63,7 +63,7 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
                 core2Group.Identifier = GetValueCaseInsensitive(jObject, idField);
                 core2Group.DisplayName = GetValueCaseInsensitive(jObject, displayNameField);
 
-                _= CreateLogAsync(_appConfig, identifier, correlationID);
+                await CreateLogAsync(_appConfig, identifier, correlationID);
 
                 return core2Group;
             }
@@ -105,6 +105,7 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
         var logMessage = $"Get group for the id {identifier}";
 
         var logEntity = new CreateLogEntity(
+            identifier,
             LogType.Read.ToString(),
             LogSeverities.Information,
             eventInfo,

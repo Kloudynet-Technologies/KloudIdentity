@@ -61,7 +61,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
 
             await ReplaceUserAsync(payload, resource);
 
-            _ = CreateLogAsync(_appConfig, resource.Identifier, correlationID);
+            await CreateLogAsync(_appConfig, resource.Identifier, correlationID);
 
             return resource;
         }
@@ -129,6 +129,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             var logMessage = $"Replace user for the id {identifier}";
 
             var logEntity = new CreateLogEntity(
+                identifier,
                 LogType.Edit.ToString(),
                 LogSeverities.Information,
                 eventInfo,

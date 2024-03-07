@@ -47,14 +47,14 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <param name="correlationID">The correlation ID.</param>
         /// <returns>The created group resource.</returns>
         public async Task<Core2Group> ExecuteAsync(Core2Group resource, string appId, string correlationID)
-         {
+        {
             _appConfig = await GetAppConfigAsync(appId);
 
             var payload = await MapAndPreparePayloadAsync(_appConfig.GroupAttributeSchemas!.ToList(), resource);
 
             await CreateGroupAsync(payload);
 
-            _ = CreateLogAsync(_appConfig, correlationID);
+            await CreateLogAsync(_appConfig, correlationID);
 
             return resource;
         }
@@ -95,6 +95,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             var logMessage = $"Group created to the application #{appConfig.AppName}({appConfig.AppId})";
 
             var logEntity = new CreateLogEntity(
+                appConfig.AppId,
                 LogType.Provision.ToString(),
                 LogSeverities.Information,
                 "Group created successfully",
