@@ -2,8 +2,10 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
+using KN.KloudIdentity.Common.Enumr;
 using KN.KloudIdentity.Mapper;
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.MapperCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading;
@@ -13,14 +15,16 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
 {
     [Route("scim/config")]
     [ApiController]
-    [Authorize]
+   // [Authorize]
     public class ConfigController : ControllerBase
     {
         private readonly IConfigReader _configReader;
+        private readonly IGetVerifiedAttributeMapping _getVerifiedAttributeMapping;
 
-        public ConfigController(IConfigReader configReader)
+        public ConfigController(IConfigReader configReader, IGetVerifiedAttributeMapping getVerifiedAttributeMapping)
         {
             _configReader = configReader;
+            _getVerifiedAttributeMapping = getVerifiedAttributeMapping;
         }
 
         [HttpGet("{appId}")]
@@ -54,6 +58,17 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
             await _configReader.UpdateConfigAsync(config, cancellationToken);
 
             return Ok();
+        }
+
+        [HttpGet("verify/{appId}")]
+        public async Task<ActionResult<MapperConfig>> GetVarifiedMappingValue(
+          string appId,
+          MappingType type
+      )
+        {
+            var json = await _getVerifiedAttributeMapping.GetVerifiedAsync(appId, type);
+
+            return Ok(json);
         }
     }
 }

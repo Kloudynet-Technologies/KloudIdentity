@@ -142,7 +142,12 @@ namespace Microsoft.SCIM.WebHostSample
                 var context = services.GetRequiredService<Context>();
                 context.Database.Migrate();
             }
-
+            app.UseCors(builder =>
+            {
+                builder.AllowAnyOrigin()
+                     .AllowAnyMethod()
+                     .AllowAnyHeader();
+            });
             app.UseHsts();
             app.UseRouting();
             app.UseHttpsRedirection();
