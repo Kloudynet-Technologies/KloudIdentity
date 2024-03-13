@@ -113,7 +113,7 @@ namespace Microsoft.SCIM.WebHostSample
                 );
             });
 
-            services.AddTransient<IKloudIdentityLogger>(pub => new KN.KI.LogAggregator.Library.Implementations.RabbitMQPublisher(
+            services.AddSingleton<IKloudIdentityLogger>(pub => new KN.KI.LogAggregator.Library.Implementations.RabbitMQPublisher(
                      this.configuration["RabbitMQ:Host"],
                      this.configuration["RabbitMQ:UserName"],
                      this.configuration["RabbitMQ:Password"]));

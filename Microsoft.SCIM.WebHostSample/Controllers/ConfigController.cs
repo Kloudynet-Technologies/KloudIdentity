@@ -2,11 +2,13 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using KN.KloudIdentity.Common.Enumr;
+using KN.KloudIdentity.Common.Enum;
 using KN.KloudIdentity.Mapper;
 using KN.KloudIdentity.Mapper.Config;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.MapperCore;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading;
 using System.Threading.Tasks;
@@ -63,10 +65,12 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
         [HttpGet("verify/{appId}")]
         public async Task<ActionResult<MapperConfig>> GetVarifiedMappingValue(
           string appId,
-          MappingType type
+          MappingType type,
+          HttpRequestTypes method
+
       )
         {
-            var json = await _getVerifiedAttributeMapping.GetVerifiedAsync(appId, type);
+            var json = await _getVerifiedAttributeMapping.GetVerifiedAsync(appId, type, method);
 
             return Ok(json);
         }
