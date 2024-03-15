@@ -14,7 +14,7 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
     {
         _getFullAppConfigQuery = getFullAppConfigQuery;
     }
-    public async Task<dynamic> GetVerifiedAsync(string appId, MappingType type, HttpRequestTypes httpRequestType)
+    public async Task<dynamic> GetVerifiedAsync(string appId, MappingType type,SCIMDirections direction, HttpRequestTypes httpRequestType)
     {
         var appConfig = await _getFullAppConfigQuery.GetAsync(appId);
 
@@ -23,13 +23,13 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
 
         if (type == MappingType.Group)
         {
-            var groupAttributes = appConfig.GroupAttributeSchemas?.Where(x=>x.HttpRequestType == httpRequestType).ToList();
+            var groupAttributes = appConfig.GroupAttributeSchemas?.Where(x=>x.HttpRequestType == httpRequestType && x.SCIMDirection == direction).ToList();
 
             return JSONParserUtilV2<Resource>.Parse(groupAttributes, GetDemoGroupData());
         }
         else if (type == MappingType.User)
         {
-            var userAttributes = appConfig.UserAttributeSchemas.Where(x=>x.HttpRequestType == httpRequestType).ToList();
+            var userAttributes = appConfig.UserAttributeSchemas.Where(x=>x.HttpRequestType == httpRequestType && x.SCIMDirection == direction).ToList();
 
             return JSONParserUtilV2<Resource>.Parse(userAttributes, GetDemoUserData());
         }

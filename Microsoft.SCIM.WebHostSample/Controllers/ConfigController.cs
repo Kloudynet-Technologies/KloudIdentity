@@ -66,11 +66,12 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
         public async Task<ActionResult<MapperConfig>> GetVarifiedMappingValue(
           string appId,
           MappingType type,
+          SCIMDirections direction,
           HttpRequestTypes method
 
       )
         {
-            var json = await _getVerifiedAttributeMapping.GetVerifiedAsync(appId, type, method);
+            var json = await _getVerifiedAttributeMapping.GetVerifiedAsync(appId, type, direction, method);
 
             return Ok(json);
         }
