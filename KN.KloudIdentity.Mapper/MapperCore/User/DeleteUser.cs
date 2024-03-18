@@ -52,7 +52,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             await DeleteUserAsync(resourceIdentifier.Identifier);
 
             // Log the operation.
-            _ = CreateLogAsync(_appConfig, resourceIdentifier.Identifier, correlationID);
+            await CreateLogAsync(_appConfig, resourceIdentifier.Identifier, correlationID);
         }
 
         /// <summary>
@@ -108,6 +108,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             var logMessage = $"Delete user for the id {identifier}";
 
             var logEntity = new CreateLogEntity(
+                identifier,
                 LogType.Deprovision.ToString(),
                 LogSeverities.Information,
                 eventInfo,

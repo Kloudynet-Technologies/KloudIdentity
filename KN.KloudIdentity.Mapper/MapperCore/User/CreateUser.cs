@@ -61,7 +61,7 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
 
         await CreateUserAsync(appConfig, payload);
 
-        _ = CreateLogAsync(appConfig, correlationID);
+        await CreateLogAsync(appConfig, correlationID);
 
         return resource;
     }
@@ -101,6 +101,7 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
         var logMessage = $"User created to the application #{appConfig.AppName}({appConfig.AppId})";
 
         var logEntity = new CreateLogEntity(
+            appConfig.AppId,
             LogType.Provision.ToString(),
             LogSeverities.Information,
             "User created successfully",

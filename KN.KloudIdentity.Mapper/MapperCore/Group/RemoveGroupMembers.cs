@@ -53,7 +53,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             await RemoveMembersToGroupAsync(groupId, members);
 
-            _= CreateLogAsync(_appConfig, groupId, correlationID);
+            await CreateLogAsync(_appConfig, groupId, correlationID);
         }
 
         /// <summary>
@@ -99,6 +99,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             var logMessage = $"Removed members for the id {identifier}";
 
             var logEntity = new CreateLogEntity(
+                identifier,
                 LogType.Deprovision.ToString(),
                 LogSeverities.Information,
                 eventInfo,

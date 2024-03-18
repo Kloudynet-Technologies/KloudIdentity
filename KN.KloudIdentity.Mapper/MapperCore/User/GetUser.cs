@@ -77,7 +77,7 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
                 core2EntUsr.Identifier = GetValueCaseInsensitive(user, idField);
                 core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
 
-                _ = CreateLogAsync(_appConfig, identifier, correlationID);
+                await CreateLogAsync(_appConfig, identifier, correlationID);
 
                 return core2EntUsr;
             }
@@ -119,6 +119,7 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
         var logMessage = $"Get user for the id {identifier}";
 
         var logEntity = new CreateLogEntity(
+            identifier,
             LogType.Read.ToString(),
             LogSeverities.Information,
             eventInfo,

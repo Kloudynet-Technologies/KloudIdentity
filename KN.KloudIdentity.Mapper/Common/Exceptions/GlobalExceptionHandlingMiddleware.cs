@@ -61,7 +61,7 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
             var response = context.Response;
             var exModel = new ErrorResponseModel();
 
-            void HandleCommonException(HttpStatusCode statusCode, string message, string title)
+            async void HandleCommonException(HttpStatusCode statusCode, string message, string title)
             {
                 exModel.Status = (int)statusCode;
                 response.StatusCode = (int)statusCode;
@@ -69,7 +69,7 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
                 exModel.Title = title;
                 exModel.Details = exception.StackTrace;
 
-                _ = CreateLogAsync(context, exception);
+                await CreateLogAsync(context, exception);
             }
 
             switch (exception)
@@ -128,13 +128,14 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
             var eventInfo = $@"path: [{context.Request.Method}]{context.Request.Path} - {exceptionType}";
 
             await _logger.CreateLogAsync(new CreateLogEntity(
+                context.TraceIdentifier,
                 LogType.Error.ToString(),
                 LogSeverities.Error,
                 eventInfo,
                 null,
                 context.TraceIdentifier,
                 "KN.KloudIdentity.SCIM",
-                DateTime.UtcNow, 
+                DateTime.UtcNow,
                 "system",
                 exception?.Message,
                 new ExceptionInfo(
