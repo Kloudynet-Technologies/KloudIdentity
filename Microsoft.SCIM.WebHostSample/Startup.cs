@@ -27,6 +27,7 @@ namespace Microsoft.SCIM.WebHostSample
     using System;
     using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
     using KN.KI.LogAggregator.Library.Abstractions;
+    using KN.KI.LogAggregator.Library;
 
     public class Startup
     {
@@ -127,7 +128,8 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddTransient<IKloudIdentityLogger>(pub => new KN.KI.LogAggregator.Library.Implementations.RabbitMQPublisher(
                      this.configuration["RabbitMQ:Host"],
                      this.configuration["RabbitMQ:UserName"],
-                     this.configuration["RabbitMQ:Password"]));
+                     this.configuration["RabbitMQ:Password"],
+                     LogSeverities.Information));
 
             services.AddScoped<IGetFullAppConfigQuery, GetFullAppConfigQuery>();
 
@@ -146,25 +148,21 @@ namespace Microsoft.SCIM.WebHostSample
             }
 
             // Migrate database
-            using (var scope = app.ApplicationServices.CreateScope())
-            {
-                var services = scope.ServiceProvider;
+            // using (var scope = app.ApplicationServices.CreateScope())
+            // {
+            //     var services = scope.ServiceProvider;
 
-                var context = services.GetRequiredService<Context>();
-                context.Database.Migrate();
-            }
-            app.UseCors(builder =>
-            {
-                builder.AllowAnyOrigin()
-                     .AllowAnyMethod()
-                     .AllowAnyHeader();
-            });
+            //     var context = services.GetRequiredService<Context>();
+            //     context.Database.Migrate();
+            // }
+
+            app.UseCors("AllowAllOrigins");
+
             app.UseHsts();
             app.UseRouting();
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
-            app.UseCors("AllowAllOrigins");
 
             app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
