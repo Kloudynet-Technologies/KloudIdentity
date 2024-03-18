@@ -6,6 +6,7 @@ using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
@@ -50,7 +51,10 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
          {
             _appConfig = await GetAppConfigAsync(appId);
 
-            var payload = await MapAndPreparePayloadAsync(_appConfig.GroupAttributeSchemas!.ToList(), resource);
+            var attributes = _appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == HttpRequestTypes.POST &&
+            x.SCIMDirection == SCIMDirections.Outbound).ToList();
+
+            var payload = await MapAndPreparePayloadAsync(attributes, resource);
 
             await CreateGroupAsync(payload);
 

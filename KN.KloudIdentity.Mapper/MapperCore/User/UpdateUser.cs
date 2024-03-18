@@ -6,6 +6,7 @@ using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
@@ -47,7 +48,10 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
 
             _appConfig = await GetAppConfigAsync(appId);
 
-            var payload = await MapAndPreparePayloadAsync(_appConfig.UserAttributeSchemas.ToList(), user);
+            var attributes = _appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PATCH &&
+            x.SCIMDirection == SCIMDirections.Outbound).ToList();
+
+            var payload = await MapAndPreparePayloadAsync(attributes, user);
 
             await UpdateUserAsync(user, payload);
 

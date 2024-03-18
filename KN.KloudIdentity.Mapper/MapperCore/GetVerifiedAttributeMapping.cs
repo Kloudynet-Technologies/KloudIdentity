@@ -14,29 +14,27 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
     {
         _getFullAppConfigQuery = getFullAppConfigQuery;
     }
-    public async Task<dynamic> GetVerifiedAsync(string appId, MappingType type,SCIMDirections direction, HttpRequestTypes httpRequestType)
+    public async Task<dynamic> GetVerifiedAsync(string appId, MappingType type, SCIMDirections direction, HttpRequestTypes httpRequestType)
     {
+        if (direction == SCIMDirections.Inbound)
+        {
+            return new
+            {
+                message = "Inbound synchronization is not yet implemented."
+            };
+        }
+
         var appConfig = await _getFullAppConfigQuery.GetAsync(appId);
 
         if (appConfig == null)
             throw new NotFoundException("Application not found");
 
-        if (type == MappingType.Group)
-        {
-            var groupAttributes = appConfig.GroupAttributeSchemas?.Where(x=>x.HttpRequestType == httpRequestType && x.SCIMDirection == direction).ToList();
+        var attributes = type == MappingType.Group ? appConfig.GroupAttributeSchemas : appConfig.UserAttributeSchemas;
+        var filteredAttributes = attributes?.Where(x => x.HttpRequestType == httpRequestType && x.SCIMDirection == direction).ToList();
 
-            return JSONParserUtilV2<Resource>.Parse(groupAttributes, GetDemoGroupData());
-        }
-        else if (type == MappingType.User)
-        {
-            var userAttributes = appConfig.UserAttributeSchemas.Where(x=>x.HttpRequestType == httpRequestType && x.SCIMDirection == direction).ToList();
-
-            return JSONParserUtilV2<Resource>.Parse(userAttributes, GetDemoUserData());
-        }
-
-
-        return null;
+        return JSONParserUtilV2<Resource>.Parse(filteredAttributes, type == MappingType.Group ? GetDemoGroupData() : GetDemoUserData());
     }
+
 
     private Core2EnterpriseUser GetDemoUserData()
     {
