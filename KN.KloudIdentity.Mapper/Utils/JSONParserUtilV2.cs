@@ -7,16 +7,19 @@ namespace KN.KloudIdentity.Mapper;
 
 public class JSONParserUtilV2<T> where T : Resource
 {
+    private static bool _isSamplePayload = false;
+
     /// <summary>
     /// This method parses the resource object values into a JSON object.
     /// </summary>
     /// <param name="schemaAttributes"></param>
     /// <param name="resource"></param>
     /// <returns></returns>
-    public static JObject Parse(IList<AttributeSchema> schemaAttributes, T resource)
+    public static JObject Parse(IList<AttributeSchema> schemaAttributes, T resource, bool isSamplePayload = false)
     {
         JObject jObject = new JObject();
         string urnPrefix = "urn:kn:ki:schema:";
+        _isSamplePayload = isSamplePayload;
 
         foreach (AttributeSchema schemaAttribute in schemaAttributes)
         {
@@ -74,13 +77,45 @@ public class JSONParserUtilV2<T> where T : Resource
     {
         return schemaAttribute.DestinationType switch
         {
-            JsonDataTypes.String => GetValue<string>(resource, schemaAttribute),
-            JsonDataTypes.Boolean => GetValue<bool>(resource, schemaAttribute),
-            JsonDataTypes.Number => GetValue<long>(resource, schemaAttribute),
+            JsonDataTypes.String => _isSamplePayload ? GetSampleValue<string>(schemaAttribute) :
+                                    GetValue<string>(resource, schemaAttribute),
+            JsonDataTypes.Boolean => _isSamplePayload ? GetSampleValue<bool>(schemaAttribute) :
+                                    GetValue<bool>(resource, schemaAttribute),
+            JsonDataTypes.Number => _isSamplePayload ? GetSampleValue<long>(schemaAttribute) :
+                                    GetValue<long>(resource, schemaAttribute),
             JsonDataTypes.Object => MakeJsonObject(resource, schemaAttribute),
             JsonDataTypes.Array => MakeJsonArray(resource, schemaAttribute),
             _ => default,
         };
+    }
+
+    public static T2 GetSampleValue<T2>(AttributeSchema schemaAttribute)
+    {
+        if (schemaAttribute.IsRequired)
+        {
+            if (schemaAttribute.DefaultValue != null)
+            {
+                return (T2)Convert.ChangeType(schemaAttribute.DefaultValue, typeof(T2));
+            }
+            else
+            {
+                return default;
+            }
+        }
+        else
+        {
+            switch (schemaAttribute.DestinationType)
+            {
+                case JsonDataTypes.String:
+                    return (T2)Convert.ChangeType("string", typeof(T2));
+                case JsonDataTypes.Boolean:
+                    return (T2)Convert.ChangeType(false, typeof(T2));
+                case JsonDataTypes.Number:
+                    return (T2)Convert.ChangeType(0, typeof(T2));
+                default:
+                    return default;
+            }
+        }
     }
 
     public static T2? GetValue<T2>(T resource, AttributeSchema schemaAttribute)
