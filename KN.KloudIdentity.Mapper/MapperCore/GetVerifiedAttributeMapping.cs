@@ -1,5 +1,6 @@
-﻿using KN.KloudIdentity.Common.Enumr;
+﻿using KN.KloudIdentity.Common.Enum;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using Microsoft.SCIM;
 
@@ -13,7 +14,7 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
     {
         _getFullAppConfigQuery = getFullAppConfigQuery;
     }
-    public async Task<dynamic> GetVerifiedAsync(string appId, MappingType type)
+    public async Task<dynamic> GetVerifiedAsync(string appId, MappingType type,SCIMDirections direction, HttpRequestTypes httpRequestType)
     {
         var appConfig = await _getFullAppConfigQuery.GetAsync(appId);
 
@@ -22,13 +23,13 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
 
         if (type == MappingType.Group)
         {
-            var groupAttributes = appConfig.GroupAttributeSchemas.ToList();
+            var groupAttributes = appConfig.GroupAttributeSchemas?.Where(x=>x.HttpRequestType == httpRequestType && x.SCIMDirection == direction).ToList();
 
-            return JSONParserUtilV2<Resource>.Parse(groupAttributes, GetDemoUserData());
+            return JSONParserUtilV2<Resource>.Parse(groupAttributes, GetDemoGroupData());
         }
         else if (type == MappingType.User)
         {
-            var userAttributes = appConfig.UserAttributeSchemas.ToList();
+            var userAttributes = appConfig.UserAttributeSchemas.Where(x=>x.HttpRequestType == httpRequestType && x.SCIMDirection == direction).ToList();
 
             return JSONParserUtilV2<Resource>.Parse(userAttributes, GetDemoUserData());
         }
@@ -155,6 +156,32 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
                 }
             }
 
+        };
+    }
+
+    private Core2Group GetDemoGroupData()
+    {
+        return new Core2Group
+        {
+            DisplayName = "string",
+            Members = new List<Member>
+            {
+                new Member
+                {
+                    Value = "string",
+                    TypeName = "string"
+                }
+            },
+            ExternalIdentifier = "string",
+            Identifier = "string",
+            Metadata = new Core2Metadata
+            {
+                ResourceType = "string",
+                Created = DateTime.Now,
+                LastModified = DateTime.Now,
+                Location = "string",
+                Version = "string"
+            }
         };
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace KN.KloudIdentity.Common.Enumr;
+﻿namespace KN.KloudIdentity.Common.Enum;
 
 public enum MappingType
 {
