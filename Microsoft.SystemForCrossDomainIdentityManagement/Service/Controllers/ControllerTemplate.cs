@@ -219,7 +219,7 @@ namespace Microsoft.SCIM
         public virtual async Task<ActionResult<QueryResponseBase>> Get()
         {
             string correlationIdentifier = null;
-            string appId = HttpContext.Items["appId"] as string;
+            string appId = HttpContext.Items["appId"].ToString();
             try
             {
                 HttpRequestMessage request = this.ConvertRequest();
@@ -322,7 +322,7 @@ namespace Microsoft.SCIM
         public virtual async Task<IActionResult> Get([FromUri] string identifier)
         {
             string correlationIdentifier = null;
-            string appId = HttpContext.Items["appId"] as string;
+            string appId = HttpContext.Items["appId"].ToString();
             try
             {
                 if (string.IsNullOrWhiteSpace(identifier))
@@ -388,7 +388,7 @@ namespace Microsoft.SCIM
                 else
                 {
                     IProviderAdapter<T> provider = this.AdaptProvider();
-                    Resource result =
+                     Resource result =
                         await provider
                             .Retrieve(
                                 request,
@@ -607,7 +607,7 @@ namespace Microsoft.SCIM
         public virtual async Task<ActionResult<Resource>> Post([FromBody] T resource)
         {
             string correlationIdentifier = null;
-            string appId = resource?.Identifier;
+            string appId = HttpContext.Items["appId"] as string;
             try
             {
                 if (null == resource)
@@ -705,7 +705,7 @@ namespace Microsoft.SCIM
         public virtual async Task<ActionResult<Resource>> Put([FromBody] T resource, string identifier)
         {
             string correlationIdentifier = null;
-            string appId = resource?.Identifier;
+            string appId = HttpContext.Items["appId"].ToString();
 
             try
             {

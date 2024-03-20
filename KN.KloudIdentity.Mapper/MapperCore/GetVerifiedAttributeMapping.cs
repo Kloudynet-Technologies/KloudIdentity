@@ -34,8 +34,6 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
 
         return JSONParserUtilV2<Resource>.Parse(filteredAttributes, type == MappingType.Group ? GetDemoGroupData() : GetDemoUserData());
     }
-
-
     private Core2EnterpriseUser GetDemoUserData()
     {
         return new Core2EnterpriseUser

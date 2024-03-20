@@ -124,11 +124,13 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
 
         private async Task CreateLogAsync(HttpContext context, Exception exception)
         {
+            string appId = context?.Items["appId"]?.ToString();
+
             var exceptionType = exception.GetType().Name;
             var eventInfo = $@"path: [{context.Request.Method}]{context.Request.Path} - {exceptionType}";
 
             await _logger.CreateLogAsync(new CreateLogEntity(
-                context.TraceIdentifier,
+                appId,
                 LogType.Error.ToString(),
                 LogSeverities.Error,
                 eventInfo,
