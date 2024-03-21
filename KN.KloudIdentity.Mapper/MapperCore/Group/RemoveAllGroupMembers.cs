@@ -82,7 +82,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             var logMessage = $"Removed members for the id {identifier}";
 
             var logEntity = new CreateLogEntity(
-                identifier,
+                appConfig.AppId,
                 LogType.Deprovision.ToString(),
                 LogSeverities.Information,
                 eventInfo,

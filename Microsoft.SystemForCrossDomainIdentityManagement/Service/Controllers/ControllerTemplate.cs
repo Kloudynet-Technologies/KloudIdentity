@@ -79,7 +79,7 @@ namespace Microsoft.SCIM
                 "Error",
                 LogSeverities.Error,
                 eventInfo,
-                null,
+                message,
                 correlationIdentifier,
                 "KN.KloudIdentity.SCIM",
                 DateTime.UtcNow,

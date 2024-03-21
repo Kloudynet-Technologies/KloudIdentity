@@ -119,7 +119,7 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
         var logMessage = $"Get user for the id {identifier}";
 
         var logEntity = new CreateLogEntity(
-            identifier,
+            appConfig.AppId,
             LogType.Read.ToString(),
             LogSeverities.Information,
             eventInfo,

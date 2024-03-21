@@ -105,7 +105,7 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
         var logMessage = $"Get group for the id {identifier}";
 
         var logEntity = new CreateLogEntity(
-            identifier,
+            appConfig.AppId,
             LogType.Read.ToString(),
             LogSeverities.Information,
             eventInfo,

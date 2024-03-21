@@ -134,7 +134,7 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
                 LogType.Error.ToString(),
                 LogSeverities.Error,
                 eventInfo,
-                null,
+                exception.Message,
                 context.TraceIdentifier,
                 "KN.KloudIdentity.SCIM",
                 DateTime.UtcNow,

@@ -131,7 +131,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             var logMessage = $"Replace group for the id {identifier}";
 
             var logEntity = new CreateLogEntity(
-                identifier,
+                appConfig.AppId,
                 LogType.Edit.ToString(),
                 LogSeverities.Information,
                 eventInfo,
