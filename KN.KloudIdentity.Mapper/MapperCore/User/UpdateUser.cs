@@ -9,6 +9,7 @@ using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
+using Microsoft.Identity.Client;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
 using System.Text;
@@ -70,13 +71,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         {
             var authConfig = _appConfig.AuthenticationDetails;
 
+            var userURIs = _appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+
             var token = await GetAuthenticationAsync(_appConfig);
 
             var httpClient = _httpClientFactory.CreateClient();
 
             Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, authConfig, token);
 
-            var apiPath = DynamicApiUrlUtil.GetFullUrl(_appConfig.UserURIs.Patch!.ToString(), resource.Identifier);
+            var apiPath = DynamicApiUrlUtil.GetFullUrl(userURIs.Patch!.ToString(), resource.Identifier);
 
             var jsonPayload = payload.ToString();
 

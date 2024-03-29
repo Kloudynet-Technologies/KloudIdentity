@@ -6,6 +6,7 @@ using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
@@ -64,6 +65,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <exception cref="HttpRequestException">Thrown when the HTTP request fails.</exception>
         private async Task DeleteUserAsync(string identifier)
         {
+            var userURIs = _appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
 
             var token = await GetAuthenticationAsync(_appConfig);
 
@@ -71,7 +73,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
 
             Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, _appConfig.AuthenticationDetails, token);
 
-            var apiUrl = DynamicApiUrlUtil.GetFullUrl(_appConfig.UserURIs.Delete!.ToString(), identifier);
+            var apiUrl = DynamicApiUrlUtil.GetFullUrl(userURIs.Delete!.ToString(), identifier);
 
             using (var response = await httpClient.DeleteAsync(apiUrl))
             {
@@ -92,13 +94,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <exception cref="ArgumentNullException">Thrown when the identifier or DELETEAPIForUsers is null or empty.</exception>
         private void ValidatedRequest(string identifier, AppConfig appConfig)
         {
+            var userURIs = _appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+
             if (string.IsNullOrWhiteSpace(identifier))
             {
                 throw new ArgumentNullException(nameof(identifier), "Identifier cannot be null or empty");
             }
-            if (appConfig.UserURIs == null || appConfig.UserURIs.Delete == null)
+            if (userURIs == null || userURIs.Delete == null)
             {
-                throw new ArgumentNullException(nameof(appConfig.UserURIs.Delete), "Delete endpoint cannot be null or empty");
+                throw new ArgumentNullException(nameof(userURIs.Delete), "Delete endpoint cannot be null or empty");
             }
         }
 

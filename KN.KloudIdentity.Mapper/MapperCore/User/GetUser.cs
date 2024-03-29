@@ -8,6 +8,7 @@ using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Configuration;
@@ -54,13 +55,15 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
     {
         _appConfig = await GetAppConfigAsync(appId);
 
-        if (_appConfig.UserURIs.Get != null && _appConfig.UserURIs.Get != null)
+        var userURIs = _appConfig.UserURIs.Where(x => x.SCIMDirection == SCIMDirections.Outbound).FirstOrDefault();
+
+        if (userURIs != null && userURIs.Get != null)
         {
             var token = await GetAuthenticationAsync(_appConfig);
 
             var client = _httpClientFactory.CreateClient();
             Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethod, _appConfig.AuthenticationDetails, token);
-            var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(_appConfig.UserURIs.Get.ToString(), identifier));
+            var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(userURIs.Get.ToString(), identifier));
 
             if (response.IsSuccessStatusCode)
             {

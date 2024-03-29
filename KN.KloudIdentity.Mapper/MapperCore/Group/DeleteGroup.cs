@@ -6,6 +6,7 @@ using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
@@ -67,7 +68,9 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <exception cref="HttpRequestException">Thrown when the HTTP request fails.</exception>
         private async Task DeleteGroupAsync(string identifier)
         {
-            var authConfig = _appConfig.AuthenticationDetails;
+            var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault(x=>x.SCIMDirection == SCIMDirections.Outbound);
+
+            var authConfig = _appConfig?.AuthenticationDetails;
 
             var token = await GetAuthenticationAsync(authConfig);
 
@@ -76,7 +79,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, authConfig, token);
 
             // Build the API URL.
-            var apiUrl = DynamicApiUrlUtil.GetFullUrl(_appConfig.GroupURIs!.Delete!.ToString(), identifier);
+            var apiUrl = DynamicApiUrlUtil.GetFullUrl(groupURIs!.Delete!.ToString(), identifier);
 
             using (var response = await httpClient.DeleteAsync(apiUrl))
             {
@@ -97,13 +100,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <exception cref="ArgumentNullException">Thrown when the identifier or DELETEAPIForGroups is null or empty.</exception>
         private void ValidatedRequest(string identifier, AppConfig appConfig)
         {
+            var groupURIs = appConfig?.GroupURIs?.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+
             if (string.IsNullOrWhiteSpace(identifier))
             {
                 throw new ArgumentNullException(nameof(identifier), "Identifier cannot be null or empty");
             }
-            if (appConfig.GroupURIs != null && appConfig.GroupURIs.Delete == null)
+            if (groupURIs != null && groupURIs.Delete == null)
             {
-                throw new ArgumentNullException(nameof(appConfig.GroupURIs.Delete), "DELETEAPIForGroups cannot be null or empty");
+                throw new ArgumentNullException(nameof(groupURIs.Delete), "DELETEAPIForGroups cannot be null or empty");
             }
         }
 

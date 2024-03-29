@@ -136,8 +136,7 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
             },
             Roles = new List<Role>
             {
-                new Role
-                {
+                new Role                {
                     Value = "string",
                     Display = "string",
                     Primary = true,

@@ -9,8 +9,8 @@ public record AppConfig
     public string AppName { get; init; } = string.Empty;
     public bool IsEnabled { get; init; }
     public IntegrationMethods IntegrationMethod { get; init; }
-    public required UserURIs UserURIs { get; init; }
-    public GroupURIs? GroupURIs { get; init; }
+    public required List<UserURIs> UserURIs { get; init; }
+    public List<GroupURIs>? GroupURIs { get; init; }
     public string? AADClientId { get; init; }
     public AuthenticationMethods AuthenticationMethod { get; init; }
     public required dynamic AuthenticationDetails { get; set; }

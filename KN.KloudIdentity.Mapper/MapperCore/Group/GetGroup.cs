@@ -7,6 +7,7 @@ using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.Utils;
@@ -40,13 +41,15 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
     {
         _appConfig = await GetAppConfigAsync(appId);
 
-        if (_appConfig.GroupURIs!.Get != null && _appConfig.GroupURIs!.Get != null)
+        var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+
+        if (groupURIs != null && groupURIs!.Get != null)
         {
             var token = await GetAuthenticationAsync(_appConfig.AuthenticationDetails);
 
             var client = _httpClientFactory.CreateClient();
             Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethod, _appConfig.AuthenticationDetails, token);
-            var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(_appConfig.GroupURIs.Get.ToString(), identifier));
+            var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(groupURIs.Get.ToString(), identifier));
 
             if (response.IsSuccessStatusCode)
             {

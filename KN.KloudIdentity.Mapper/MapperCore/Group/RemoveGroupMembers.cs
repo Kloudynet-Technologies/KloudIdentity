@@ -6,6 +6,7 @@ using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
@@ -64,6 +65,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>Task representing the asynchronous operation.</returns>
         private async Task RemoveMembersToGroupAsync(string groupId, List<string> members)
         {
+            var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+
             // Get authentication configuration
             var authConfig = _appConfig.AuthenticationDetails;
 
@@ -76,7 +79,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, authConfig, token);
 
             // Construct the API path for adding members to the group
-            var apiPath = DynamicApiUrlUtil.GetFullUrl(_appConfig.GroupURIs!.Patch!.ToString(), groupId);
+            var apiPath = DynamicApiUrlUtil.GetFullUrl(groupURIs!.Patch!.ToString(), groupId);
 
             var jsonPayload = JsonConvert.SerializeObject(members);
 
