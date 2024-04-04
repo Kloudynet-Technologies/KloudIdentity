@@ -1,8 +1,11 @@
 ﻿using KN.KloudIdentity.Common.Enum;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
+using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using MassTransit;
 using Microsoft.SCIM;
+using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
@@ -14,20 +17,21 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
     {
         _getFullAppConfigQuery = getFullAppConfigQuery;
     }
-    public async Task<dynamic> GetVerifiedAsync(string appId, MappingType type, SCIMDirections direction, HttpRequestTypes httpRequestType)
+
+    public async Task<JObject> GetVerifiedAsync(string appId, ObjectTypes type, SCIMDirections direction, HttpRequestTypes httpRequestType)
     {
-        var appConfig = await _getFullAppConfigQuery.GetAsync(appId);
+        var appConfig = await GetAppConfigAsync(appId);
 
         if (appConfig == null)
             throw new NotFoundException("Application not found");
 
-        if (type == MappingType.Group)
+        if (type == ObjectTypes.Group)
         {
             var groupAttributes = appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == httpRequestType && x.SCIMDirection == direction).ToList();
 
             return JSONParserUtilV2<Resource>.Parse(groupAttributes, new Core2Group(), true);
         }
-        else if (type == MappingType.User)
+        else if (type == ObjectTypes.User)
         {
             var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == httpRequestType && x.SCIMDirection == direction).ToList();
 
@@ -38,150 +42,10 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
         return null;
     }
 
-    private Core2EnterpriseUser GetDemoUserData()
+    private async Task<AppConfig?> GetAppConfigAsync(string appId)
     {
-        return new Core2EnterpriseUser
-        {
-            UserName = "string",
-            DisplayName = "string",
-            Active = true,
-            Addresses = new List<Address>
-            {
-                new Address
-                {
-                    Country = "string",
-                    Formatted = "string",
-                    Locality = "string",
-                    PostalCode = "string",
-                    Region = "string",
-                    StreetAddress = "string",
-                    Primary = true,
-                    ItemType = "string"
-                },
-                new Address
-                {
-                    Country = "string",
-                    Formatted = "string",
-                    Locality = "string",
-                    PostalCode = "string",
-                    Region = "string",
-                    StreetAddress = "string",
-                    Primary = false,
-                    ItemType = "string"
-                }
-            },
-            Name = new Name
-            {
-                FamilyName = "string",
-                Formatted = "string",
-                GivenName = "string",
-                HonorificPrefix = "string",
-                HonorificSuffix = "string"
-            },
+        var result = await _getFullAppConfigQuery.GetAsync(appId);
 
-            Nickname = "string",
-            ElectronicMailAddresses = new List<ElectronicMailAddress>
-            {
-                new ElectronicMailAddress
-                {
-                    Value = "string",
-                    Primary = true,
-                    ItemType = "string"
-                },
-                new ElectronicMailAddress
-                {
-                    Value = "string",
-                    Primary = false,
-                    ItemType = "string"
-                }
-            },
-            EnterpriseExtension = new ExtensionAttributeEnterpriseUser2
-            {
-                EmployeeNumber = "001",
-                CostCenter = "string",
-                Division = "string",
-                Department = "string",
-                Organization = "string",
-                Manager = new Manager
-                {
-                    Value = "string"
-                }
-            },
-
-            Identifier = "000",
-            Title = "string",
-            UserType = "string",
-            ExternalIdentifier = "001",
-            Locale = "string",
-            PreferredLanguage = "string",
-            TimeZone = "string",
-            Metadata = new Core2Metadata
-            {
-                ResourceType = "string",
-                Created = DateTime.Now,
-                LastModified = DateTime.Now,
-                Location = "string",
-                Version = "string"
-            },
-            PhoneNumbers = new List<PhoneNumber>
-            {
-                new PhoneNumber
-                {
-                    Value = "string",
-                    Primary = true,
-                    ItemType = "string"
-                },
-                new PhoneNumber
-                {
-                    Value = "string",
-                    Primary = false,
-                    ItemType = "string"
-                }
-            },
-            Roles = new List<Role>
-            {
-                new Role
-                {
-                    Value = "string",
-                    Display = "string",
-                    Primary = true,
-                    ItemType = "string"
-                },
-                new Role
-                {
-                    Value = "string",
-                    Display = "string",
-                    Primary = false,
-                    ItemType = "string"
-                }
-            }
-
-        };
-    }
-
-    private Core2Group GetDemoGroupData()
-    {
-        return new Core2Group
-        {
-            DisplayName = "string",
-            Members = new List<Member>
-            {
-                new Member
-                {
-                    Value = "string",
-                    TypeName = "string"
-                }
-            },
-            ExternalIdentifier = "string",
-            Identifier = "string",
-            Metadata = new Core2Metadata
-            {
-                ResourceType = "string",
-                Created = DateTime.Now,
-                LastModified = DateTime.Now,
-                Location = "string",
-                Version = "string"
-            }
-        };
+        return result;
     }
 }

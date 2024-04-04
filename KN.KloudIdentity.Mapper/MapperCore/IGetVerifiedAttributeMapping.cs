@@ -1,10 +1,11 @@
 ﻿using KN.KloudIdentity.Common.Enum;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
 public interface IGetVerifiedAttributeMapping
 {
-    Task<dynamic> GetVerifiedAsync(string appId, MappingType type,SCIMDirections direction, HttpRequestTypes httpRequestType);
+    Task<JObject> GetVerifiedAsync(string appId, ObjectTypes type, SCIMDirections direction, HttpRequestTypes httpRequestType);
 }

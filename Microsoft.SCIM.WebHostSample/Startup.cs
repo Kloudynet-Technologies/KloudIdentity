@@ -28,6 +28,11 @@ namespace Microsoft.SCIM.WebHostSample
     using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
     using KN.KI.LogAggregator.Library.Abstractions;
     using KN.KI.LogAggregator.Library;
+    using MassTransit;
+    using KN.KloudIdentity.Mapper.Consumers;
+    using KN.KloudIdentity.Mapper.Domain;
+    using Microsoft.Extensions.Options;
+    using KN.KI.LogAggregator.Library.Implementations;
 
     public class Startup
     {
@@ -92,6 +97,7 @@ namespace Microsoft.SCIM.WebHostSample
 
             }
 
+            services.AddOptions<AppSettings>().Bind(configuration);
             services.AddAuthentication(ConfigureAuthenticationOptions).AddJwtBearer(ConfigureJwtBearerOptons);
             services.AddControllers().AddNewtonsoftJson(ConfigureMvcNewtonsoftJsonOptions);
 
@@ -109,34 +115,45 @@ namespace Microsoft.SCIM.WebHostSample
             // services.AddSingleton(typeof(IProvider), this.ProviderBehavior);
             services.AddSingleton(typeof(IMonitor), this.MonitoringBehavior);
 
-            services.ConfigureMapperServices();
+            services.ConfigureMapperServices(configuration);
 
             services.AddHttpClient();
 
-            services.AddScoped<RabbitMQPublisher>(pub =>
+            services.AddTransient<MessageBroker>(cfg =>
             {
-                return new RabbitMQPublisher(
-                    this.configuration["RabbitMQ:Username"],
-                    this.configuration["RabbitMQ:Password"],
-                    this.configuration["RabbitMQ:Host"],
-                    this.configuration["RabbitMQ:ExchangeName"],
-                    this.configuration["RabbitMQ:QueueName_Out"],
-                    this.configuration["RabbitMQ:QueueName_In"]
-                );
+                var options = cfg.GetRequiredService<IOptions<AppSettings>>().Value;
+
+                return new MessageBroker(options.RabbitMQ.ExchangeName,
+                                        options.RabbitMQ.QueueNames,
+                                        cfg.GetRequiredService<RabbitMQUtil>());
             });
 
-            services.AddSingleton<IKloudIdentityLogger>(pub => new KN.KI.LogAggregator.Library.Implementations.RabbitMQPublisher(
-                     this.configuration["RabbitMQ:Host"],
-                     this.configuration["RabbitMQ:UserName"],
-                     this.configuration["RabbitMQ:Password"],
-                     LogSeverities.Information));
+            services.AddSingleton<IKloudIdentityLogger>(pub =>
+            {
+                var options = pub.GetRequiredService<IOptions<AppSettings>>().Value;
 
-            services.AddScoped<IGetFullAppConfigQuery, GetFullAppConfigQuery>();
+                return new RabbitMQPublisher(
+                options.RabbitMQ.Hostname,
+                options.RabbitMQ.UserName,
+                options.RabbitMQ.Password,
+                LogSeverities.Information);
+            });
 
             services.AddScoped<NonSCIMGroupProvider>();
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();
             services.AddScoped<ExtractAppIdFilter>();
+
+            services.AddHostedService<RabbitMQListner>(con =>
+            {
+                var options = con.GetRequiredService<IOptions<AppSettings>>().Value;
+
+                return new RabbitMQListner(options.RabbitMQ.QueueName_In,
+                                        options.RabbitMQ.QueueName_Out,
+                                        con.GetRequiredService<MessageBroker>(),
+                                        con.GetService<IServiceScopeFactory>());
+            });
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

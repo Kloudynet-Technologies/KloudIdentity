@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Text.Json;
+using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
@@ -8,8 +9,8 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
 
 public class GetFullAppConfigQuery : IGetFullAppConfigQuery
 {
-    private readonly RabbitMQPublisher _rabbitMQPublisher;
-    public GetFullAppConfigQuery(RabbitMQPublisher rabbitMQPublisher)
+    private readonly MessageBroker _rabbitMQPublisher;
+    public GetFullAppConfigQuery(MessageBroker rabbitMQPublisher)
     {
         _rabbitMQPublisher = rabbitMQPublisher;
     }
@@ -21,12 +22,35 @@ public class GetFullAppConfigQuery : IGetFullAppConfigQuery
             throw new ArgumentNullException(nameof(appId));
         }
 
-        string? response = null;
         var correlationId = Guid.NewGuid().ToString();
-        _rabbitMQPublisher.Publish(appId, correlationId);
+        var intSvcRequest = new InterserviceMessage(appId, correlationId);
 
-        response = _rabbitMQPublisher.Consume(correlationId);
+        _rabbitMQPublisher.Publish(intSvcRequest, GlobalConstants.MGTPORTAL_IN);
 
-        return JsonSerializer.Deserialize<AppConfig>(response, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        // Consume the response from the message broker
+        AppConfig appConfig = null;
+        void HandleResponse(InterserviceMessage? response)
+        {
+            if (response != null)
+            {
+                if (!response.IsError)
+                {
+                    appConfig = JsonSerializer.Deserialize<AppConfig>(response.Message, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+            }
+        }
+
+        var consumer = Task.Run(async () =>
+        {
+            await _rabbitMQPublisher.Consume(GlobalConstants.MGTPORTAL_OUT, correlationId, HandleResponse, cancellationToken);
+            while (appConfig == null)
+            {
+                await Task.Delay(50);
+            }
+        }, cancellationToken);
+
+        await consumer;
+
+        return appConfig;
     }
 }

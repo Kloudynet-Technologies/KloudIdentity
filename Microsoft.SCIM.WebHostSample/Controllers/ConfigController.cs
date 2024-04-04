@@ -2,7 +2,6 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using KN.KloudIdentity.Common.Enum;
 using KN.KloudIdentity.Mapper;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
@@ -17,7 +16,7 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
 {
     [Route("scim/config")]
     [ApiController]
-   // [Authorize]
+    // [Authorize]
     public class ConfigController : ControllerBase
     {
         private readonly IConfigReader _configReader;
@@ -65,7 +64,7 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
         [HttpGet("verify/{appId}")]
         public async Task<ActionResult<MapperConfig>> GetVarifiedMappingValue(
           string appId,
-          MappingType type,
+          ObjectTypes type,
           SCIMDirections direction,
           HttpRequestTypes method
 
