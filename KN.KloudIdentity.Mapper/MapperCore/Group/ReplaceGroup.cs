@@ -77,11 +77,11 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         {
             var authConfig = _appConfig.AuthenticationDetails;
 
-            var token = await GetAuthenticationAsync(authConfig);
+            var token = await GetAuthenticationAsync(authConfig, SCIMDirections.Outbound);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, authConfig, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token, SCIMDirections.Outbound);
 
             using (var response = await ProcessRequestAsync(_appConfig, httpClient, resource, payload))
             {

@@ -59,10 +59,10 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
 
         if (userURIs != null && userURIs.Get != null)
         {
-            var token = await GetAuthenticationAsync(_appConfig);
+            var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Outbound);
 
             var client = _httpClientFactory.CreateClient();
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethod, _appConfig.AuthenticationDetails, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
             var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(userURIs.Get.ToString(), identifier));
 
             if (response.IsSuccessStatusCode)

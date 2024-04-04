@@ -45,10 +45,10 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
 
         if (groupURIs != null && groupURIs!.Get != null)
         {
-            var token = await GetAuthenticationAsync(_appConfig.AuthenticationDetails);
+            var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Outbound);
 
             var client = _httpClientFactory.CreateClient();
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethod, _appConfig.AuthenticationDetails, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
             var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(groupURIs.Get.ToString(), identifier));
 
             if (response.IsSuccessStatusCode)

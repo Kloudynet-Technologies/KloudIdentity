@@ -5,6 +5,8 @@
 using System.Security.Authentication;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
+using Newtonsoft.Json;
 
 namespace KN.KloudIdentity.Mapper;
 
@@ -31,15 +33,21 @@ public class AuthContextV1 : IAuthContext
     /// <param name="appConfig">The authentication configuration model</param>
     /// <returns>The authentication token as a string.</returns>
     /// <exception cref="AuthenticationException">Thrown when authentication fails.</exception>
-    public async Task<string> GetTokenAsync(dynamic appConfig)
+    public async Task<string> GetTokenAsync(dynamic appConfig, SCIMDirections direction)
     {
-        _authStrategy = _authStrategies.FirstOrDefault(x => x.AuthenticationMethod == appConfig.AuthenticationMethod);
+        var method = direction == SCIMDirections.Inbound ? appConfig.AuthenticationMethodInbound : appConfig.AuthenticationMethodOutbound;
+
+        _authStrategy = _authStrategies.FirstOrDefault(x => x.AuthenticationMethod == method);
 
         if (_authStrategy == null)
         {
             throw new AuthenticationException($"Authentication method {appConfig.AuthenticationMethod} is not supported.");
         }
 
-        return await _authStrategy.GetTokenAsync((appConfig as AppConfig).AuthenticationDetails);
+        var authDetails = JsonConvert.DeserializeObject<dynamic>(appConfig.AuthenticationDetails.ToString());
+
+        var authConfig = direction == SCIMDirections.Inbound ? authDetails.Inbound : authDetails.Outbound;
+
+        return await _authStrategy.GetTokenAsync(authConfig);
     }
 }

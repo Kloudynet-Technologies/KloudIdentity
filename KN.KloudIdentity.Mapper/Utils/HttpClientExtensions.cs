@@ -3,6 +3,7 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Domain.Authentication;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 
@@ -20,7 +21,8 @@ namespace KN.KloudIdentity.Mapper.Utils
             this HttpClient httpClient,
             AuthenticationMethods method,
             dynamic authConfig,
-            string token
+            string token,
+            SCIMDirections direction
         )
         {
             if (method == AuthenticationMethods.None)
@@ -28,9 +30,9 @@ namespace KN.KloudIdentity.Mapper.Utils
 
             if (method == AuthenticationMethods.APIKey)
             {
-                APIKeyAuthentication apiKeyAuth = JsonConvert.DeserializeObject<APIKeyAuthentication>(authConfig.ToString());
+                var apiKeyAuth = GetAuthConfig(authConfig, direction);
 
-                if (string.IsNullOrWhiteSpace(apiKeyAuth!.AuthHeaderName))
+                if (apiKeyAuth.AuthHeaderName == null)
                 {
                     throw new ArgumentNullException(
                         nameof(apiKeyAuth.AuthHeaderName),
@@ -38,7 +40,7 @@ namespace KN.KloudIdentity.Mapper.Utils
                     );
                 }
 
-                httpClient.DefaultRequestHeaders.Add(apiKeyAuth.AuthHeaderName, token);
+                httpClient.DefaultRequestHeaders.Add(apiKeyAuth.AuthHeaderName.ToString(), token);
             }
             else
             {
@@ -46,6 +48,13 @@ namespace KN.KloudIdentity.Mapper.Utils
                     token
                 );
             }
+        }
+
+        private static dynamic GetAuthConfig(dynamic authConfig, SCIMDirections direction)
+        {
+            var auths = JsonConvert.DeserializeObject<dynamic>(authConfig.ToString());
+
+            return direction == SCIMDirections.Inbound ? auths.Inbound : auths.Outbound;
         }
     }
 }

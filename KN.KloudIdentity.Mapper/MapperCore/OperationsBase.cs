@@ -55,8 +55,8 @@ public abstract class OperationsBase<T> : IAPIMapperBase<T> where T : Resource
     /// Gets the authentication token asynchronously.
     /// </summary>
     /// <returns>The authentication token.</returns>
-    public virtual async Task<string> GetAuthenticationAsync(AppConfig config)
+    public virtual async Task<string> GetAuthenticationAsync(AppConfig config, SCIMDirections direction)
     {
-        return await _authContext.GetTokenAsync(config);
+        return await _authContext.GetTokenAsync(config, direction);
     }
 }

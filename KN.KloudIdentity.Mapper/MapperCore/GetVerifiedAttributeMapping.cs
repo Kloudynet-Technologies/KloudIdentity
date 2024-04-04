@@ -1,8 +1,14 @@
 ﻿using KN.KloudIdentity.Common.Enum;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
+using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.SCIM;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
@@ -34,6 +40,7 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
 
         return JSONParserUtilV2<Resource>.Parse(filteredAttributes, type == MappingType.Group ? GetDemoGroupData() : GetDemoUserData());
     }
+
     private Core2EnterpriseUser GetDemoUserData()
     {
         return new Core2EnterpriseUser

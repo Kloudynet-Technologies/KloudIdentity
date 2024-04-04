@@ -78,11 +78,11 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
     {
         var userURIs = appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
 
-        var token = await base.GetAuthenticationAsync(appConfig);
+        var token = await base.GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
         
         var httpClient = _httpClientFactory.CreateClient();
 
-        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethod, appConfig.AuthenticationDetails, token);
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
 
         using (var response = await httpClient.PostAsJsonAsync(
             userURIs?.Post,

@@ -71,12 +71,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             var authConfig = _appConfig.AuthenticationDetails;
 
             // Get authentication token
-            var token = await GetAuthenticationAsync(authConfig);
+            var token = await GetAuthenticationAsync(authConfig, SCIMDirections.Outbound);
 
             // Use IHttpClientFactory to create an HttpClient instance
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, authConfig, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token, SCIMDirections.Outbound);
 
             // Construct the API path for adding members to the group
             var apiPath = DynamicApiUrlUtil.GetFullUrl(groupURIs!.Patch!.ToString(), groupId);

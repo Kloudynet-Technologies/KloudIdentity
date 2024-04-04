@@ -67,11 +67,11 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         {
             var userURIs = _appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
 
-            var token = await GetAuthenticationAsync(_appConfig);
+            var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Outbound);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, _appConfig.AuthenticationDetails, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
 
             var apiUrl = DynamicApiUrlUtil.GetFullUrl(userURIs.Delete!.ToString(), identifier);
 
