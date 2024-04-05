@@ -8,8 +8,8 @@ public record AppConfig
     public string AppId { get; init; } = string.Empty;
     public string AppName { get; init; } = string.Empty;
     public bool IsEnabled { get; init; }
-    public IntegrationMethods IntegrationMethodInbound { get; init; }
-    public IntegrationMethods IntegrationMethodOutbound { get; init; }
+    public IntegrationMethods? IntegrationMethodInbound { get; init; }
+    public IntegrationMethods? IntegrationMethodOutbound { get; init; }
     public required List<UserURIs> UserURIs { get; init; }
     public List<GroupURIs>? GroupURIs { get; init; }
     public string? AADClientId { get; init; }
