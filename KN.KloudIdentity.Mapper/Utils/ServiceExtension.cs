@@ -6,9 +6,12 @@ using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Config.Db;
 using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.MapperCore.Group;
+using KN.KloudIdentity.Mapper.MapperCore.Inbound;
+using KN.KloudIdentity.Mapper.MapperCore.Inbound.User;
 using KN.KloudIdentity.Mapper.MapperCore.User;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SCIM;
+using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.Utils;
 
@@ -45,6 +48,9 @@ public static class ServiceExtension
         services.AddScoped<IRemoveAllGroupMembers, RemoveAllGroupMembers>();
         services.AddScoped<IGetResource<Core2Group>, GetGroup>();
         services.AddScoped<IGetVerifiedAttributeMapping, GetVerifiedAttributeMapping>();
+        services.AddScoped<IFetchInboundResources<JObject>, ListUserInbound>();
+        services.AddScoped<IGraphClientUtil, GraphClientUtil>();
+        services.AddScoped<ICreateResourceInbound<JObject>, CreateUserInbound>();
 
     }
 }

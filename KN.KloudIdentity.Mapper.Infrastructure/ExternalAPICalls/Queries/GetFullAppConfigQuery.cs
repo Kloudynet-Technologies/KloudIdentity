@@ -23,9 +23,15 @@ public class GetFullAppConfigQuery : IGetFullAppConfigQuery
 
         string? response = null;
         var correlationId = Guid.NewGuid().ToString();
-        _rabbitMQPublisher.Publish(appId, correlationId);
+        var message = new AppMessage
+        {
+            AppId = appId,
+            MessageType = MessageType.GetFullApplication
+        };
+         _rabbitMQPublisher.Publish(JsonSerializer.Serialize(message), correlationId);
 
         response = _rabbitMQPublisher.Consume(correlationId);
+
 
         return JsonSerializer.Deserialize<AppConfig>(response, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
