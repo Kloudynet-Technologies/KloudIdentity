@@ -97,7 +97,8 @@ namespace Microsoft.SCIM.WebHostSample
 
             }
 
-            services.AddOptions<AppSettings>().Bind(configuration);
+            services.AddOptions<AppSettings>().Bind(configuration.GetSection("KI"));
+
             services.AddAuthentication(ConfigureAuthenticationOptions).AddJwtBearer(ConfigureJwtBearerOptons);
             services.AddControllers().AddNewtonsoftJson(ConfigureMvcNewtonsoftJsonOptions);
 

@@ -1,0 +1,17 @@
+# Use the official Microsoft .NET Core runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:7.0
+
+# Set the working directory in the image to /app
+WORKDIR /app
+
+# Copy the build output from the outside to /app in the image
+COPY ./bin/Release/net7.0/publish/ .
+
+# Set the environment variable for ASP.NET Core to listen on port 80
+ENV ASPNETCORE_URLS=http://+:80
+
+# Expose port 80
+EXPOSE 80
+
+# Run the application
+ENTRYPOINT ["dotnet", "Microsoft.SCIM.WebHostSample.dll"]
