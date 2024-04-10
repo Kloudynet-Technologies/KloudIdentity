@@ -6,6 +6,7 @@ using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
@@ -53,7 +54,10 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
     {
         var appConfig = await GetAppConfigAsync(appId);
 
-        var payload = await MapAndPreparePayloadAsync(appConfig.UserAttributeSchemas.ToList(), resource);
+        var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST &&
+        x.SCIMDirection == SCIMDirections.Outbound).ToList();
+
+        var payload = await MapAndPreparePayloadAsync(userAttributes, resource);
 
         await CreateUserAsync(appConfig, payload);
 

@@ -108,7 +108,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             var logMessage = $"Delete user for the id {identifier}";
 
             var logEntity = new CreateLogEntity(
-                identifier,
+                appConfig.AppId,
                 LogType.Deprovision.ToString(),
                 LogSeverities.Information,
                 eventInfo,

@@ -6,6 +6,7 @@ using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
@@ -54,8 +55,11 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         {
             _appConfig = await GetAppConfigAsync(appId);
 
+            var attributes = _appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == HttpRequestTypes.PUT &&
+            x.SCIMDirection == SCIMDirections.Outbound);
+
             var payload = await MapAndPreparePayloadAsync(
-                _appConfig.GroupAttributeSchemas!.ToList(),
+               attributes!.ToList(),
                 resource
             );
 
@@ -127,7 +131,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             var logMessage = $"Replace group for the id {identifier}";
 
             var logEntity = new CreateLogEntity(
-                identifier,
+                appConfig.AppId,
                 LogType.Edit.ToString(),
                 LogSeverities.Information,
                 eventInfo,

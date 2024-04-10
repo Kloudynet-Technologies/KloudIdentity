@@ -113,7 +113,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             var logMessage = $"Delete group for the id {identifier}";
 
             var logEntity = new CreateLogEntity(
-                identifier,
+                appConfig.AppId,
                 LogType.Deprovision.ToString(),
                 LogSeverities.Information,
                 eventInfo,
