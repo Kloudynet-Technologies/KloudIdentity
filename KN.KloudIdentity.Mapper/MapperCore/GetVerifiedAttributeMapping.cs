@@ -20,6 +20,11 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
 
     public async Task<JObject> GetVerifiedAsync(string appId, ObjectTypes type, SCIMDirections direction, HttpRequestTypes httpRequestType)
     {
+        if (direction == SCIMDirections.Inbound)
+        {
+            return new JObject() { ["Message"] = "Inbound direction is not supported" };
+        }
+
         var appConfig = await GetAppConfigAsync(appId);
 
         if (appConfig == null)

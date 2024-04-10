@@ -45,7 +45,7 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
             var token = await GetAuthenticationAsync(_appConfig.AuthenticationDetails);
 
             var client = _httpClientFactory.CreateClient();
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethod, _appConfig.AuthenticationDetails, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token);
             var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(_appConfig.GroupURIs.Get.ToString(), identifier));
 
             if (response.IsSuccessStatusCode)
