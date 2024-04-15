@@ -24,7 +24,7 @@ namespace Microsoft.SCIM.WebHostSample
                     config.AddAzureAppConfiguration(options =>
                     {
                         options.Connect(settings["ConnectionStrings:AppConfig"])
-                        .Select("KI:*", "KloudIdentity-Demo")
+                        .Select("KI:*", "KloudIdentity-Dev")
                         .ConfigureRefresh(refresh =>
                         {
                             refresh.Register("KI:RefreshOption", refreshAll: true)

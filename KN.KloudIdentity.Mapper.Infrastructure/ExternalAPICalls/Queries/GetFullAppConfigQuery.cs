@@ -2,6 +2,7 @@
 using System.Text.Json;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Messaging;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
 using RabbitMQ.Client;
@@ -27,7 +28,7 @@ public class GetFullAppConfigQuery : IGetFullAppConfigQuery
         }
 
         var correlationId = Guid.NewGuid().ToString();
-        var intSvcRequest = new InterserviceMessage(appId, correlationId);
+        var intSvcRequest = new InterserviceMessage(appId, correlationId, Action: MessageType.GetFullApplication.ToString());
 
 
         // Consume the response from the message broker

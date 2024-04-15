@@ -1,4 +1,5 @@
 ﻿using KN.KloudIdentity.Mapper.Domain;
+using KN.KloudIdentity.Mapper.Domain.Messaging;
 using KN.KloudIdentity.Mapper.Domain.Setting;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
