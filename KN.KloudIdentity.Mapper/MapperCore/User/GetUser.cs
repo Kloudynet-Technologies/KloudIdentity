@@ -32,7 +32,6 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
         IGetFullAppConfigQuery getFullAppConfigQuery,
-        IConfigReader configReader,
         IKloudIdentityLogger logger
         )
         : base(authContext, getFullAppConfigQuery)

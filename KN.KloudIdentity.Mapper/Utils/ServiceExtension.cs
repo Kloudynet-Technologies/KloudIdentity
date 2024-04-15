@@ -60,7 +60,7 @@ public static class ServiceExtension
         services.AddScoped<IGetVerifiedAttributeMapping, GetVerifiedAttributeMapping>();
         services.AddScoped<IFetchInboundResources<JObject>, ListUserInbound>();
         services.AddScoped<IGraphClientUtil, GraphClientUtil>();
-        services.AddScoped<ICreateResourceInbound<JObject>, CreateUserInbound>();
+        // services.AddScoped<ICreateResourceInbound<JObject>, CreateUserInbound>();
 
         // services.AddMassTransit(x =>
         // {

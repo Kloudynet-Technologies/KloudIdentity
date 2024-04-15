@@ -12,6 +12,7 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.Messaging;
 public class RabbitMQUtil : IDisposable
 {
     private static IConnection _connection;
+    private static IModel _channel;
     private static ConnectionFactory _factory;
     private static AppSettings _appSettings;
 
@@ -28,13 +29,28 @@ public class RabbitMQUtil : IDisposable
         };
 
         _connection = _factory.CreateConnection();
+        _channel = _connection.CreateModel();
+
+        DeclareAndBindQueue(_appSettings.RabbitMQ.ExchangeName, _appSettings.RabbitMQ.QueueNames);
+    }
+
+    private void DeclareAndBindQueue(string exchangeName, string[] queueNames)
+    {
+        _channel.ExchangeDeclare(exchange: exchangeName, type: "direct");
+
+        foreach (var queueName in queueNames)
+        {
+            _channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
+            _channel.QueueBind(queue: queueName, exchange: exchangeName, routingKey: queueName);
+        }
     }
 
     private IModel CreateInstance()
     {
-        var channel = _connection.CreateModel();
+        if (_connection == null || !_connection.IsOpen)
+            _connection = _factory.CreateConnection();
 
-        return channel;
+        return _channel;
     }
 
     public IModel GetChannel()
@@ -45,6 +61,7 @@ public class RabbitMQUtil : IDisposable
 
     public void Dispose()
     {
-        _connection.Close();
+        if (_connection != null && _connection.IsOpen)
+            _connection.Close();
     }
 }

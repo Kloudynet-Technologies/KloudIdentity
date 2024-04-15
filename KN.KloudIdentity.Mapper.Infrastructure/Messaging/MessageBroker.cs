@@ -9,93 +9,64 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.Messaging;
 public class MessageBroker : IDisposable
 {
     private readonly IModel _channel;
-    private readonly string _exchangeName;
+    private string _exchangeName;
+    private InterserviceMessage? _response;
 
-    public MessageBroker(
-                        string exchangeName,
-                    string[] queueNames,
-                    RabbitMQUtil rabbitMQUtil)
+    public MessageBroker(RabbitMQUtil rabbitMQUtil, string exchangeName)
     {
-        _exchangeName = exchangeName;
-
         _channel = rabbitMQUtil.GetChannel();
-
-        _channel.ExchangeDeclare(exchange: _exchangeName, type: "direct");
-
-        foreach (var queueName in queueNames)
-        {
-            _channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
-            _channel.QueueBind(queue: queueName, exchange: _exchangeName, routingKey: queueName);
-        }
+        _exchangeName = exchangeName;
     }
 
-    public void Publish(InterserviceMessage message, string queueName)
+    public InterserviceMessage Publish(InterserviceMessage message, string publishQueueName, string consumeQueueName)
     {
-        string messageStr = JsonSerializer.Serialize(message);
-        var body = Encoding.UTF8.GetBytes(messageStr);
+        _response = null;
+
         var properties = _channel.CreateBasicProperties();
         properties.CorrelationId = message.CorrelationId;
+        properties.ReplyTo = consumeQueueName;
 
-        _channel.BasicPublish(exchange: _exchangeName, routingKey: queueName, basicProperties: properties, body: body);
+        var msgStr = JsonSerializer.Serialize(message);
+        var body = Encoding.UTF8.GetBytes(msgStr);
+
+        _channel.BasicPublish(
+            exchange: _exchangeName,
+            routingKey: publishQueueName,
+            basicProperties: properties,
+            body: body);
+
+        Consume(consumeQueueName, message.CorrelationId);
+
+        return _response;
     }
 
-    public async Task Consume(string queueName, string correlationId = "", Action<InterserviceMessage?> callback = null, CancellationToken cancellationToken = default)
+    private void Consume(string queueName, string correlationId = "")
     {
-        CancellationTokenSource cts = new CancellationTokenSource();
-
-        if (cancellationToken == default)
-        {
-            cancellationToken = cts.Token;
-        }
-
         var consumer = new EventingBasicConsumer(_channel);
-        InterserviceMessage? response = null; // Declare a variable to hold the response
         string consumerTag = string.Empty;
 
-        cancellationToken.Register(() => response = default); // Register a callback to set the response to default
-
-        // Run the consumer in a separate task
-        var consumerTask = Task.Run(async () =>
+        consumer.Received += (model, ea) =>
         {
-            consumer.Received += (model, ea) =>
+            if (ea.BasicProperties.CorrelationId == correlationId)
             {
-#if DEBUG
-                Console.WriteLine(" [x] Received message.");
-#endif
+                _channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
 
-                var body = ea.Body.ToArray();
-                var message = Encoding.UTF8.GetString(body);
+                var message = Encoding.UTF8.GetString(ea.Body.ToArray());
+                _response = JsonSerializer.Deserialize<InterserviceMessage>(message)!;
 
-                if (string.IsNullOrEmpty(correlationId) || ea.BasicProperties.CorrelationId == correlationId) // If correlationId is empty or matches the correlationId in the message, process the message
-                {
-#if DEBUG
-                    Console.WriteLine(" [x] Received {0}", message);
-#endif
-                    _channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
+                _channel.BasicCancel(consumerTag);
+            }
+        };
 
-                    response = JsonSerializer.Deserialize<InterserviceMessage>(message);
-                }
+        consumerTag = _channel.BasicConsume(
+                                consumer: consumer,
+                                queue: queueName,
+                                autoAck: false);
 
-                callback?.Invoke(response); // Invoke the callback with the response
-
-                if (!string.IsNullOrEmpty(correlationId)) // If correlationId is not empty, cancel the consumer
-                {
-                    consumer.Received -= (model, ea) => { };
-                    cts.Cancel();
-                    _channel.BasicCancel(consumerTag);
-#if DEBUG
-                    Console.WriteLine(" [x] Consumer cancelled.");
-#endif
-                }
-            };
-
-            consumerTag = _channel.BasicConsume(queue: queueName, autoAck: false, consumer: consumer);
-#if DEBUG
-            Console.WriteLine(" [*] Waiting for messages.");
-#endif
-        }, cancellationToken);
-
-        await consumerTask;
+        while (_response == null)
+        {
+            Thread.Sleep(50);
+        }
     }
 
     public void Close()

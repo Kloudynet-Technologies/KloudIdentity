@@ -1,4 +1,5 @@
-﻿using KN.KloudIdentity.Mapper.Domain.Setting;
+﻿using KN.KloudIdentity.Mapper.Domain;
+using KN.KloudIdentity.Mapper.Domain.Setting;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
 using System.Text.Json;
@@ -7,10 +8,10 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 
 public class GetApplicationSettingQuery : IGetApplicationSettingQuery
 {
-    private readonly RabbitMQPublisher _rabbitMQPublisher;
-    public GetApplicationSettingQuery(RabbitMQPublisher rabbitMQPublisher)
+    private readonly MessageBroker _messageBroker;
+    public GetApplicationSettingQuery(MessageBroker messageBroker)
     {
-        _rabbitMQPublisher = rabbitMQPublisher;
+        _messageBroker = messageBroker;
     }
     public async Task<ApplicationSetting?> GetAsync(string appId, CancellationToken cancellationToken = default)
     {
@@ -19,17 +20,26 @@ public class GetApplicationSettingQuery : IGetApplicationSettingQuery
             throw new ArgumentNullException(nameof(appId));
         }
 
-        string? response = null;
+        InterserviceMessage response = null;
         var correlationId = Guid.NewGuid().ToString();
-        var message = new AppMessage
+        var message = new InterserviceMessage
+        (
+            JsonSerializer.Serialize(new { AppId = appId }),
+            correlationId,
+            false,
+            null,
+            MessageType.GetApplicationSetting.ToString()
+        );
+
+        ApplicationSetting applicationSetting = null;
+
+        response = _messageBroker.Publish(message, GlobalConstants.MGTPORTAL_IN, GlobalConstants.MGTPORTAL_OUT);
+        if (response != null && !response.IsError)
         {
-            AppId = appId,
-            MessageType = MessageType.GetApplicationSetting
-        };
-        _rabbitMQPublisher.Publish(JsonSerializer.Serialize(message), correlationId);
+            applicationSetting = JsonSerializer.Deserialize<ApplicationSetting>(response.Message, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            _messageBroker.Close();
+        }
 
-        response = _rabbitMQPublisher.Consume(correlationId);
-
-        return JsonSerializer.Deserialize<ApplicationSetting>(response, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        return applicationSetting;
     }
 }

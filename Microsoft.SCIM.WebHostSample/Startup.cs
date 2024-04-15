@@ -71,6 +71,8 @@ namespace Microsoft.SCIM.WebHostSample
 
             void ConfigureJwtBearerOptons(JwtBearerOptions options)
             {
+                var section = this.configuration.GetSection("KI");
+
                 if (this.environment.IsDevelopment())
                 {
                     options.TokenValidationParameters =
@@ -80,15 +82,15 @@ namespace Microsoft.SCIM.WebHostSample
                            ValidateAudience = false,
                            ValidateLifetime = false,
                            ValidateIssuerSigningKey = false,
-                           ValidIssuer = this.configuration["Token:TokenIssuer"],
-                           ValidAudience = this.configuration["Token:TokenAudience"],
-                           IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.configuration["Token:IssuerSigningKey"]))
+                           ValidIssuer = section["Token:TokenIssuer"],
+                           ValidAudience = section["Token:TokenAudience"],
+                           IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]))
                        };
                 }
                 else
                 {
-                    options.Authority = this.configuration["Token:TokenIssuer"];
-                    options.Audience = this.configuration["Token:TokenAudience"];
+                    options.Authority = section["Token:TokenIssuer"];
+                    options.Audience = section["Token:TokenAudience"];
                     options.Events = new JwtBearerEvents
                     {
                         OnTokenValidated = context =>
@@ -128,9 +130,8 @@ namespace Microsoft.SCIM.WebHostSample
             {
                 var options = cfg.GetRequiredService<IOptions<AppSettings>>().Value;
 
-                return new MessageBroker(options.RabbitMQ.ExchangeName,
-                                        options.RabbitMQ.QueueNames,
-                                        cfg.GetRequiredService<RabbitMQUtil>());
+                return new MessageBroker(cfg.GetRequiredService<RabbitMQUtil>(),
+                                        options.RabbitMQ.ExchangeName);
             });
 
             services.AddSingleton<IKloudIdentityLogger>(pub =>
@@ -148,22 +149,23 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();
             services.AddScoped<ExtractAppIdFilter>();
-            services.AddScoped<IBackgroundJobService, BackgroundJobService>();
+            // services.AddScoped<IBackgroundJobService, BackgroundJobService>();
 
             services.AddHostedService<RabbitMQListner>(con =>
             {
                 var options = con.GetRequiredService<IOptions<AppSettings>>().Value;
 
-                return new RabbitMQListner(options.RabbitMQ.QueueName_In,
-                                        options.RabbitMQ.QueueName_Out,
-                                        con.GetRequiredService<MessageBroker>(),
+                return new RabbitMQListner(configuration["RabbitMQ:QueueName_In"],
+                                        configuration["RabbitMQ:QueueName_Out"],
+                                        options.RabbitMQ.ExchangeName,
+                                        con.GetRequiredService<RabbitMQUtil>(),
                                         con.GetService<IServiceScopeFactory>());
             });
 
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IBackgroundJobClient backgroundJobs)
+        public void Configure(IApplicationBuilder app)
         {
             if (this.environment.IsDevelopment())
             {
@@ -186,9 +188,9 @@ namespace Microsoft.SCIM.WebHostSample
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
-            app.UseHangfireDashboard("/hangfire/jobs");
+            // app.UseHangfireDashboard("/hangfire/jobs");
             app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
-            RecurringJob.AddOrUpdate<IBackgroundJobService>("jobId", x => x.RunSheduleJobAsybc(), Cron.Weekly);
+            // RecurringJob.AddOrUpdate<IBackgroundJobService>("jobId", x => x.RunSheduleJobAsybc(), Cron.Weekly);
 
             app.UseEndpoints(
                 (IEndpointRouteBuilder endpoints) =>

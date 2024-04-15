@@ -17,7 +17,7 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
     [ApiController]
     public class TokenController : ControllerBase
     {
-        private readonly IConfiguration configuration;        
+        private readonly IConfiguration configuration;
         private const int defaultTokenExpirationTimeInMins = 120;
 
         public TokenController(IConfiguration Configuration)
@@ -27,22 +27,24 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
 
         private string GenerateJSONWebToken()
         {
+            var section = this.configuration.GetSection("KI");
+
             SymmetricSecurityKey securityKey =
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.configuration["Token:IssuerSigningKey"]));
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]));
             SigningCredentials credentials =
                 new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
             DateTime startTime = DateTime.UtcNow;
             DateTime expiryTime;
-            if (double.TryParse(this.configuration["Token:TokenLifetimeInMins"], out double tokenExpiration))
+            if (double.TryParse(section["Token:TokenLifetimeInMins"], out double tokenExpiration))
                 expiryTime = startTime.AddMinutes(tokenExpiration);
             else
                 expiryTime = startTime.AddMinutes(defaultTokenExpirationTimeInMins);
 
             JwtSecurityToken token =
                 new JwtSecurityToken(
-                    this.configuration["Token:TokenIssuer"],
-                    this.configuration["Token:TokenAudience"],
+                    section["Token:TokenIssuer"],
+                    section["Token:TokenAudience"],
                     null,
                     notBefore: startTime,
                     expires: expiryTime,
