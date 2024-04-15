@@ -6,6 +6,7 @@ using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
@@ -65,14 +66,16 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         {
             var authConfig = _appConfig.AuthenticationDetails;
 
-            var token = await GetAuthenticationAsync(authConfig);
+            var groupURIs = _appConfig.GroupURIs.Where(x => x.SCIMDirection == SCIMDirections.Outbound).FirstOrDefault();
+
+            var token = await GetAuthenticationAsync(authConfig, SCIMDirections.Outbound);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token, SCIMDirections.Outbound);
 
             // Construct the API path for adding members to the group
-            var apiPath = DynamicApiUrlUtil.GetFullUrl(_appConfig.GroupURIs!.Patch!.ToString(), groupId);
+            var apiPath = DynamicApiUrlUtil.GetFullUrl(groupURIs!.Patch!.ToString(), groupId);
 
             var jsonPayload = JsonConvert.SerializeObject(members);
 

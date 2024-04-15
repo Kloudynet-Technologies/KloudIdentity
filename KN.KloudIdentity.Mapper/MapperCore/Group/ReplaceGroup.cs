@@ -77,11 +77,11 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         {
             var authConfig = _appConfig.AuthenticationDetails;
 
-            var token = await GetAuthenticationAsync(authConfig);
+            var token = await GetAuthenticationAsync(authConfig, SCIMDirections.Outbound);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, authConfig, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token, SCIMDirections.Outbound);
 
             using (var response = await ProcessRequestAsync(_appConfig, httpClient, resource, payload))
             {
@@ -105,15 +105,17 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// </returns>
         private async Task<HttpResponseMessage?> ProcessRequestAsync(AppConfig appConfig, HttpClient httpClient, Core2Group resource, JObject payload)
         {
-            if (appConfig.GroupURIs!.Put != null)
+            var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+
+            if (groupURIs!.Put != null)
             {
-                var apiPath = DynamicApiUrlUtil.GetFullUrl(appConfig.GroupURIs.Put.ToString(), resource.Identifier);
+                var apiPath = DynamicApiUrlUtil.GetFullUrl(groupURIs.Put.ToString(), resource.Identifier);
 
                 return await httpClient.PutAsJsonAsync(apiPath, payload);
             }
-            else if (appConfig.GroupURIs.Patch != null)
+            else if (groupURIs.Patch != null)
             {
-                var apiPath = DynamicApiUrlUtil.GetFullUrl(appConfig.GroupURIs.Patch.ToString(), resource.Identifier);
+                var apiPath = DynamicApiUrlUtil.GetFullUrl(groupURIs.Patch.ToString(), resource.Identifier);
                 var jsonPayload = payload.ToString();
                 var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 

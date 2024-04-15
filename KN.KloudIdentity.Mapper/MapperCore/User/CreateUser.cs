@@ -76,14 +76,16 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
     /// </exception>
     private async Task CreateUserAsync(AppConfig appConfig, JObject payload)
     {
-        var token = await base.GetAuthenticationAsync(appConfig);
+        var userURIs = appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
 
+        var token = await base.GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
+        
         var httpClient = _httpClientFactory.CreateClient();
 
-        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethod, appConfig.AuthenticationDetails, token);
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
 
         using (var response = await httpClient.PostAsJsonAsync(
-            appConfig.UserURIs.Post,
+            userURIs?.Post,
             payload
         ))
         {

@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Hangfire" Version="1.8.12" />
     <PackageReference Include="KN.KI.LogAggregator.Messaging.RabbitMq" Version="0.0.5" />
     <PackageReference Include="MassTransit" Version="8.2.0" />
     <PackageReference Include="MassTransit.RabbitMq" Version="8.2.0" />

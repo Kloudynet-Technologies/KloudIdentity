@@ -77,12 +77,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         {
 
             // Obtain authentication token.
-            var token = await GetAuthenticationAsync(_appConfig);
+            var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Outbound);
 
             var httpClient = _httpClientFactory.CreateClient();
 
             // Set headers based on authentication method.
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethod, _appConfig.AuthenticationDetails, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
 
             using (var response = await ProcessRequestAsync(_appConfig, httpClient, payload, resource))
             {
@@ -107,15 +107,16 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// </returns>
         private async Task<HttpResponseMessage?> ProcessRequestAsync(AppConfig appConfig, HttpClient httpClient, JObject payload, Core2EnterpriseUser resource)
         {
-            if (appConfig.UserURIs.Put != null)
+            var userURIs = _appConfig.UserURIs.Where(x => x.SCIMDirection == SCIMDirections.Outbound).FirstOrDefault();
+            if (userURIs.Put != null)
             {
-                var apiPath = DynamicApiUrlUtil.GetFullUrl(appConfig.UserURIs.Put!.ToString(), resource.Identifier);
+                var apiPath = DynamicApiUrlUtil.GetFullUrl(userURIs.Put!.ToString(), resource.Identifier);
 
                 return await httpClient.PutAsJsonAsync(apiPath, payload);
             }
-            else if (appConfig.UserURIs.Patch != null)
+            else if (userURIs.Patch != null)
             {
-                var apiPath = DynamicApiUrlUtil.GetFullUrl(appConfig.UserURIs.Patch.ToString(), resource.Identifier);
+                var apiPath = DynamicApiUrlUtil.GetFullUrl(userURIs.Patch.ToString(), resource.Identifier);
                 var jsonPayload = payload.ToString();
                 var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 

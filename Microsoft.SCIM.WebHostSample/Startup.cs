@@ -28,6 +28,10 @@ namespace Microsoft.SCIM.WebHostSample
     using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
     using KN.KI.LogAggregator.Library.Abstractions;
     using KN.KI.LogAggregator.Library;
+    using Hangfire;
+    using global::Hangfire;
+    using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
+    using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
     using MassTransit;
     using KN.KloudIdentity.Mapper.Consumers;
     using KN.KloudIdentity.Mapper.Domain;
@@ -144,6 +148,7 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();
             services.AddScoped<ExtractAppIdFilter>();
+            services.AddScoped<IBackgroundJobService, BackgroundJobService>();
 
             services.AddHostedService<RabbitMQListner>(con =>
             {
@@ -158,7 +163,7 @@ namespace Microsoft.SCIM.WebHostSample
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IBackgroundJobClient backgroundJobs)
         {
             if (this.environment.IsDevelopment())
             {
@@ -181,8 +186,9 @@ namespace Microsoft.SCIM.WebHostSample
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
-
+            app.UseHangfireDashboard("/hangfire/jobs");
             app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
+            RecurringJob.AddOrUpdate<IBackgroundJobService>("jobId", x => x.RunSheduleJobAsybc(), Cron.Weekly);
 
             app.UseEndpoints(
                 (IEndpointRouteBuilder endpoints) =>

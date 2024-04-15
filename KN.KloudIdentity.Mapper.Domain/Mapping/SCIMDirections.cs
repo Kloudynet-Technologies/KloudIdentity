@@ -3,5 +3,6 @@
 public enum SCIMDirections
 {
     Inbound,
-    Outbound
+    Outbound,
+    Null
 }

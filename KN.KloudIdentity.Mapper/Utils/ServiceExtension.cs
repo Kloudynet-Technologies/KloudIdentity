@@ -11,6 +11,8 @@ using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
 using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
 using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.MapperCore.Group;
+using KN.KloudIdentity.Mapper.MapperCore.Inbound;
+using KN.KloudIdentity.Mapper.MapperCore.Inbound.User;
 using KN.KloudIdentity.Mapper.MapperCore.User;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
@@ -56,6 +58,9 @@ public static class ServiceExtension
         services.AddScoped<IGetFullAppConfigQuery, GetFullAppConfigQuery>();
         services.AddSingleton<RabbitMQUtil>();
         services.AddScoped<IGetVerifiedAttributeMapping, GetVerifiedAttributeMapping>();
+        services.AddScoped<IFetchInboundResources<JObject>, ListUserInbound>();
+        services.AddScoped<IGraphClientUtil, GraphClientUtil>();
+        services.AddScoped<ICreateResourceInbound<JObject>, CreateUserInbound>();
 
         // services.AddMassTransit(x =>
         // {

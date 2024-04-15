@@ -4,6 +4,7 @@
 
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Mapping;
 
 namespace KN.KloudIdentity.Mapper;
 
@@ -15,5 +16,5 @@ public interface IAuthContext
     /// <summary>
     /// Gets the auth token.
     /// </summary>
-    Task<string> GetTokenAsync(dynamic appConfig);
+    Task<string> GetTokenAsync(dynamic appConfig, SCIMDirections direction);
 }

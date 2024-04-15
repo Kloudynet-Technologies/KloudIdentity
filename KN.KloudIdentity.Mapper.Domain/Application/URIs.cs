@@ -1,4 +1,6 @@
-﻿namespace KN.KloudIdentity.Mapper.Domain.Application;
+﻿using KN.KloudIdentity.Mapper.Domain.Mapping;
+
+namespace KN.KloudIdentity.Mapper.Domain.Application;
 
 public record URIs
 {
@@ -46,4 +48,9 @@ public record URIs
     /// List URI
     /// </summary>
     public Uri? List { get; init; }
+
+    /// <summary>
+    /// SCIM Direction Inbound or Outbound
+    /// </summary>
+    public SCIMDirections SCIMDirection { get; init; }
 }

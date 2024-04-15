@@ -1,20 +1,10 @@
-﻿//------------------------------------------------------------
-// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
-//------------------------------------------------------------
-
-using KN.KloudIdentity.Mapper.Config;
-using KN.KloudIdentity.Mapper.Domain.Application;
+﻿using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
-using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
 
-namespace KN.KloudIdentity.Mapper.MapperCore;
+namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
 
-/// <summary>
-/// Interface for API mappers that map a resource to a payload and prepare it for sending to an API.
-/// </summary>
-/// <typeparam name="T">The type of resource being mapped.</typeparam>
-public interface IAPIMapperBase<T> where T : Resource
+public interface IAPIMapperBaseInbound<T> where T : class
 {
     /// <summary>
     /// Gets or sets the ID of the application.
@@ -40,7 +30,7 @@ public interface IAPIMapperBase<T> where T : Resource
     /// Gets the application configuration asynchronously.
     /// </summary>
     /// <returns></returns>
-    Task<AppConfig> GetAppConfigAsync(string appId);
+    Task<AppConfig> GetAppConfigAsync(string appId, string correlationId);
 
     /// <summary>
     /// Gets the authentication token asynchronously.
@@ -52,5 +42,5 @@ public interface IAPIMapperBase<T> where T : Resource
     /// Map and prepare the payload to be sent to the API asynchronously.
     /// </summary>
     /// <returns></returns>
-    Task<JObject> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, T resource);
+    Task<T> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, JObject resource);
 }
