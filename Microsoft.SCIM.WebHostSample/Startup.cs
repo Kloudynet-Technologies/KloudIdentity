@@ -166,7 +166,8 @@ namespace Microsoft.SCIM.WebHostSample
                 var options = con.GetRequiredService<IOptions<AppSettings>>().Value;
 
                 return new JobCreationService(
-                                        con.GetService<IServiceProvider>());
+                                        con.GetService<IServiceProvider>(),
+                                        options.Hangfire);
             });
 
         }
