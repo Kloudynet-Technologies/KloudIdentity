@@ -91,6 +91,19 @@ namespace Microsoft.SCIM.WebHostSample
                 {
                     options.Authority = section["Token:TokenIssuer"];
                     options.Audience = section["Token:TokenAudience"];
+
+                    options.TokenValidationParameters =
+                       new TokenValidationParameters
+                       {
+                           ValidateIssuer = true,
+                           ValidateAudience = true,
+                           ValidateLifetime = false,
+                           ValidateIssuerSigningKey = true,
+                           ValidIssuer = section["Token:TokenIssuer"],
+                           ValidAudience = section["Token:TokenAudience"],
+                           IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]))
+                       };
+
                     options.Events = new JwtBearerEvents
                     {
                         OnTokenValidated = context =>
@@ -100,10 +113,10 @@ namespace Microsoft.SCIM.WebHostSample
                         OnAuthenticationFailed = AuthenticationFailed
                     };
                 }
-
             }
-
             services.AddOptions<AppSettings>().Bind(configuration.GetSection("KI"));
+
+            services.AddApplicationInsightsTelemetry();
 
             services.AddAuthentication(ConfigureAuthenticationOptions).AddJwtBearer(ConfigureJwtBearerOptons);
             services.AddControllers().AddNewtonsoftJson(ConfigureMvcNewtonsoftJsonOptions);
