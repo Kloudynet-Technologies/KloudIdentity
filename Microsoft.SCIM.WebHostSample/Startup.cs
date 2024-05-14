@@ -15,28 +15,24 @@ namespace Microsoft.SCIM.WebHostSample
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Routing;
-    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.IdentityModel.Tokens;
     using Microsoft.SCIM.WebHostSample.Provider;
     using Newtonsoft.Json;
-    using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
-    using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
-    using System;
     using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
     using KN.KI.LogAggregator.Library.Abstractions;
     using KN.KI.LogAggregator.Library;
     using Hangfire;
-    using global::Hangfire;
-    using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
-    using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
-    using MassTransit;
-    using KN.KloudIdentity.Mapper.Consumers;
     using KN.KloudIdentity.Mapper.Domain;
     using Microsoft.Extensions.Options;
     using KN.KI.LogAggregator.Library.Implementations;
+    using KN.KloudIdentity.Mapper.BackgroundJobs;
+    using System.Threading;
+    using System;
+    using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
+    using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 
     public class Startup
     {
@@ -158,11 +154,14 @@ namespace Microsoft.SCIM.WebHostSample
                 LogSeverities.Information);
             });
 
+            services.AddHangfire(x => x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
+
+            services.AddHangfireServer();
+
             services.AddScoped<NonSCIMGroupProvider>();
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();
             services.AddScoped<ExtractAppIdFilter>();
-            // services.AddScoped<IBackgroundJobService, BackgroundJobService>();
 
             services.AddHostedService<RabbitMQListner>(con =>
             {
@@ -173,6 +172,15 @@ namespace Microsoft.SCIM.WebHostSample
                                         options.RabbitMQ.ExchangeName,
                                         con.GetRequiredService<RabbitMQUtil>(),
                                         con.GetService<IServiceScopeFactory>());
+            });
+
+            services.AddHostedService<JobCreationService>(con =>
+            {
+                var options = con.GetRequiredService<IOptions<AppSettings>>().Value;
+
+                return new JobCreationService(
+                                        con.GetService<IServiceProvider>(),
+                                        options.Hangfire);
             });
 
         }
@@ -201,9 +209,10 @@ namespace Microsoft.SCIM.WebHostSample
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
-            // app.UseHangfireDashboard("/hangfire/jobs");
+            app.UseHangfireDashboard("/hangfire/jobs");
             app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
-            // RecurringJob.AddOrUpdate<IBackgroundJobService>("jobId", x => x.RunSheduleJobAsybc(), Cron.Weekly);
+          
+         //   RecurringJob.AddOrUpdate<IBackgroundJobService>("jobId", x => x.RunSheduleJobAsybc(), Cron.Weekly);
 
             app.UseEndpoints(
                 (IEndpointRouteBuilder endpoints) =>

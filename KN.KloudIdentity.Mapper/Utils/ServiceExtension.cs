@@ -2,10 +2,13 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
+using KN.KloudIdentity.Mapper.BackgroundJobs;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Config.Db;
 using KN.KloudIdentity.Mapper.Consumers;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
 using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
@@ -60,6 +63,11 @@ public static class ServiceExtension
         services.AddScoped<IGetVerifiedAttributeMapping, GetVerifiedAttributeMapping>();
         services.AddScoped<IFetchInboundResources<JObject>, ListUserInbound>();
         services.AddScoped<IGraphClientUtil, GraphClientUtil>();
+        services.AddScoped<ICreateResourceInbound<JObject>, CreateUserInbound>();
+        services.AddScoped<IGetApplicationSettingQuery, GetApplicationSettingQuery>();
+        services.AddScoped<IListApplicationsQuery, ListApplicationsQuery>();
+        services.AddScoped<IJobExecutor, JobExecutor>();
+
         // services.AddScoped<ICreateResourceInbound<JObject>, CreateUserInbound>();
 
         // services.AddMassTransit(x =>
