@@ -23,7 +23,7 @@ public class OAuth2Strategy : IAuthStrategy
     /// <returns></returns>
     public async Task<string> GetTokenAsync(dynamic authConfig)
     {
-        OAuth2ClientCrdAuthentication oauth2Auth;
+        OAuth2Authentication oauth2Auth;
         ValidateParameters(authConfig, out oauth2Auth);
 
         var client = new HttpClient();
@@ -58,9 +58,9 @@ public class OAuth2Strategy : IAuthStrategy
     /// </summary>
     /// <param name="authConfig"></param>
     /// <exception cref="ArgumentNullException"></exception>
-    private void ValidateParameters(dynamic authConfig, out OAuth2ClientCrdAuthentication oauth2Auth)
+    private void ValidateParameters(dynamic authConfig, out OAuth2Authentication oauth2Auth)
     {
-        oauth2Auth = JsonConvert.DeserializeObject<OAuth2ClientCrdAuthentication>(authConfig.ToString());
+        oauth2Auth = JsonConvert.DeserializeObject<OAuth2Authentication>(authConfig.ToString());
 
         if (oauth2Auth is null || authConfig is null)
         {
@@ -80,6 +80,26 @@ public class OAuth2Strategy : IAuthStrategy
         if (string.IsNullOrWhiteSpace(oauth2Auth.ClientSecret))
         {
             throw new ArgumentNullException(nameof(oauth2Auth.ClientSecret));
+        }
+
+        if(string.IsNullOrWhiteSpace(oauth2Auth.Authority))
+        {
+            throw new ArgumentNullException(nameof(oauth2Auth.Authority));
+        }
+
+        if (oauth2Auth.GrantType == OAuth2GrantTypes.AuthorizationCode)
+        {
+            if (string.IsNullOrWhiteSpace(oauth2Auth.AuthorizationCode))
+                throw new ArgumentNullException(nameof(oauth2Auth.AuthorizationCode));
+
+            if (string.IsNullOrWhiteSpace(oauth2Auth.RedirectUri))
+                throw new ArgumentNullException(nameof(oauth2Auth.RedirectUri));
+        }
+
+        if (oauth2Auth.GrantType == OAuth2GrantTypes.RefreshToken)
+        {
+            if(string.IsNullOrWhiteSpace(oauth2Auth.RefreshToken))
+                throw new ArgumentNullException(nameof(oauth2Auth.RefreshToken));
         }
     }
 }
