@@ -154,9 +154,9 @@ namespace Microsoft.SCIM.WebHostSample
                 LogSeverities.Information);
             });
 
-            services.AddHangfire(x => x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
+            //services.AddHangfire(x => x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
 
-            services.AddHangfireServer();
+            //services.AddHangfireServer();
 
             services.AddScoped<NonSCIMGroupProvider>();
             services.AddScoped<NonSCIMUserProvider>();
@@ -174,14 +174,14 @@ namespace Microsoft.SCIM.WebHostSample
                                         con.GetService<IServiceScopeFactory>());
             });
 
-            services.AddHostedService<JobCreationService>(con =>
-            {
-                var options = con.GetRequiredService<IOptions<AppSettings>>().Value;
+            //services.AddHostedService<JobCreationService>(con =>
+            //{
+            //    var options = con.GetRequiredService<IOptions<AppSettings>>().Value;
 
-                return new JobCreationService(
-                                        con.GetService<IServiceProvider>(),
-                                        options.Hangfire);
-            });
+            //    return new JobCreationService(
+            //                            con.GetService<IServiceProvider>(),
+            //                            options.Hangfire);
+            //});
 
         }
 
@@ -209,7 +209,7 @@ namespace Microsoft.SCIM.WebHostSample
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
-            app.UseHangfireDashboard("/hangfire/jobs");
+            //app.UseHangfireDashboard("/hangfire/jobs");
             app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
           
          //   RecurringJob.AddOrUpdate<IBackgroundJobService>("jobId", x => x.RunSheduleJobAsybc(), Cron.Weekly);
