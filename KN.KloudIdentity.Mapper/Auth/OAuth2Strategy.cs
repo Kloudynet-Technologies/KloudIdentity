@@ -57,7 +57,7 @@ public class OAuth2Strategy : IAuthStrategy
 
         var tokenResponse = await RequestTokenAsync(oauth2Auth, requestContent);
 
-        return "Bearer " + tokenResponse?.AccessToken;
+        return tokenResponse?.AccessToken;
     }
 
     public virtual async Task<string> GetAuthorizationCodeTokenAsync(OAuth2Authentication oauth2Auth)
@@ -77,7 +77,8 @@ public class OAuth2Strategy : IAuthStrategy
                             };
 
         var tokenResponse = await RequestTokenAsync(oauth2Auth, requestContent);
-        return "Bearer " + tokenResponse?.AccessToken;
+
+        return tokenResponse?.AccessToken;
     }
 
     public virtual async Task<string> GetDeviceCodeTokenAsync(OAuth2Authentication oauth2Auth)
