@@ -1,0 +1,4 @@
+{
+  "appService.defaultWebAppToDeploy": "/subscriptions/f9f9e445-0a62-4ffb-99bf-5c3ddb17ac65/resourceGroups/KloudIdentity-Demo/providers/Microsoft.Web/sites/kloudidentity-demo",
+  "appService.deploySubpath": "Microsoft.SCIM.WebHostSample\\bin\\Release\\net7.0"
+}

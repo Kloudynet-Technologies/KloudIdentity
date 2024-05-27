@@ -8,5 +8,6 @@ namespace Microsoft.SCIM
     {
         public const string PathInterface = "scim";
         public const string SeparatorSchemaIdentifierAttribute = ":";
+        public const string ApplicationIdentifier = "{appId}";
     }
 }

@@ -3,16 +3,17 @@
 namespace Microsoft.SCIM
 {
     using System;
+    using KN.KI.LogAggregator.Library.Abstractions;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
 
     [Route(ServiceConstants.RouteUsers)]
     [Authorize]
-    [ApiController]
+    [ApiController]    
     public sealed class UsersController : ControllerTemplate<Core2EnterpriseUser>
     {
-        public UsersController(IProvider provider, IMonitor monitor)
-            : base(provider, monitor)
+        public UsersController(IProvider provider, IMonitor monitor, IKloudIdentityLogger logger)
+            : base(provider, monitor, logger)
         {
         }
 

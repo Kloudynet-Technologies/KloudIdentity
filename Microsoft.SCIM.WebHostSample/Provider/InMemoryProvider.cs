@@ -146,5 +146,30 @@ namespace Microsoft.SCIM.WebHostSample.Provider
 
             throw new NotImplementedException();
         }
+
+        public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier, string appId = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier, string appId = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<Resource> ReplaceAsync(Resource resource, string correlationIdentifier, string appId = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task UpdateAsync(IPatch patch, string correlationIdentifier, string appId = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier, string appId = null)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

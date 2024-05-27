@@ -7,6 +7,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.SCIM", "Microsoft
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.SCIM.WebHostSample", "Microsoft.SCIM.WebHostSample\Microsoft.SCIM.WebHostSample.csproj", "{238F1B05-D3EE-4AB4-871E-ADEA0A1665CF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KN.KloudIdentity.Mapper", "KN.KloudIdentity.Mapper\KN.KloudIdentity.Mapper.csproj", "{D4363769-3773-4C9C-85C8-3E946926357C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KN.KloudIdentity.MapperTests", "KN.KloudIdentity.MapperTests\KN.KloudIdentity.MapperTests.csproj", "{2DE73ACC-F9C3-463E-A465-333FE29804E9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KN.KloudIdentity.Mapper.Domain", "KN.KloudIdentity.Mapper.Domain\KN.KloudIdentity.Mapper.Domain.csproj", "{2CB006BB-EF21-4677-AEB8-CC21204D5602}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KN.KloudIdentity.Mapper.Infrastructure", "KN.KloudIdentity.Mapper.Infrastructure\KN.KloudIdentity.Mapper.Infrastructure.csproj", "{2E495687-1D6E-413C-A1C7-00DDEA795F1E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +29,22 @@ Global
 		{238F1B05-D3EE-4AB4-871E-ADEA0A1665CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{238F1B05-D3EE-4AB4-871E-ADEA0A1665CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{238F1B05-D3EE-4AB4-871E-ADEA0A1665CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4363769-3773-4C9C-85C8-3E946926357C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4363769-3773-4C9C-85C8-3E946926357C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4363769-3773-4C9C-85C8-3E946926357C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4363769-3773-4C9C-85C8-3E946926357C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2DE73ACC-F9C3-463E-A465-333FE29804E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DE73ACC-F9C3-463E-A465-333FE29804E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DE73ACC-F9C3-463E-A465-333FE29804E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DE73ACC-F9C3-463E-A465-333FE29804E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CB006BB-EF21-4677-AEB8-CC21204D5602}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CB006BB-EF21-4677-AEB8-CC21204D5602}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CB006BB-EF21-4677-AEB8-CC21204D5602}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CB006BB-EF21-4677-AEB8-CC21204D5602}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E495687-1D6E-413C-A1C7-00DDEA795F1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E495687-1D6E-413C-A1C7-00DDEA795F1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E495687-1D6E-413C-A1C7-00DDEA795F1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E495687-1D6E-413C-A1C7-00DDEA795F1E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
