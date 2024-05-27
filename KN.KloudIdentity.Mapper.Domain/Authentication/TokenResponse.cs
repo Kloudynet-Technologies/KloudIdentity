@@ -20,5 +20,8 @@ namespace KN.KloudIdentity.Mapper.Domain.Authentication
 
         [JsonProperty("refresh_token")]
         public string RefreshToken { get; set; }
+
+        public string Scope { get; set; }
+
     }
 }

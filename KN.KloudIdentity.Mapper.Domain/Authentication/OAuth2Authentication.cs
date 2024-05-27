@@ -51,5 +51,10 @@
         /// Authority
         /// </summary>
         public string? Authority { get; set; }
+
+        /// <summary>
+        /// Token Prefix
+        /// </summary>
+        public string? TokenPrefix { get; set;}
     }
 }

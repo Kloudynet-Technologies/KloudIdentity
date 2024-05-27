@@ -42,6 +42,18 @@ namespace KN.KloudIdentity.Mapper.Utils
 
                 httpClient.DefaultRequestHeaders.Add(apiKeyAuth.AuthHeaderName.ToString(), token);
             }
+            else if (method == AuthenticationMethods.OIDC_ClientCrd)
+            {
+                var config = GetAuthConfig(authConfig, direction);
+                var auth = JsonConvert.DeserializeObject<OAuth2Authentication>(config.ToString());
+                var tokenPrefix = string.IsNullOrWhiteSpace(auth.TokenPrefix)
+                    ? "Bearer"
+                    : auth.TokenPrefix;
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                    tokenPrefix,
+                    token
+                );
+            }
             else
             {
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
