@@ -1,19 +1,24 @@
-﻿using KN.KloudIdentity.Mapper.Domain;
+﻿using KN.KI.RabbitMQ.MessageContracts;
 using KN.KloudIdentity.Mapper.Domain.Messaging;
 using KN.KloudIdentity.Mapper.Domain.Setting;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
-using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
-using System.Text.Json;
+using MassTransit;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 
 namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 
 public class GetApplicationSettingQuery : IGetApplicationSettingQuery
 {
-    private readonly MessageBroker _messageBroker;
-    public GetApplicationSettingQuery(MessageBroker messageBroker)
+    private readonly IRequestClient<IMgtPortalServiceRequestMsg> _requestClient;
+    public GetApplicationSettingQuery(
+        IServiceScopeFactory serviceScopeFactory
+        )
     {
-        _messageBroker = messageBroker;
+        using var serviceScope = serviceScopeFactory.CreateScope();
+        _requestClient = serviceScope.ServiceProvider.GetRequiredService<IRequestClient<IMgtPortalServiceRequestMsg>>();
     }
+
     public async Task<ApplicationSetting?> GetAsync(string appId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(appId))
@@ -21,26 +26,39 @@ public class GetApplicationSettingQuery : IGetApplicationSettingQuery
             throw new ArgumentNullException(nameof(appId));
         }
 
-        InterserviceMessage response = null;
-        var correlationId = Guid.NewGuid().ToString();
-        var message = new InterserviceMessage
-        (
-            JsonSerializer.Serialize(new { AppId = appId }),
-            correlationId,
-            false,
-            null,
-            MessageType.GetApplicationSetting.ToString()
-        );
+        return await SendMessageAndProcessResponse(appId);
+    }
 
-        ApplicationSetting applicationSetting = null;
+    private async Task<ApplicationSetting> SendMessageAndProcessResponse(string appId)
+    {
+        var message = new MgtPortalServiceRequestMsg(
+                       appId,
+                       ActionType.GetApplicationSetting.ToString(),
+                       Guid.NewGuid().ToString(),
+                       null
+                    );
 
-        response = _messageBroker.Publish(message, GlobalConstants.MGTPORTAL_IN, GlobalConstants.MGTPORTAL_OUT);
-        if (response != null && !response.IsError)
+        try
         {
-            applicationSetting = JsonSerializer.Deserialize<ApplicationSetting>(response.Message, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            _messageBroker.Close();
+            var response = await _requestClient.GetResponse<IInterserviceResponseMsg>(message);
+
+            return ProcessResponse(response.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(ex.Message);
+        }
+    }
+
+    private static ApplicationSetting ProcessResponse(IInterserviceResponseMsg? response)
+    {
+        if (response == null || response.IsError == true)
+        {
+            throw new InvalidOperationException($"{response?.ErrorMessage ?? "Unknown error"}", response?.ExceptionDetails);
         }
 
-        return applicationSetting;
+        var applications = JsonConvert.DeserializeObject<ApplicationSetting>(response.Message);
+
+        return applications ?? throw new KeyNotFoundException("Application setting not found");
     }
 }

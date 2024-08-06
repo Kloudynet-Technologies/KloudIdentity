@@ -33,6 +33,8 @@ namespace Microsoft.SCIM.WebHostSample
     using System;
     using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
     using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
+    using MassTransit;
+    using KN.KI.RabbitMQ.MessageContracts;
 
     public class Startup
     {
@@ -134,6 +136,25 @@ namespace Microsoft.SCIM.WebHostSample
             services.ConfigureMapperServices(configuration);
 
             services.AddHttpClient();
+
+            services.AddMassTransit(x =>
+            {
+                x.SetKebabCaseEndpointNameFormatter();
+                x.AddRequestClient<IMgtPortalServiceRequestMsg>(new Uri("queue:mgtportal_in"));
+
+                x.UsingRabbitMq((context, cfg) =>
+                {
+                    var options = context.GetRequiredService<IOptions<AppSettings>>().Value;
+
+                    cfg.Host(options.RabbitMQ.Hostname, "/", h =>
+                    {
+                        h.Username(options.RabbitMQ.UserName);
+                        h.Password(options.RabbitMQ.Password);
+                    });
+
+                    cfg.ConfigureEndpoints(context);
+                });
+            });
 
             services.AddTransient<MessageBroker>(cfg =>
             {
