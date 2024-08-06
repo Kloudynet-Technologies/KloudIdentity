@@ -16,7 +16,7 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources<JOb
     private readonly IHttpClientFactory _httpClientFactory;
     private AppConfig _appConfig;
     public ListUserInbound(
-        IAuthContext authContext, 
+        IAuthContext authContext,
         IGetFullAppConfigQuery getFullAppConfigQuery,
         IHttpClientFactory httpClientFactory
         ) : base(authContext, getFullAppConfigQuery)
@@ -28,16 +28,16 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources<JOb
 
     public async Task<IList<JObject>> FetchInboundResourcesAsync(string appId, string correlationId, CancellationToken cancellationToken = default)
     {
-        _appConfig = await  GetAppConfigAsync(appId, correlationId);
+        _appConfig = await GetAppConfigAsync(appId, correlationId);
 
         var userURIs = _appConfig.UserURIs.Where(x => x.SCIMDirection == SCIMDirections.Inbound).FirstOrDefault();
-      
+
         if (userURIs != null && userURIs.List != null)
         {
             var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Inbound);
 
             var client = _httpClientFactory.CreateClient();
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethodInbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethodInbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Inbound);
 
             var response = await client.GetAsync(userURIs.List);
 
