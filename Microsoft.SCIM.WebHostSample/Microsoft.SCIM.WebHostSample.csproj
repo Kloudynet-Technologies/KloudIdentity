@@ -13,8 +13,8 @@
 
   <ItemGroup>
     <PackageReference Include="Hangfire" Version="1.8.12" />
-    <PackageReference Include="KN.KI.LogAggregator.Messaging.RabbitMq" Version="0.0.5" />
-    <PackageReference Include="MassTransit" Version="8.2.0" />
+    <PackageReference Include="KN.KI.LogAggregator.Messaging.RabbitMq" Version="0.0.6" />
+    <PackageReference Include="MassTransit" Version="8.2.3" />
     <PackageReference Include="MassTransit.RabbitMq" Version="8.2.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
     <PackageReference Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="7.1.0" />

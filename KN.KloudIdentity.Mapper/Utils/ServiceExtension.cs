@@ -5,19 +5,15 @@
 using KN.KloudIdentity.Mapper.BackgroundJobs;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Config.Db;
-using KN.KloudIdentity.Mapper.Consumers;
-using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
-using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
 using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.MapperCore.Group;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound.User;
 using KN.KloudIdentity.Mapper.MapperCore.User;
-using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SCIM;
@@ -59,7 +55,6 @@ public static class ServiceExtension
         services.AddScoped<IGetResource<Core2Group>, GetGroup>();
 
         services.AddScoped<IGetFullAppConfigQuery, GetFullAppConfigQuery>();
-        services.AddSingleton<RabbitMQUtil>();
         services.AddScoped<IGetVerifiedAttributeMapping, GetVerifiedAttributeMapping>();
         services.AddScoped<IFetchInboundResources<JObject>, ListUserInbound>();
         services.AddScoped<IGraphClientUtil, GraphClientUtil>();

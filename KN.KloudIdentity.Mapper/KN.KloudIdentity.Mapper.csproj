@@ -1,10 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="13.0.1" />
     <PackageReference Include="Hangfire.Core" Version="1.8.12" />
-    <PackageReference Include="KN.KI.LogAggregator.Messaging.RabbitMq" Version="0.0.4" />
-    <PackageReference Include="MassTransit" Version="8.2.0" />
+    <PackageReference Include="KN.KI.LogAggregator.Messaging.RabbitMq" Version="0.0.6" />
+    <PackageReference Include="MassTransit" Version="8.2.3" />
     <PackageReference Include="MassTransit.RabbitMq" Version="8.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.7">
