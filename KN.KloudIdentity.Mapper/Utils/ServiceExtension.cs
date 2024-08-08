@@ -14,6 +14,7 @@ using KN.KloudIdentity.Mapper.MapperCore.Group;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound.User;
 using KN.KloudIdentity.Mapper.MapperCore.User;
+using KN.KloudIdentity.Mapper.Masstransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SCIM;
@@ -62,26 +63,6 @@ public static class ServiceExtension
         services.AddScoped<IGetApplicationSettingQuery, GetApplicationSettingQuery>();
         services.AddScoped<IListApplicationsQuery, ListApplicationsQuery>();
         services.AddScoped<IJobExecutor, JobExecutor>();
-
-        // services.AddScoped<ICreateResourceInbound<JObject>, CreateUserInbound>();
-
-        // services.AddMassTransit(x =>
-        // {
-        //     x.UsingRabbitMq((context, config) =>
-        //     {
-        //         config.Host(new Uri(configuration["RabbitMQ:Hostname"]!), h =>
-        //         {
-        //             h.Username(configuration["RabbitMQ:UserName"]!);
-        //             h.Password(configuration["RabbitMQ:Password"]!);
-        //         });
-
-        //         config.ReceiveEndpoint("verify_mapping_requests", e =>
-        //         {
-        //             e.Consumer<MappingVerificationConsumer>(context);
-        //         });
-
-        //         x.AddRequestClient<AppConfig>(new Uri("exchange:app-config"));
-        //     });
-        // });
+        services.AddScoped<MessageProcessingFactory>();
     }
 }

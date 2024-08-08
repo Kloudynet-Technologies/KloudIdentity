@@ -29,6 +29,7 @@ namespace Microsoft.SCIM.WebHostSample
     using System;
     using MassTransit;
     using KN.KI.RabbitMQ.MessageContracts;
+    using KN.KloudIdentity.Mapper.Masstransit;
 
     public class Startup
     {
@@ -135,7 +136,7 @@ namespace Microsoft.SCIM.WebHostSample
             {
                 x.SetKebabCaseEndpointNameFormatter();
                 x.AddRequestClient<IMgtPortalServiceRequestMsg>(new Uri("queue:mgtportal_in"));
-
+                x.AddConsumer<InterserviceConsumer>();
                 x.UsingRabbitMq((context, cfg) =>
                 {
                     var options = context.GetRequiredService<IOptions<AppSettings>>().Value;
@@ -144,6 +145,10 @@ namespace Microsoft.SCIM.WebHostSample
                     {
                         h.Username(options.RabbitMQ.UserName);
                         h.Password(options.RabbitMQ.Password);
+                    });
+                    cfg.ReceiveEndpoint("scimservice_in", e =>
+                    {
+                        e.ConfigureConsumer<InterserviceConsumer>(context);
                     });
 
                     cfg.ConfigureEndpoints(context);
