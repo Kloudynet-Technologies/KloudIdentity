@@ -21,18 +21,15 @@ namespace Microsoft.SCIM.WebHostSample
     using Microsoft.IdentityModel.Tokens;
     using Microsoft.SCIM.WebHostSample.Provider;
     using Newtonsoft.Json;
-    using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
     using KN.KI.LogAggregator.Library.Abstractions;
     using KN.KI.LogAggregator.Library;
-    using Hangfire;
     using KN.KloudIdentity.Mapper.Domain;
     using Microsoft.Extensions.Options;
     using KN.KI.LogAggregator.Library.Implementations;
-    using KN.KloudIdentity.Mapper.BackgroundJobs;
-    using System.Threading;
     using System;
-    using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
-    using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
+    using MassTransit;
+    using KN.KI.RabbitMQ.MessageContracts;
+    using KN.KloudIdentity.Mapper.Masstransit;
 
     public class Startup
     {
@@ -135,22 +132,36 @@ namespace Microsoft.SCIM.WebHostSample
 
             services.AddHttpClient();
 
-            services.AddTransient<MessageBroker>(cfg =>
+            services.AddMassTransit(x =>
             {
-                var options = cfg.GetRequiredService<IOptions<AppSettings>>().Value;
+                x.SetKebabCaseEndpointNameFormatter();
+                x.AddRequestClient<IMgtPortalServiceRequestMsg>(new Uri("queue:mgtportal_in"));
+                x.AddConsumer<InterserviceConsumer>();
+                x.UsingRabbitMq((context, cfg) =>
+                {
+                    var options = context.GetRequiredService<IOptions<AppSettings>>().Value;
 
-                return new MessageBroker(cfg.GetRequiredService<RabbitMQUtil>(),
-                                        options.RabbitMQ.ExchangeName);
+                    cfg.Host(options.RabbitMQ.Hostname, "/", h =>
+                    {
+                        h.Username(options.RabbitMQ.UserName);
+                        h.Password(options.RabbitMQ.Password);
+                    });
+                    cfg.ReceiveEndpoint("scimservice_in", e =>
+                    {
+                        e.ConfigureConsumer<InterserviceConsumer>(context);
+                    });
+
+                    cfg.ConfigureEndpoints(context);
+                });
             });
 
             services.AddSingleton<IKloudIdentityLogger>(pub =>
             {
-                var options = pub.GetRequiredService<IOptions<AppSettings>>().Value;
+                var scope = pub.CreateScope();
+                var endpointProvider = scope.ServiceProvider.GetService<ISendEndpointProvider>();
 
-                return new RabbitMQPublisher(
-                options.RabbitMQ.Hostname,
-                options.RabbitMQ.UserName,
-                options.RabbitMQ.Password,
+                return new KloudIdentityLogger(
+                endpointProvider!,
                 LogSeverities.Information);
             });
 
@@ -162,17 +173,6 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();
             services.AddScoped<ExtractAppIdFilter>();
-
-            services.AddHostedService<RabbitMQListner>(con =>
-            {
-                var options = con.GetRequiredService<IOptions<AppSettings>>().Value;
-
-                return new RabbitMQListner(configuration["RabbitMQ:QueueName_In"],
-                                        configuration["RabbitMQ:QueueName_Out"],
-                                        options.RabbitMQ.ExchangeName,
-                                        con.GetRequiredService<RabbitMQUtil>(),
-                                        con.GetService<IServiceScopeFactory>());
-            });
 
             //services.AddHostedService<JobCreationService>(con =>
             //{

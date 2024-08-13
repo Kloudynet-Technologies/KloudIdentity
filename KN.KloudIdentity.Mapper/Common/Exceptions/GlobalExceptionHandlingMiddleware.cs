@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using KN.KI.LogAggregator.Library.Abstractions;
-using KN.KloudIdentity.Mapper.Config.Db;
 using KN.KI.LogAggregator.Library;
 
 namespace KN.KloudIdentity.Mapper.Common.Exceptions
@@ -124,25 +123,25 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
 
         private async Task CreateLogAsync(HttpContext context, Exception exception)
         {
-            string appId = context?.Items["appId"]?.ToString();
+            string? appId = context?.Items["appId"]?.ToString();
 
             var exceptionType = exception.GetType().Name;
-            var eventInfo = $@"path: [{context.Request.Method}]{context.Request.Path} - {exceptionType}";
+            var eventInfo = $@"path: [{context?.Request.Method}]{context?.Request.Path} - {exceptionType}";
 
             await _logger.CreateLogAsync(new CreateLogEntity(
-                appId,
+                appId??Guid.NewGuid().ToString(),
                 LogType.Error.ToString(),
                 LogSeverities.Error,
                 eventInfo,
                 exception.Message,
-                context.TraceIdentifier,
+                context?.TraceIdentifier?? Guid.NewGuid().ToString(),
                 "KN.KloudIdentity.SCIM",
                 DateTime.UtcNow,
                 "system",
                 exception?.Message,
                 new ExceptionInfo(
-                    exception?.Message,
-                    exception?.StackTrace,
+                    exception?.Message?? string.Empty,
+                    exception?.StackTrace ?? string.Empty,
                     exception?.InnerException?.Message,
                     exception?.InnerException?.StackTrace
                     )

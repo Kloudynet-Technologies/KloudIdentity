@@ -1,6 +1,6 @@
 ﻿namespace KN.KloudIdentity.Mapper.Domain.Messaging;
 
-public enum MessageType
+public enum ActionType
 {
     None,
     GetFullApplication,

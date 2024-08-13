@@ -5,19 +5,16 @@
 using KN.KloudIdentity.Mapper.BackgroundJobs;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Config.Db;
-using KN.KloudIdentity.Mapper.Consumers;
-using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
-using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
 using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.MapperCore.Group;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound.User;
 using KN.KloudIdentity.Mapper.MapperCore.User;
-using MassTransit;
+using KN.KloudIdentity.Mapper.Masstransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SCIM;
@@ -59,7 +56,6 @@ public static class ServiceExtension
         services.AddScoped<IGetResource<Core2Group>, GetGroup>();
 
         services.AddScoped<IGetFullAppConfigQuery, GetFullAppConfigQuery>();
-        services.AddSingleton<RabbitMQUtil>();
         services.AddScoped<IGetVerifiedAttributeMapping, GetVerifiedAttributeMapping>();
         services.AddScoped<IFetchInboundResources<JObject>, ListUserInbound>();
         services.AddScoped<IGraphClientUtil, GraphClientUtil>();
@@ -67,26 +63,6 @@ public static class ServiceExtension
         services.AddScoped<IGetApplicationSettingQuery, GetApplicationSettingQuery>();
         services.AddScoped<IListApplicationsQuery, ListApplicationsQuery>();
         services.AddScoped<IJobExecutor, JobExecutor>();
-
-        // services.AddScoped<ICreateResourceInbound<JObject>, CreateUserInbound>();
-
-        // services.AddMassTransit(x =>
-        // {
-        //     x.UsingRabbitMq((context, config) =>
-        //     {
-        //         config.Host(new Uri(configuration["RabbitMQ:Hostname"]!), h =>
-        //         {
-        //             h.Username(configuration["RabbitMQ:UserName"]!);
-        //             h.Password(configuration["RabbitMQ:Password"]!);
-        //         });
-
-        //         config.ReceiveEndpoint("verify_mapping_requests", e =>
-        //         {
-        //             e.Consumer<MappingVerificationConsumer>(context);
-        //         });
-
-        //         x.AddRequestClient<AppConfig>(new Uri("exchange:app-config"));
-        //     });
-        // });
+        services.AddScoped<MessageProcessingFactory>();
     }
 }
