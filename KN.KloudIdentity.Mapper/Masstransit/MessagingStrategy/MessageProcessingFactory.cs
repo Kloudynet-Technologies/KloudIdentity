@@ -1,21 +1,22 @@
-﻿using KN.KloudIdentity.Mapper.MapperCore;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+using KN.KloudIdentity.Mapper.BackgroundJobs;
+using KN.KloudIdentity.Mapper.MapperCore;
 
 namespace KN.KloudIdentity.Mapper.Masstransit;
 
-public class MessageProcessingFactory 
+public class MessageProcessingFactory(
+    IGetVerifiedAttributeMapping getVerifiedAttributeMapping,
+    IJobManagementService jobManagementService)
 {
-    private readonly IGetVerifiedAttributeMapping _getVerifiedAttributeMapping;
-
-    public MessageProcessingFactory(IGetVerifiedAttributeMapping getVerifiedAttributeMapping)
-    {
-        _getVerifiedAttributeMapping = getVerifiedAttributeMapping;
-    }
-
     public IMessageProcessorStrategy CreateProcessor(string action)
     {
         return action switch
         {
-            "GetVerifyMapping" => new GetVerifiedAttributeMappingStrategy(_getVerifiedAttributeMapping),
+            "GetVerifyMapping" => new GetVerifiedAttributeMappingStrategy(getVerifiedAttributeMapping),
+            "ConfigureInboundProvisioningJob" => new ConfigureInboundProvisioningJobStrategy(jobManagementService),
             _ => throw new InvalidOperationException($"Action {action} is not supported")
         };
     }

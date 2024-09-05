@@ -1,19 +1,16 @@
-﻿using KN.KI.RabbitMQ.MessageContracts;
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
+
+using KN.KI.RabbitMQ.MessageContracts;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.MapperCore;
 using System.Text.Json;
 
 namespace KN.KloudIdentity.Mapper.Masstransit
 {
-    public class GetVerifiedAttributeMappingStrategy : IMessageProcessorStrategy
+    public class GetVerifiedAttributeMappingStrategy(IGetVerifiedAttributeMapping getVerifiedAttributeMapping) : IMessageProcessorStrategy
     {
-        private readonly IGetVerifiedAttributeMapping _getVerifiedAttributeMapping;
-
-        public GetVerifiedAttributeMappingStrategy(IGetVerifiedAttributeMapping getVerifiedAttributeMapping)
-        {
-            _getVerifiedAttributeMapping = getVerifiedAttributeMapping;
-        }
-
         public async Task<IInterserviceResponseMsg> ProcessMessage(IInterserviceRequestMsg message, CancellationToken cancellationToken)
         {
             var validationResponse = ValidateMessage(message);
@@ -34,7 +31,7 @@ namespace KN.KloudIdentity.Mapper.Masstransit
                 };
             }
 
-            var queryResponse = await _getVerifiedAttributeMapping.GetVerifiedAsync(
+            var queryResponse = await getVerifiedAttributeMapping.GetVerifiedAsync(
                 query.AppId,
                 query.Type,
                 query.Direction,
