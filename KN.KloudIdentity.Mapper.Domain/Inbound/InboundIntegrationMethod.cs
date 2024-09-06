@@ -25,6 +25,11 @@ public record InboundIntegrationMethod
             validationResults.Add(new ValidationResult("RESTIntegrationMethod is required when IntegrationMethod is REST."));
         }
 
+        if (RESTIntegrationMethod != null)
+        {
+            validationResults.AddRange(RESTIntegrationMethod.Validate());
+        }
+
         return validationResults;
     }
 }

@@ -27,8 +27,15 @@ public record InboundAppConfig
         var validationContext = new ValidationContext(this);
         Validator.TryValidateObject(this, validationContext, validationResults, true);
 
-        validationResults.AddRange(InboundAuthConfig.Validate());
-        validationResults.AddRange(InboundIntegrationMethod.Validate());
+        if (InboundAuthConfig != null)
+        {
+            validationResults.AddRange(InboundAuthConfig.Validate());
+        }
+        if (InboundIntegrationMethod != null)
+        {
+            validationResults.AddRange(InboundIntegrationMethod.Validate());
+        }
+
         if (IsInboundJobEnabled)
         {
             if (InboundJobScheduler == null)
