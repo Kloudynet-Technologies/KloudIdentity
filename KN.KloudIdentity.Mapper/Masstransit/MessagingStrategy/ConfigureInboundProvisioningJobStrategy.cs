@@ -72,7 +72,8 @@ public class ConfigureInboundProvisioningJobStrategy(
         if (validationResults.Any())
         {
             var errorMessage = string.Join("; ", validationResults.Select(vr => vr.ErrorMessage));
-                                                                           return new ConfigureInboundProvisioningJobResponse
+
+            return new ConfigureInboundProvisioningJobResponse
             {
                 Message = string.Empty,
                 IsError = true,
