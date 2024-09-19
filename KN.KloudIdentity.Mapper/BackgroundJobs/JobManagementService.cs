@@ -4,15 +4,14 @@
 //------------------------------------------------------------
 
 using Hangfire;
-using KN.KloudIdentity.Mapper.Domain;
 
 namespace KN.KloudIdentity.Mapper.BackgroundJobs;
 
 public class JobManagementService(IInboundJobExecutor jobExecutor) : IJobManagementService
 {
-    public void AddOrUpdateJobAsync(InboundAppConfig inboundAppConfig, string cronExpression)
+    public void AddOrUpdateJobAsync(string appId, string cronExpression)
     {
-        RecurringJob.AddOrUpdate(inboundAppConfig.AppId, () => jobExecutor.ExecuteAsync(inboundAppConfig), cronExpression);
+        RecurringJob.AddOrUpdate(appId, () => jobExecutor.ExecuteAsync(appId), cronExpression);
 
     }
 

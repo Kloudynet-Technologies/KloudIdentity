@@ -20,9 +20,9 @@ public class ConfigureInboundProvisioningJobStrategy(
 {
     public async Task<IInterserviceResponseMsg> ProcessMessage(IInterserviceRequestMsg message, CancellationToken cancellationToken)
     {
-        var inboundConfig = JsonSerializer.Deserialize<InboundAppConfig>(message.Message);
+        var inboundConfig = JsonSerializer.Deserialize<InboundJobSchedulerConfig>(message.Message);
 
-        var errorResult = ValidateInboundAppConfig(inboundConfig);
+        var errorResult = ValidateInboundJobSchedulerConfig(inboundConfig);
 
         if (errorResult != null)
         {
@@ -43,11 +43,11 @@ public class ConfigureInboundProvisioningJobStrategy(
         return response; 
     }
 
-    private void ConfigureJob(InboundAppConfig config)
+    private void ConfigureJob(InboundJobSchedulerConfig config)
     {
         if (config.IsInboundJobEnabled)
         {
-            jobManagementService.AddOrUpdateJobAsync(config, config.InboundJobScheduler!.InboundJobFrequency);
+            jobManagementService.AddOrUpdateJobAsync(config.AppId, config.InboundJobFrequency!);
         }
         else
         {
@@ -55,9 +55,9 @@ public class ConfigureInboundProvisioningJobStrategy(
         }
     }
 
-    private ConfigureInboundProvisioningJobResponse? ValidateInboundAppConfig(InboundAppConfig? inboundAppConfig)
+    private ConfigureInboundProvisioningJobResponse? ValidateInboundJobSchedulerConfig(InboundJobSchedulerConfig? config)
     {
-        if (inboundAppConfig == null)
+        if (config == null)
         {
             return new ConfigureInboundProvisioningJobResponse
             {
@@ -67,7 +67,7 @@ public class ConfigureInboundProvisioningJobStrategy(
             };
         }
 
-        var validationResults = inboundAppConfig.Validate().ToList();
+        var validationResults = config.Validate().ToList();
 
         if (validationResults.Any())
         {

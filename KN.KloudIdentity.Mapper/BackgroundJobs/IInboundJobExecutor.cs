@@ -8,5 +8,5 @@ namespace KN.KloudIdentity.Mapper.BackgroundJobs;
 
 public interface IInboundJobExecutor
 {
-    Task ExecuteAsync(InboundAppConfig inboundAppConfig);
+    Task ExecuteAsync(string appId);
 }

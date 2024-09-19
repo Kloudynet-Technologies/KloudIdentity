@@ -8,6 +8,6 @@ namespace KN.KloudIdentity.Mapper.BackgroundJobs;
 
 public interface IJobManagementService
 {
-    void AddOrUpdateJobAsync(InboundAppConfig inboundAppConfig, string cronExpression);
+    void AddOrUpdateJobAsync(string appId, string cronExpression);
     void RemoveJob(string key);
 }
