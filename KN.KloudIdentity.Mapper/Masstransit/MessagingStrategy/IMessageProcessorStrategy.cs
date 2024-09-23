@@ -1,4 +1,6 @@
-﻿
+﻿//------------------------------------------------------------
+// Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
+//------------------------------------------------------------
 
 using KN.KI.RabbitMQ.MessageContracts;
 

@@ -30,6 +30,7 @@ namespace Microsoft.SCIM.WebHostSample
     using MassTransit;
     using KN.KI.RabbitMQ.MessageContracts;
     using KN.KloudIdentity.Mapper.Masstransit;
+    using Hangfire;
 
     public class Startup
     {
@@ -165,24 +166,14 @@ namespace Microsoft.SCIM.WebHostSample
                 LogSeverities.Information);
             });
 
-            //services.AddHangfire(x => x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
+            services.AddHangfire(x => x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
 
-            //services.AddHangfireServer();
+            services.AddHangfireServer();
 
             services.AddScoped<NonSCIMGroupProvider>();
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();
             services.AddScoped<ExtractAppIdFilter>();
-
-            //services.AddHostedService<JobCreationService>(con =>
-            //{
-            //    var options = con.GetRequiredService<IOptions<AppSettings>>().Value;
-
-            //    return new JobCreationService(
-            //                            con.GetService<IServiceProvider>(),
-            //                            options.Hangfire);
-            //});
-
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -209,11 +200,9 @@ namespace Microsoft.SCIM.WebHostSample
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
-            //app.UseHangfireDashboard("/hangfire/jobs");
+            app.UseHangfireDashboard("/hangfire/jobs");
             app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
           
-         //   RecurringJob.AddOrUpdate<IBackgroundJobService>("jobId", x => x.RunSheduleJobAsybc(), Cron.Weekly);
-
             app.UseEndpoints(
                 (IEndpointRouteBuilder endpoints) =>
                 {

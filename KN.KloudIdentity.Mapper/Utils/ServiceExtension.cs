@@ -62,7 +62,8 @@ public static class ServiceExtension
         services.AddScoped<ICreateResourceInbound<JObject>, CreateUserInbound>();
         services.AddScoped<IGetApplicationSettingQuery, GetApplicationSettingQuery>();
         services.AddScoped<IListApplicationsQuery, ListApplicationsQuery>();
-        services.AddScoped<IJobExecutor, JobExecutor>();
         services.AddScoped<MessageProcessingFactory>();
+        services.AddScoped<IJobManagementService, JobManagementService>();
+        services.AddScoped<IInboundJobExecutor, InboundJobExecutorService>();
     }
 }

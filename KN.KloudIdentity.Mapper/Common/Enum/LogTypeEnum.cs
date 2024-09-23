@@ -8,6 +8,16 @@ public enum LogType
     Add,
     Edit,
     Delete,
-    Error
+    Error,
+    RoleImportsAdd,
+    RoleImportsEdit,
+    RoleImportsDelete,
+    RoleImportsRead,
+    RoleImportsError,
+    InboundAdd,
+    InboundEdit,
+    InboundDelete,
+    InboundRead,
+    InboundError
 }
 
