@@ -2,7 +2,6 @@
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
-using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Web.Http;
@@ -37,7 +36,7 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources<JOb
             var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Inbound);
 
             var client = _httpClientFactory.CreateClient();
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethodInbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Inbound);
+            Mapper.Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethodInbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Inbound);
 
             var response = await client.GetAsync(userURIs.List);
 

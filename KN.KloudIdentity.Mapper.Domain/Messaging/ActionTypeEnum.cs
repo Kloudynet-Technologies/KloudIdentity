@@ -6,4 +6,5 @@ public enum ActionType
     GetFullApplication,
     GetApplicationSetting,
     ListInboundApplications,
+    GetInboundConfigurations,
 }
