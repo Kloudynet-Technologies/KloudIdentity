@@ -1,11 +1,11 @@
-﻿
-using KN.KloudIdentity.Mapper.Domain.Application;
-using KN.KloudIdentity.Mapper.Domain.Mapping;
-using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+﻿using KN.KloudIdentity.Mapper.Domain.Mapping;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Web.Http;
 using KN.KloudIdentity.Mapper.Domain.Inbound;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
+using KN.KloudIdentity.Mapper.Domain;
+using KN.KloudIdentity.Mapper.Domain.Authentication;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
 
@@ -13,11 +13,11 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources
 {
     private readonly IAuthContext _authContext;
     private readonly IHttpClientFactory _httpClientFactory;
-    private InboundConfig _inboundConfig;
     public ListUserInbound(
         IAuthContext authContext,
-        IHttpClientFactory httpClientFactory
-        ) : base(authContext)
+        IHttpClientFactory httpClientFactory,
+        IGetInboundAppConfigQuery getInboundAppConfigQuery
+        ) : base(authContext, getInboundAppConfigQuery)
     {
         _authContext = authContext;
         _httpClientFactory = httpClientFactory;
@@ -25,16 +25,18 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources
 
     public async Task<JObject?> FetchInboundResourcesAsync(string appId, string correlationId, CancellationToken cancellationToken = default)
     {
-        _inboundConfig = await GetAppConfigAsync(appId);
+        var inboundConfig = await GetAppConfigAsync(appId);
 
-        if (_inboundConfig.ListUsersUrl != null && _inboundConfig.ListUsersUrl != string.Empty)
+        var restConfig = GetInboundRESTIntegrationConfig(inboundConfig);
+
+        if (!string.IsNullOrEmpty(restConfig.UsersEndpoint))
         {
-            var token = await GetAuthenticationAsync(_inboundConfig, SCIMDirections.Inbound);
+            var token = await GetAuthenticationAsync(inboundConfig, SCIMDirections.Inbound);
 
             var client = _httpClientFactory.CreateClient();
-            Mapper.Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _inboundConfig.AuthenticationMethodInbound, _inboundConfig.AuthenticationDetails, token, SCIMDirections.Inbound);
+            Mapper.Utils.HttpClientExtensions.SetAuthenticationHeaders(client, inboundConfig.AuthenticationMethodInbound, inboundConfig.AuthenticationDetails, token, SCIMDirections.Inbound);
 
-            var response = await client.GetAsync(_inboundConfig.ListUsersUrl);
+            var response = await client.GetAsync(restConfig.UsersEndpoint);
 
             if (response.IsSuccessStatusCode)
             {
@@ -53,5 +55,12 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources
         {
             throw new ApplicationException("List API for users is not configured.");
         }
+    }
+
+    private InboundRESTIntegrationConfig GetInboundRESTIntegrationConfig(InboundConfig config)
+    {
+        var restConfig = JsonConvert.DeserializeObject<InboundRESTIntegrationConfig>(config.IntegrationDetails.ToString());
+
+        return restConfig!;
     }
 }

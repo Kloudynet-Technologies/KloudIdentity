@@ -3,8 +3,6 @@
 //------------------------------------------------------------
 
 using System.Security.Authentication;
-using KN.KloudIdentity.Mapper.Config;
-using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using Newtonsoft.Json;
 
@@ -46,7 +44,7 @@ public class AuthContextV1 : IAuthContext
 
         var authDetails = JsonConvert.DeserializeObject<dynamic>(appConfig.AuthenticationDetails.ToString());
 
-        var authConfig = direction == SCIMDirections.Inbound ? authDetails.Inbound : authDetails.Outbound;
+        var authConfig = direction == SCIMDirections.Inbound ? authDetails : authDetails.Outbound;
 
         return await _authStrategy.GetTokenAsync(authConfig);
     }

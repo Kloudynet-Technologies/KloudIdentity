@@ -1,6 +1,4 @@
-﻿using KN.KloudIdentity.Mapper.Domain.Mapping;
-using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
-using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+﻿using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using Microsoft.Graph.Models;
 using Newtonsoft.Json.Linq;
 
@@ -8,14 +6,16 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Inbound.User
 {
     public class CreateUserInbound : OperationsBaseInbound, ICreateResourceInbound
     {
-        private IGraphClientUtil _graphClientUtil;
-        private IGetApplicationSettingQuery _getAppSettingQuery;
+        private readonly IGraphClientUtil _graphClientUtil;
+        private readonly IGetApplicationSettingQuery _getAppSettingQuery;
+
         public CreateUserInbound(IAuthContext authContext,
             IGraphClientUtil graphClientUtil,
-            IGetApplicationSettingQuery getApplicationSettingQuery) : base(authContext)
+            IGetApplicationSettingQuery getApplicationSettingQuery,
+            IGetInboundAppConfigQuery getInboundAppConfigQuery) : base(authContext, getInboundAppConfigQuery)
         {
-            _graphClientUtil = graphClientUtil;
-            _getAppSettingQuery = getApplicationSettingQuery;
+            _graphClientUtil = graphClientUtil ?? throw new ArgumentNullException(nameof(graphClientUtil));
+            _getAppSettingQuery = getApplicationSettingQuery ?? throw new ArgumentNullException(nameof(getApplicationSettingQuery));
         }
 
         public async Task ExecuteAsync(IList<JObject> resources, string appId, string correlationId)

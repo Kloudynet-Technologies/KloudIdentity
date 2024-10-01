@@ -32,7 +32,7 @@ public class BasicAuthStrategy : IAuthStrategy
 
         string token = await Task.FromResult(base64EncodedValue);
 
-        return "Basic " + token;
+        return token;
     }
 
     /// <summary>

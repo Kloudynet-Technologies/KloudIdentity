@@ -1,9 +1,7 @@
-﻿using KN.KloudIdentity.Mapper.Domain.Application;
-using KN.KloudIdentity.Mapper.Domain.Inbound;
+﻿using KN.KloudIdentity.Mapper.Domain.Inbound;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Domain.Mapping.Inbound;
-using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
-using Microsoft.SCIM;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
@@ -11,11 +9,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
 public abstract class OperationsBaseInbound : IAPIMapperBaseInbound
 {
     private readonly IAuthContext _authContext;
+    private IGetInboundAppConfigQuery _getInboundAppConfigQuery;
 
     public OperationsBaseInbound(
-        IAuthContext authContext)
+        IAuthContext authContext,
+        IGetInboundAppConfigQuery getInboundAppConfigQuery
+        )
     {
         _authContext = authContext;
+        _getInboundAppConfigQuery = getInboundAppConfigQuery;
 
         CorrelationID = Guid.NewGuid().ToString();
     }
@@ -24,9 +26,9 @@ public abstract class OperationsBaseInbound : IAPIMapperBaseInbound
     public string CorrelationID { get; init; }
 
     /// <inheritdoc/>
-    public Task<InboundConfig> GetAppConfigAsync(string appId)
+    public async Task<InboundConfig> GetAppConfigAsync(string appId)
     {
-        throw new NotImplementedException();
+        return await _getInboundAppConfigQuery.GetAsync(appId);
     }
 
     /// <inheritdoc/>
