@@ -26,19 +26,8 @@ public interface IAPIMapperBaseInbound
     Task<string> GetAuthenticationAsync(InboundConfig config, SCIMDirections direction);
 
     /// <summary>
-    /// Invokes and fetches the users asynchronously.
-    /// </summary>
-    /// <returns>JSON object of users</returns>
-    Task<JObject> InvokeAndFetchUsersAsync(InboundConfig config, string token);
-
-    /// <summary>
     /// Map and prepare the payload to be sent to the API asynchronously.
     /// </summary>
     /// <returns></returns>
     Task<JObject> MapAndPreparePayloadAsync(InboundMappingConfig config, JObject users);
-
-    /// <summary>
-    /// Provision users asynchronously to Entra ID.
-    /// </summary>
-    Task ProvisionUsersAsync(InboundConfig config, JObject mappedPayload);
 }

@@ -1,8 +1,6 @@
-﻿using Microsoft.Graph;
-
-namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
+﻿namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
 
 public interface IGraphClientUtil
 {
-    GraphServiceClient GetClient(string tenantId, string clientId, string clientSecret);
+    Task<HttpClient> GetClientAsync(string tenantId, string clientId, string clientSecret);
 }

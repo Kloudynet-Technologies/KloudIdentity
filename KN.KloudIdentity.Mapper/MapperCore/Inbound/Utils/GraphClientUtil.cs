@@ -1,23 +1,36 @@
-﻿using Azure.Identity;
-using Microsoft.Graph;
+﻿using System.Net.Http.Headers;
+using Microsoft.Identity.Client;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
 
 public class GraphClientUtil : IGraphClientUtil
 {
-    public GraphServiceClient GetClient(string tenantId, string clientId, string clientSecret)
+    private readonly HttpClient _graphHttpClient;
+
+    public GraphClientUtil(IHttpClientFactory httpClientFactory)
     {
-        var scopes = new[] { "https://graph.microsoft.com/.default" };
-        var options = new ClientSecretCredentialOptions
-        {
-            AuthorityHost = AzureAuthorityHosts.AzurePublicCloud
-        };
+        _graphHttpClient = httpClientFactory.CreateClient();
+    }
 
-        var clientSecretCredential = new ClientSecretCredential(
-            tenantId, clientId, clientSecret, options);
+    public async Task<HttpClient> GetClientAsync(string tenantId, string clientId, string clientSecret)
+    {
+        var accessToken = await GetAccessTokenAsync(tenantId, clientId, clientSecret);
+        _graphHttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-        var graphClient = new GraphServiceClient(clientSecretCredential, scopes);
+        return _graphHttpClient;
+    }
 
-        return graphClient;
+    private async Task<string> GetAccessTokenAsync(string tenantId, string clientId, string clientSecret)
+    {
+        var confidentialClient = ConfidentialClientApplicationBuilder
+                .Create(clientId)
+                .WithClientSecret(clientSecret)
+                .WithAuthority(new Uri($"https://login.microsoftonline.com/{tenantId}"))
+                .Build();
+
+        var authResult = await confidentialClient.AcquireTokenForClient(new string[] { "https://graph.microsoft.com/.default" }).ExecuteAsync();
+        var token = authResult.AccessToken;
+
+        return token;
     }
 }
