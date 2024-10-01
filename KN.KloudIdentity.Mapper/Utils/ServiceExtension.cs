@@ -57,9 +57,9 @@ public static class ServiceExtension
 
         services.AddScoped<IGetFullAppConfigQuery, GetFullAppConfigQuery>();
         services.AddScoped<IGetVerifiedAttributeMapping, GetVerifiedAttributeMapping>();
-        services.AddScoped<IFetchInboundResources<JObject>, ListUserInbound>();
+        services.AddScoped<IFetchInboundResources, ListUserInbound>();
         services.AddScoped<IGraphClientUtil, GraphClientUtil>();
-        services.AddScoped<ICreateResourceInbound<JObject>, CreateUserInbound>();
+        services.AddScoped<ICreateResourceInbound, CreateUserInbound>();
         services.AddScoped<IGetApplicationSettingQuery, GetApplicationSettingQuery>();
         services.AddScoped<IListApplicationsQuery, ListApplicationsQuery>();
         services.AddScoped<MessageProcessingFactory>();

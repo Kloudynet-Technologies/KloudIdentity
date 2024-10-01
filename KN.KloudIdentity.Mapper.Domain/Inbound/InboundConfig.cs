@@ -12,6 +12,12 @@ public record InboundConfig
 
     public string AADAppObjectId { get; init; } = string.Empty;
 
+    public string TenantId { get; init; } = string.Empty;
+
+    public string ClientSecret { get; init; } = string.Empty;
+
+    public string ClientId { get; init; } = string.Empty;
+
     public IntegrationMethods IntegrationMethodInbound { get; init; }
 
     public AuthenticationMethods AuthenticationMethodInbound { get; init; }
@@ -19,6 +25,10 @@ public record InboundConfig
     public required dynamic AuthenticationDetails { get; set; }
 
     public string InboundAttMappingUsersPath { get; init; } = string.Empty;
+
+    public string ListUsersUrl { get; init; } = string.Empty;
+
+    public string InboundProvisioningUrl { get; init; } = string.Empty;
 
     public IList<InboundAttributeMapping> InboundAttributeMappings { get; init; } = [];
 }
