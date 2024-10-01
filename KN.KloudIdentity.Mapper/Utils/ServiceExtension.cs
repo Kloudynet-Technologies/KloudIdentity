@@ -33,6 +33,7 @@ public static class ServiceExtension
     /// <param name="services">The collection of services to add the mapper services to.</param>
     public static void ConfigureMapperServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddHttpClient();
         services.AddScoped<Context>();
 
         services.AddScoped<AutoMapperConfig>();
@@ -65,5 +66,6 @@ public static class ServiceExtension
         services.AddScoped<MessageProcessingFactory>();
         services.AddScoped<IJobManagementService, JobManagementService>();
         services.AddScoped<IInboundJobExecutor, InboundJobExecutorService>();
+        services.AddScoped<IAPIMapperBaseInbound, OperationsBaseInbound>();
     }
 }

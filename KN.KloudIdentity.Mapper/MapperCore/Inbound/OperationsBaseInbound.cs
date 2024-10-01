@@ -3,6 +3,7 @@ using KN.KloudIdentity.Mapper.Domain.Inbound;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Domain.Mapping.Inbound;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.MapperCore.Inbound.Utils;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
 
@@ -11,11 +12,14 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
 public abstract class OperationsBaseInbound : IAPIMapperBaseInbound
 {
     private readonly IAuthContext _authContext;
+    private readonly IInboundMapper _inboundMapper;
 
     public OperationsBaseInbound(
-        IAuthContext authContext)
+        IAuthContext authContext,
+        IInboundMapper inboundMapper)
     {
         _authContext = authContext;
+        _inboundMapper = inboundMapper;
 
         CorrelationID = Guid.NewGuid().ToString();
     }
@@ -36,20 +40,26 @@ public abstract class OperationsBaseInbound : IAPIMapperBaseInbound
     }
 
     /// <inheritdoc/>
-    public async Task<JObject> InvokeAndFetchUsersAsync(InboundConfig config, string token)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc/>
     public async Task<JObject> MapAndPreparePayloadAsync(InboundMappingConfig config, JObject users)
     {
-        throw new NotImplementedException();
-    }
+        var configValidationResults = await _inboundMapper.ValidateMappingConfigAsync(config);
+        if (configValidationResults.Item1)
+        {
+            var mappedPayload = await _inboundMapper.MapAsync(config, users, CorrelationID);
 
-    /// <inheritdoc/>
-    public async Task ProvisionUsersAsync(InboundConfig config, JObject mappedPayload)
-    {
-        throw new NotImplementedException();
+            var payloadValidationResults = await _inboundMapper.ValidateMappedPayloadAsync(mappedPayload);
+            if (payloadValidationResults.Item1)
+            {
+                return mappedPayload;
+            }
+            else
+            {
+                throw new ApplicationException($"Mapped payload is invalid.\n{payloadValidationResults.Item2}");
+            }
+        }
+        else
+        {
+            throw new ApplicationException($"Mapping configuration is invalid.\n{configValidationResults.Item2}");
+        }
     }
 }

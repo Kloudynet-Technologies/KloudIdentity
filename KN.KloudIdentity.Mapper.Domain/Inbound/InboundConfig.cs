@@ -28,5 +28,7 @@ public record InboundConfig
 
     public required dynamic IntegrationDetails { get; set; }
 
+    public string InboundProvisioningUrl { get; init; } = string.Empty;
+
     public IList<InboundAttributeMapping> InboundAttributeMappings { get; init; } = [];
 }
