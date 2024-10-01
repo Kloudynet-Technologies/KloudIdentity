@@ -7,5 +7,6 @@ public enum JsonDataTypes
     Boolean,
     Array,
     Object,
-    Null
+    Null,
+    DateTime
 }

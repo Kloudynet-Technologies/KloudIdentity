@@ -1,41 +1,54 @@
 ﻿using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Inbound;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
+using KN.KloudIdentity.Mapper.Domain.Mapping.Inbound;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
 
-public abstract class OperationsBaseInbound : IAPIMapperBaseInbound<JObject>
+public abstract class OperationsBaseInbound : IAPIMapperBaseInbound
 {
     private readonly IAuthContext _authContext;
-    private readonly IGetFullAppConfigQuery _getFullAppConfigQuery;
 
     public OperationsBaseInbound(
-        IAuthContext authContext,
-        IGetFullAppConfigQuery getFullAppConfigQuery)
+        IAuthContext authContext)
     {
         _authContext = authContext;
-        _getFullAppConfigQuery = getFullAppConfigQuery;
+
+        CorrelationID = Guid.NewGuid().ToString();
     }
 
-    public virtual async Task<AppConfig> GetAppConfigAsync(string appId, string correlationId)
+    /// <inheritdoc/>
+    public string CorrelationID { get; init; }
+
+    /// <inheritdoc/>
+    public Task<InboundConfig> GetAppConfigAsync(string appId)
     {
-        var result = await _getFullAppConfigQuery.GetAsync(appId);
-        if (result == null)
-        {
-            throw new KeyNotFoundException($"App configuration not found for app ID {appId}.");
-        }
-
-        return result;
+        throw new NotImplementedException();
     }
 
-    public virtual async Task<string> GetAuthenticationAsync(AppConfig config, SCIMDirections direction)
+    /// <inheritdoc/>
+    public async Task<string> GetAuthenticationAsync(InboundConfig config, SCIMDirections direction)
     {
         return await _authContext.GetTokenAsync(config, direction);
     }
 
-    public Task<JObject> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, JObject resource)
+    /// <inheritdoc/>
+    public async Task<JObject> InvokeAndFetchUsersAsync(InboundConfig config, string token)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc/>
+    public async Task<JObject> MapAndPreparePayloadAsync(InboundMappingConfig config, JObject users)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc/>
+    public async Task ProvisionUsersAsync(InboundConfig config, JObject mappedPayload)
     {
         throw new NotImplementedException();
     }

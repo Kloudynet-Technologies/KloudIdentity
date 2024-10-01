@@ -6,14 +6,13 @@ using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Inbound.User
 {
-    public class CreateUserInbound : OperationsBaseInbound, ICreateResourceInbound<JObject>
+    public class CreateUserInbound : OperationsBaseInbound, ICreateResourceInbound
     {
         private IGraphClientUtil _graphClientUtil;
         private IGetApplicationSettingQuery _getAppSettingQuery;
         public CreateUserInbound(IAuthContext authContext,
-            IGetFullAppConfigQuery getFullAppConfigQuery,
             IGraphClientUtil graphClientUtil,
-            IGetApplicationSettingQuery getApplicationSettingQuery) : base(authContext, getFullAppConfigQuery)
+            IGetApplicationSettingQuery getApplicationSettingQuery) : base(authContext)
         {
             _graphClientUtil = graphClientUtil;
             _getAppSettingQuery = getApplicationSettingQuery;
@@ -21,14 +20,9 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Inbound.User
 
         public async Task ExecuteAsync(IList<JObject> resources, string appId, string correlationId)
         {
-            var appConfig = await GetAppConfigAsync(appId, correlationId);
+            var appConfig = await GetAppConfigAsync(appId);
 
-            var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST &&
-                                  x.SCIMDirection == SCIMDirections.Inbound).ToList();
-
-            //  var payload = MapAndPreparePayloadAsync(appConfig.UserAttributeSchemas, resources);
-
-            CreateUserAsync(appId);
+            await CreateUserAsync(appId);
         }
 
         private async Task CreateUserAsync(string appId)

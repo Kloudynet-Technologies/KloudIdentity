@@ -3,7 +3,7 @@ using System.Runtime.InteropServices.JavaScript;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
 
-public interface ICreateResourceInbound<T> : IAPIMapperBaseInbound<T> where T : JObject
+public interface ICreateResourceInbound : IAPIMapperBaseInbound
 {
     Task ExecuteAsync(IList<JObject> resources, string appId, string correlationID);
 }
