@@ -13,6 +13,7 @@ using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.MapperCore.Group;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound.User;
+using KN.KloudIdentity.Mapper.MapperCore.Inbound.Utils;
 using KN.KloudIdentity.Mapper.MapperCore.User;
 using KN.KloudIdentity.Mapper.Masstransit;
 using Microsoft.Extensions.Configuration;
@@ -67,6 +68,6 @@ public static class ServiceExtension
         services.AddScoped<IJobManagementService, JobManagementService>();
         services.AddScoped<IInboundJobExecutor, InboundJobExecutorService>();
         services.AddScoped<IGetInboundAppConfigQuery, GetInboundAppConfigQuery>();
-        services.AddScoped<IAPIMapperBaseInbound, OperationsBaseInbound>();
+        services.AddScoped<IInboundMapper, InboundMapper>();
     }
 }

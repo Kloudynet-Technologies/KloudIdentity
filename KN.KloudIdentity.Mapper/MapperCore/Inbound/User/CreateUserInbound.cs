@@ -1,7 +1,10 @@
 ﻿using System.Text;
+using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Inbound;
 using KN.KloudIdentity.Mapper.Domain.Mapping.Inbound;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound.Utils;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Inbound.User
@@ -14,7 +17,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Inbound.User
         public CreateUserInbound(IAuthContext authContext,
             IGraphClientUtil graphClientUtil,
             IFetchInboundResources fetchInboundResources,
-            IInboundMapper inboundMapper) : base(authContext, inboundMapper)
+            IInboundMapper inboundMapper,
+            IGetInboundAppConfigQuery getInboundAppConfigQuery) : base(authContext, inboundMapper, getInboundAppConfigQuery)
         {
             _graphClientUtil = graphClientUtil;
             _listUsersInbound = fetchInboundResources;
@@ -23,6 +27,9 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Inbound.User
         public async Task ExecuteAsync(string appId)
         {
             var inboundConfig = await GetAppConfigAsync(appId);
+
+            var integrationConfig = GetInboundRESTIntegrationConfig(inboundConfig);
+
             var users = await _listUsersInbound.FetchInboundResourcesAsync(inboundConfig, CorrelationID) ??
                         throw new ApplicationException("No users fetched from the LOB app to be provisioned to IGA. Exiting the process.");
 
@@ -36,15 +43,22 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Inbound.User
 
             var graphClient = await _graphClientUtil.GetClientAsync(inboundConfig.TenantId, inboundConfig.ClientId, inboundConfig.ClientSecret);
 
-            var requestContent = new StringContent(mappedPayload.ToString(), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(mappedPayload.ToString(), Encoding.UTF8, "application/scim+json");
 
-            var response = await graphClient.PostAsync(inboundConfig.InboundProvisioningUrl, requestContent);
+            var response = await graphClient.PostAsync(integrationConfig.ProvisioningEndpoint, requestContent);
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 throw new Exception($"Error creating user: {response.StatusCode}, {errorContent}");
             }
+        }
+
+        private InboundRESTIntegrationConfig GetInboundRESTIntegrationConfig(InboundConfig config)
+        {
+            var restConfig = JsonConvert.DeserializeObject<InboundRESTIntegrationConfig>(config.IntegrationDetails.ToString());
+
+            return restConfig!;
         }
     }
 }

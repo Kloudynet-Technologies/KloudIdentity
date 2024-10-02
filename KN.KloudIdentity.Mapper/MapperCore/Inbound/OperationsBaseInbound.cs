@@ -12,23 +12,17 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
 public abstract class OperationsBaseInbound : IAPIMapperBaseInbound
 {
     private readonly IAuthContext _authContext;
-    private IGetInboundAppConfigQuery _getInboundAppConfigQuery;
-
-    public OperationsBaseInbound(
-        IAuthContext authContext,
-        IGetInboundAppConfigQuery getInboundAppConfigQuery
-        )
-    {
-        _authContext = authContext;
-        _getInboundAppConfigQuery = getInboundAppConfigQuery;
+    private readonly IGetInboundAppConfigQuery _getInboundAppConfigQuery;
     private readonly IInboundMapper _inboundMapper;
 
     public OperationsBaseInbound(
         IAuthContext authContext,
-        IInboundMapper inboundMapper)
+        IInboundMapper inboundMapper,
+        IGetInboundAppConfigQuery getInboundAppConfigQuery)
     {
         _authContext = authContext;
         _inboundMapper = inboundMapper;
+        _getInboundAppConfigQuery = getInboundAppConfigQuery;
 
         CorrelationID = Guid.NewGuid().ToString();
     }
