@@ -29,5 +29,5 @@ public interface IAPIMapperBaseInbound
     /// Map and prepare the payload to be sent to the API asynchronously.
     /// </summary>
     /// <returns></returns>
-    Task<JObject> MapAndPreparePayloadAsync(InboundMappingConfig config, JObject users);
+    Task<JObject> MapAndPreparePayloadAsync(InboundMappingConfig config, JObject users, string appId);
 }

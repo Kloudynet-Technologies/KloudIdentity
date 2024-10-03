@@ -1,4 +1,6 @@
-﻿using KN.KloudIdentity.Mapper.Domain.Inbound;
+﻿using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Domain.Inbound;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Domain.Mapping.Inbound;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
@@ -14,15 +16,18 @@ public abstract class OperationsBaseInbound : IAPIMapperBaseInbound
     private readonly IAuthContext _authContext;
     private readonly IGetInboundAppConfigQuery _getInboundAppConfigQuery;
     private readonly IInboundMapper _inboundMapper;
+    private readonly IKloudIdentityLogger _logger;
 
     public OperationsBaseInbound(
         IAuthContext authContext,
         IInboundMapper inboundMapper,
-        IGetInboundAppConfigQuery getInboundAppConfigQuery)
+        IGetInboundAppConfigQuery getInboundAppConfigQuery,
+        IKloudIdentityLogger logger)
     {
         _authContext = authContext;
         _inboundMapper = inboundMapper;
         _getInboundAppConfigQuery = getInboundAppConfigQuery;
+        _logger = logger;
 
         CorrelationID = Guid.NewGuid().ToString();
     }
@@ -33,17 +38,37 @@ public abstract class OperationsBaseInbound : IAPIMapperBaseInbound
     /// <inheritdoc/>
     public async Task<InboundConfig> GetAppConfigAsync(string appId)
     {
-        return await _getInboundAppConfigQuery.GetAsync(appId);
+        var config = await _getInboundAppConfigQuery.GetAsync(appId);
+        if (config == null)
+        {
+            _ = CreateLogAsync(appId, LogSeverities.Error, "GetInboundAppConfig", $"No configuration found for the application with ID: {appId}", CorrelationID);
+
+            throw new ApplicationException($"No configuration found for the application with ID: {appId}");
+        }
+
+        _ = CreateLogAsync(appId, LogSeverities.Information, "GetInboundAppConfig", $"Configuration found for the application with ID: {appId}", CorrelationID);
+
+        return config;
     }
 
     /// <inheritdoc/>
     public async Task<string> GetAuthenticationAsync(InboundConfig config, SCIMDirections direction)
     {
-        return await _authContext.GetTokenAsync(config, direction);
+        string token = await _authContext.GetTokenAsync(config, direction);
+        if (string.IsNullOrEmpty(token))
+        {
+            _ = CreateLogAsync(config.AppId, LogSeverities.Error, "GetAuthentication", "No access token generated", CorrelationID);
+
+            throw new ApplicationException("No token found");
+        }
+
+        _ = CreateLogAsync(config.AppId, LogSeverities.Information, "GetAuthentication", "Access token generated", CorrelationID);
+
+        return token;
     }
 
     /// <inheritdoc/>
-    public async Task<JObject> MapAndPreparePayloadAsync(InboundMappingConfig config, JObject users)
+    public async Task<JObject> MapAndPreparePayloadAsync(InboundMappingConfig config, JObject users, string appId)
     {
         var configValidationResults = await _inboundMapper.ValidateMappingConfigAsync(config);
         if (configValidationResults.Item1)
@@ -53,16 +78,40 @@ public abstract class OperationsBaseInbound : IAPIMapperBaseInbound
             var payloadValidationResults = await _inboundMapper.ValidateMappedPayloadAsync(mappedPayload);
             if (payloadValidationResults.Item1)
             {
+                _ = CreateLogAsync(appId, LogSeverities.Information, "MapAndPreparePayload", "Payload mapping completed", CorrelationID);
+
                 return mappedPayload;
             }
             else
             {
+                _ = CreateLogAsync(appId, LogSeverities.Error, "MapAndPreparePayload", $"Mapped payload is invalid.\n{payloadValidationResults.Item2}", CorrelationID);
+
                 throw new ApplicationException($"Mapped payload is invalid.\n{payloadValidationResults.Item2}");
             }
         }
         else
         {
+            _ = CreateLogAsync(appId, LogSeverities.Error, "MapAndPreparePayload", $"Mapping configuration is invalid.\n{configValidationResults.Item2}", CorrelationID);
+
             throw new ApplicationException($"Mapping configuration is invalid.\n{configValidationResults.Item2}");
         }
+    }
+
+    private async Task CreateLogAsync(string appId, LogSeverities severity, string eventInfo, string message, string correlationId)
+    {
+        await _logger.CreateLogAsync(new CreateLogEntity
+        (
+            appId,
+            "Inbound",
+            severity,
+            eventInfo,
+            message,
+            correlationId,
+            "KN.KloudIdentity",
+            DateTime.UtcNow,
+            "SYSTEM",
+            null,
+            null
+        ));
     }
 }

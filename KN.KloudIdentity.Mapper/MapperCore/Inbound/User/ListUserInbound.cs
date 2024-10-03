@@ -6,6 +6,8 @@ using KN.KloudIdentity.Mapper.Domain.Inbound;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound.Utils;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KI.LogAggregator.Library;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
 
@@ -13,18 +15,24 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources
 {
     private readonly IAuthContext _authContext;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IKloudIdentityLogger _logger;
+
     public ListUserInbound(
         IAuthContext authContext,
         IHttpClientFactory httpClientFactory,
         IInboundMapper inboundMapper,
-        IGetInboundAppConfigQuery getInboundAppConfigQuery) : base(authContext, inboundMapper, getInboundAppConfigQuery)
+        IGetInboundAppConfigQuery getInboundAppConfigQuery,
+        IKloudIdentityLogger logger) : base(authContext, inboundMapper, getInboundAppConfigQuery, logger)
     {
         _authContext = authContext;
         _httpClientFactory = httpClientFactory;
+        _logger = logger;
     }
 
     public async Task<JObject?> FetchInboundResourcesAsync(InboundConfig inboundConfig, string correlationId, CancellationToken cancellationToken = default)
     {
+        _ = CreateLogAsync(inboundConfig.AppId, LogSeverities.Information, "ListUserInbound started", correlationId);
+
         var restConfig = GetInboundRESTIntegrationConfig(inboundConfig);
 
         var token = await GetAuthenticationAsync(inboundConfig, SCIMDirections.Inbound);
@@ -36,6 +44,8 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources
 
         if (response.IsSuccessStatusCode)
         {
+            _ = CreateLogAsync(inboundConfig.AppId, LogSeverities.Information, "ListUserInbound fetched users", correlationId);
+
             var content = await response.Content.ReadAsStringAsync();
 
             // Parse the content to a JToken
@@ -49,21 +59,28 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources
                 {
                     ["users"] = usersArray
                 };
+
                 return usersObject;
             }
             else if (jsonToken is JObject)
             {
                 var usersObject = (JObject)jsonToken;
+
                 return usersObject;
             }
             else
             {
+                _ = CreateLogAsync(inboundConfig.AppId, LogSeverities.Error, "Unexpected JSON format", correlationId);
+
                 throw new InvalidOperationException("Unexpected JSON format.");
             }
         }
         else
         {
-            throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _ = CreateLogAsync(inboundConfig.AppId, LogSeverities.Error, $"Error fetching users: {response.StatusCode}, {errorContent}", correlationId);
+
+            throw new HttpResponseException(response.StatusCode);
         }
     }
 
@@ -72,5 +89,23 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources
         var restConfig = JsonConvert.DeserializeObject<InboundRESTIntegrationConfig>(config.IntegrationDetails.ToString());
 
         return restConfig!;
+    }
+
+    private async Task CreateLogAsync(string appId, LogSeverities severity, string message, string correlationId)
+    {
+        await _logger.CreateLogAsync(new CreateLogEntity
+        (
+            appId,
+            "Inbound",
+            severity,
+            "ListUserInbound",
+            message,
+            correlationId,
+            "KN.KloudIdentity",
+            DateTime.UtcNow,
+            "SYSTEM",
+            null,
+            null
+        ));
     }
 }
