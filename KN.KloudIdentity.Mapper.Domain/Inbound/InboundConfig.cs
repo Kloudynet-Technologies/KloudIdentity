@@ -26,7 +26,7 @@ public record InboundConfig
 
     public string InboundAttMappingUsersPath { get; init; } = string.Empty;
 
-    public string ListUsersUrl { get; init; } = string.Empty;
+    public required dynamic IntegrationDetails { get; set; }
 
     public string InboundProvisioningUrl { get; init; } = string.Empty;
 

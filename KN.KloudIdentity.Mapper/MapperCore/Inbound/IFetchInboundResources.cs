@@ -1,4 +1,5 @@
-﻿using Microsoft.SCIM;
+﻿using KN.KloudIdentity.Mapper.Domain.Inbound;
+using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -10,5 +11,5 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
 
 public interface IFetchInboundResources : IAPIMapperBaseInbound
 {
-    Task<JObject?> FetchInboundResourcesAsync(string appId, string correlationId, CancellationToken cancellationToken = default);
+    Task<JObject?> FetchInboundResourcesAsync(InboundConfig inboundConfig, string correlationId, CancellationToken cancellationToken = default);
 }

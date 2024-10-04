@@ -13,6 +13,7 @@ using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.MapperCore.Group;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound.User;
+using KN.KloudIdentity.Mapper.MapperCore.Inbound.Utils;
 using KN.KloudIdentity.Mapper.MapperCore.User;
 using KN.KloudIdentity.Mapper.Masstransit;
 using Microsoft.Extensions.Configuration;
@@ -33,6 +34,7 @@ public static class ServiceExtension
     /// <param name="services">The collection of services to add the mapper services to.</param>
     public static void ConfigureMapperServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddHttpClient();
         services.AddScoped<Context>();
 
         services.AddScoped<AutoMapperConfig>();
@@ -65,5 +67,7 @@ public static class ServiceExtension
         services.AddScoped<MessageProcessingFactory>();
         services.AddScoped<IJobManagementService, JobManagementService>();
         services.AddScoped<IInboundJobExecutor, InboundJobExecutorService>();
+        services.AddScoped<IGetInboundAppConfigQuery, GetInboundAppConfigQuery>();
+        services.AddScoped<IInboundMapper, InboundMapper>();
     }
 }

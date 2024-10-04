@@ -54,6 +54,24 @@ namespace KN.KloudIdentity.Mapper.Utils
                     token
                 );
             }
+            else if (method == AuthenticationMethods.Basic)
+            {
+                var config = GetAuthConfig(authConfig, direction);
+                var auth = JsonConvert.DeserializeObject<BasicAuthentication>(config.ToString());
+
+                var authHeaderName = string.IsNullOrWhiteSpace(auth.AuthHeaderName) ? "Basic" : auth.AuthHeaderName;
+
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                   authHeaderName,
+                   token);
+            }
+            else if (method == AuthenticationMethods.Bearer)
+            {
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                    "Bearer",
+                    token
+                );
+            }
             else
             {
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
@@ -64,9 +82,9 @@ namespace KN.KloudIdentity.Mapper.Utils
 
         private static dynamic GetAuthConfig(dynamic authConfig, SCIMDirections direction)
         {
-            var auths = JsonConvert.DeserializeObject<dynamic>(authConfig.ToString());
+            var config = JsonConvert.DeserializeObject<dynamic>(authConfig.ToString());
 
-            return direction == SCIMDirections.Inbound ? auths.Inbound : auths.Outbound;
+            return direction == SCIMDirections.Inbound ? authConfig : config.Outbound;
         }
     }
 }

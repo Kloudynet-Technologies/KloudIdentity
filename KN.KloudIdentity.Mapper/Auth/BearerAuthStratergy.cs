@@ -21,8 +21,6 @@ public class BearerAuthStratergy : IAuthStrategy
             throw new ArgumentNullException(nameof(authConfig.Token));
         }
 
-        string token = $"Bearer {bearerAuth.Token}";
-
-        return Task.FromResult(token);
+        return Task.FromResult(bearerAuth?.Token);
     }
 }
