@@ -1,4 +1,6 @@
 ﻿using System.Linq;
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Domain.Mapping.Inbound;
 using Newtonsoft.Json.Linq;
@@ -15,7 +17,6 @@ public class InboundMapper : IInboundMapper
     // This method is used to map the incoming payload to the SCIM payload
     public virtual Task<JObject> MapAsync(InboundMappingConfig mappingConfig, JObject usersPayload, string correlationId)
     {
-
         var scimTemplate = JObject.Parse(InboundConstants.SCIM_EXTENSION_TEMPLATE);
         var scimPayload = new JObject(scimTemplate);
         var transformedUsers = new JArray();
@@ -35,47 +36,16 @@ public class InboundMapper : IInboundMapper
 
             foreach (var mapping in mappingConfig.InboundAttributeMappings)
             {
-                // Set the value for the constant mappings
+                JToken value = JValue.CreateNull();
+
                 if (mapping.MappingType == MappingTypes.Constant)
                 {
-                    // Set externalId value.
-                    if (mapping.EntraIdAttribute == "externalId")
-                    {
-                        scimUser["data"]!["externalId"] = mapping.ValuePath;
-                        continue;
-                    }
-
-                    // Set preferredLanguage value.
-                    if (mapping.EntraIdAttribute == "preferredLanguage")
-                    {
-                        scimUser["data"]!["preferredLanguage"] = mapping.ValuePath;
-                        continue;
-                    }
-
-                    switch (mapping.DataType)
-                    {
-                        case JsonDataTypes.String:
-                            scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = mapping.ValuePath;
-                            break;
-                        case JsonDataTypes.Boolean:
-                            scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = bool.Parse(mapping.ValuePath);
-                            break;
-                        case JsonDataTypes.Number:
-                            scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = int.Parse(mapping.ValuePath);
-                            break;
-                        case JsonDataTypes.DateTime:
-                            scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = DateTime.Parse(mapping.ValuePath);
-                            break;
-                        default:
-                            throw new Exception($"The data type {mapping.DataType} is not supported.");
-                    }
+                    value = mapping.ValuePath;
                 }
-
-                // Set the value for the direct mappings
-                if (mapping.MappingType == MappingTypes.Direct)
+                else if (mapping.MappingType == MappingTypes.Direct)
                 {
-                    var value = user.SelectToken(mapping.ValuePath);
-                    if (value == null || string.IsNullOrEmpty(value.Value<string>()))
+                    value = user.SelectToken(mapping.ValuePath) ?? JValue.CreateNull();
+                    if (value == null || string.IsNullOrEmpty(value.ToString()))
                     {
                         if (mapping.IsRequired && string.IsNullOrEmpty(mapping.DefaultValue))
                         {
@@ -84,37 +54,33 @@ public class InboundMapper : IInboundMapper
 
                         value = mapping.DefaultValue;
                     }
+                }
 
-                    // Set externalId value.
-                    if (mapping.EntraIdAttribute == "externalId")
+                if (value != null)
+                {
+                    if (mapping.EntraIdAttribute == "externalId" || mapping.EntraIdAttribute == "preferredLanguage")
                     {
-                        scimUser["data"]!["externalId"] = value.ToString();
-                        continue;
+                        scimUser["data"]![mapping.EntraIdAttribute] = value.ToString();
                     }
-
-                    // Set preferredLanguage value.
-                    if (mapping.EntraIdAttribute == "preferredLanguage")
+                    else
                     {
-                        scimUser["data"]!["preferredLanguage"] = value.ToString();
-                        continue;
-                    }
-
-                    switch (mapping.DataType)
-                    {
-                        case JsonDataTypes.String:
-                            scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = value.ToString();
-                            break;
-                        case JsonDataTypes.Boolean:
-                            scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = bool.Parse(value.ToString());
-                            break;
-                        case JsonDataTypes.Number:
-                            scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = int.Parse(value.ToString());
-                            break;
-                        case JsonDataTypes.DateTime:
-                            scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = DateTime.Parse(value.ToString());
-                            break;
-                        default:
-                            throw new Exception($"The data type {mapping.DataType} is not supported.");
+                        switch (mapping.DataType)
+                        {
+                            case JsonDataTypes.String:
+                                scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = value.ToString();
+                                break;
+                            case JsonDataTypes.Boolean:
+                                scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = bool.Parse(value.ToString());
+                                break;
+                            case JsonDataTypes.Number:
+                                scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = int.Parse(value.ToString());
+                                break;
+                            case JsonDataTypes.DateTime:
+                                scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = DateTime.Parse(value.ToString());
+                                break;
+                            default:
+                                throw new Exception($"The data type {mapping.DataType} is not supported.");
+                        }
                     }
                 }
             }

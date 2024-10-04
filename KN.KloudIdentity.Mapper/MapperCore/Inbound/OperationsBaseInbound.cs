@@ -70,30 +70,39 @@ public abstract class OperationsBaseInbound : IAPIMapperBaseInbound
     /// <inheritdoc/>
     public async Task<JObject> MapAndPreparePayloadAsync(InboundMappingConfig config, JObject users, string appId)
     {
-        var configValidationResults = await _inboundMapper.ValidateMappingConfigAsync(config);
-        if (configValidationResults.Item1)
+        try
         {
-            var mappedPayload = await _inboundMapper.MapAsync(config, users, CorrelationID);
-
-            var payloadValidationResults = await _inboundMapper.ValidateMappedPayloadAsync(mappedPayload);
-            if (payloadValidationResults.Item1)
+            var configValidationResults = await _inboundMapper.ValidateMappingConfigAsync(config);
+            if (configValidationResults.Item1)
             {
-                _ = CreateLogAsync(appId, LogSeverities.Information, "MapAndPreparePayload", "Payload mapping completed", CorrelationID);
+                var mappedPayload = await _inboundMapper.MapAsync(config, users, CorrelationID);
 
-                return mappedPayload;
+                var payloadValidationResults = await _inboundMapper.ValidateMappedPayloadAsync(mappedPayload);
+                if (payloadValidationResults.Item1)
+                {
+                    _ = CreateLogAsync(appId, LogSeverities.Information, "MapAndPreparePayload", "Payload mapping completed", CorrelationID);
+
+                    return mappedPayload;
+                }
+                else
+                {
+                    _ = CreateLogAsync(appId, LogSeverities.Error, "MapAndPreparePayload", $"Mapped payload is invalid.\n{payloadValidationResults.Item2}", CorrelationID);
+
+                    throw new ApplicationException($"Mapped payload is invalid.\n{payloadValidationResults.Item2}");
+                }
             }
             else
             {
-                _ = CreateLogAsync(appId, LogSeverities.Error, "MapAndPreparePayload", $"Mapped payload is invalid.\n{payloadValidationResults.Item2}", CorrelationID);
+                _ = CreateLogAsync(appId, LogSeverities.Error, "MapAndPreparePayload", $"Mapping configuration is invalid.\n{configValidationResults.Item2}", CorrelationID);
 
-                throw new ApplicationException($"Mapped payload is invalid.\n{payloadValidationResults.Item2}");
+                throw new ApplicationException($"Mapping configuration is invalid.\n{configValidationResults.Item2}");
             }
         }
-        else
+        catch (Exception ex)
         {
-            _ = CreateLogAsync(appId, LogSeverities.Error, "MapAndPreparePayload", $"Mapping configuration is invalid.\n{configValidationResults.Item2}", CorrelationID);
+            _ = CreateLogAsync(appId, LogSeverities.Error, "MapAndPreparePayload", ex.Message, CorrelationID);
 
-            throw new ApplicationException($"Mapping configuration is invalid.\n{configValidationResults.Item2}");
+            throw;
         }
     }
 
