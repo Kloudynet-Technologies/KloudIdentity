@@ -43,7 +43,10 @@ public static class ServiceExtension
         services.AddScoped<IAuthStrategy, BasicAuthStrategy>();
         services.AddScoped<IAuthStrategy, OAuth2Strategy>();
         services.AddScoped<IConfigReader, ConfigReaderSQL>();
-        services.AddScoped<ICreateResource<Core2EnterpriseUser>, CreateUser>();
+
+        services.AddScoped<ICreateResourceV2, CreateUserV2>();
+        services.AddScoped<IIntegrationBase, RESTIntegration>();
+
         services.AddScoped<IGetResource<Core2EnterpriseUser>, GetUser>();
         services.AddScoped<IDeleteResource<Core2EnterpriseUser>, DeleteUser>();
         services.AddScoped<IReplaceResource<Core2EnterpriseUser>, ReplaceUser>();
