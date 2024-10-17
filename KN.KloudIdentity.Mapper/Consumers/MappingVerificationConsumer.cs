@@ -17,7 +17,7 @@ namespace KN.KloudIdentity.Mapper.Consumers
 
         public async Task Consume(ConsumeContext<MappingVerification> context)
         {
-            var result = await _getVerifiedAttributeMapping.GetVerifiedAsync(context.Message.AppId, context.Message.ObjectType, context.Message.Direction, context.Message.HttpMethod);
+            var result = await _getVerifiedAttributeMapping.GetVerifiedAsync(context.Message.AppId, context.Message.ObjectType, context.Message.HttpMethod);
 
             await _publishEndpoint.Publish(result);
         }

@@ -44,6 +44,10 @@ public static class ServiceExtension
         services.AddScoped<IAuthStrategy, OAuth2Strategy>();
         services.AddScoped<IConfigReader, ConfigReaderSQL>();
 
+        services.AddScoped<IList<IIntegrationBase>>(provider =>
+        {
+            return provider.GetServices<IIntegrationBase>().ToList();
+        });
         services.AddScoped<ICreateResourceV2, CreateUserV2>();
         services.AddScoped<IIntegrationBase, RESTIntegration>();
 
@@ -72,5 +76,6 @@ public static class ServiceExtension
         services.AddScoped<IInboundJobExecutor, InboundJobExecutorService>();
         services.AddScoped<IGetInboundAppConfigQuery, GetInboundAppConfigQuery>();
         services.AddScoped<IInboundMapper, InboundMapper>();
+        services.AddScoped<ICreateResourceV2, CreateUserV2>();
     }
 }

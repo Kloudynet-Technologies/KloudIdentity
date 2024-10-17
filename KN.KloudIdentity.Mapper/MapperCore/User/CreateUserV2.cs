@@ -42,8 +42,7 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
                                 throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
 
         // Step 2: Attribute mapping
-        var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST &&
-                                                                    x.SCIMDirection == SCIMDirections.Outbound).ToList();
+        var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
         var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource);
 
         // Step 3: Payload validation
