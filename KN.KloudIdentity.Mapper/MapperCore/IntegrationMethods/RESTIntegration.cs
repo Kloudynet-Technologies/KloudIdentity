@@ -62,7 +62,7 @@ public class RESTIntegration : IIntegrationBase
     /// <exception cref="HttpRequestException">When an error occurred during provisioning</exception>
     public virtual async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default)
     {
-        var userURIs = appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+        var userURIs = appConfig.UserURIs.FirstOrDefault();
 
         var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
 

@@ -29,6 +29,11 @@ public class ProvisioningBase : IProvisioningBase
     /// <returns></returns>
     public virtual Task<dynamic> ExecuteCustomLogicAsync(dynamic payload, AppConfig appConfig, string correlationID)
     {
+        if (appConfig.IsExternalAPIEnabled == false)
+        {
+            return Task.FromResult((object)payload);
+        }
+
         throw new NotImplementedException();
     }
 

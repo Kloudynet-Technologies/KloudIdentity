@@ -30,22 +30,20 @@ namespace KN.KloudIdentity.Mapper.Utils
 
             if (method == AuthenticationMethods.APIKey)
             {
-                var apiKeyAuth = GetAuthConfig(authConfig, direction);
 
-                if (apiKeyAuth.AuthHeaderName == null)
+                if (authConfig.AuthHeaderName == null)
                 {
                     throw new ArgumentNullException(
-                        nameof(apiKeyAuth.AuthHeaderName),
+                        nameof(authConfig.AuthHeaderName),
                         "ApiKeyHeaderName cannot be null or empty when AuthenticationMethod is ApiKey"
                     );
                 }
 
-                httpClient.DefaultRequestHeaders.Add(apiKeyAuth.AuthHeaderName.ToString(), token);
+                httpClient.DefaultRequestHeaders.Add(authConfig.AuthHeaderName.ToString(), token);
             }
             else if (method == AuthenticationMethods.OIDC_ClientCrd)
             {
-                var config = GetAuthConfig(authConfig, direction);
-                var auth = JsonConvert.DeserializeObject<OAuth2Authentication>(config.ToString());
+                var auth = JsonConvert.DeserializeObject<OAuth2Authentication>(authConfig.ToString());
                 var tokenPrefix = string.IsNullOrWhiteSpace(auth.TokenPrefix)
                     ? "Bearer"
                     : auth.TokenPrefix;
@@ -56,8 +54,7 @@ namespace KN.KloudIdentity.Mapper.Utils
             }
             else if (method == AuthenticationMethods.Basic)
             {
-                var config = GetAuthConfig(authConfig, direction);
-                var auth = JsonConvert.DeserializeObject<BasicAuthentication>(config.ToString());
+                var auth = JsonConvert.DeserializeObject<BasicAuthentication>(authConfig.ToString());
 
                 var authHeaderName = string.IsNullOrWhiteSpace(auth.AuthHeaderName) ? "Basic" : auth.AuthHeaderName;
 
@@ -78,13 +75,6 @@ namespace KN.KloudIdentity.Mapper.Utils
                     token
                 );
             }
-        }
-
-        private static dynamic GetAuthConfig(dynamic authConfig, SCIMDirections direction)
-        {
-            var config = JsonConvert.DeserializeObject<dynamic>(authConfig.ToString());
-
-            return direction == SCIMDirections.Inbound ? authConfig : config.Outbound;
         }
     }
 }
