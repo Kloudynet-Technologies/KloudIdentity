@@ -2,6 +2,7 @@ using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
+using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using Microsoft.SCIM;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
@@ -16,7 +17,8 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
 
     public CreateUserV2(
         IGetFullAppConfigQuery getFullAppConfigQuery,
-        IList<IIntegrationBase> integrations) : base(getFullAppConfigQuery)
+        IOutboundPayloadProcessor outboundPayloadProcessor,
+        IList<IIntegrationBase> integrations) : base(getFullAppConfigQuery, outboundPayloadProcessor)
     {
         _integrations = integrations;
     }

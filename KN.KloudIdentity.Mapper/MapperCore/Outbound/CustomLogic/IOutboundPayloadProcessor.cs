@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
 {
-    public interface ICustomLogic
+    public interface IOutboundPayloadProcessor
     {
         /// <summary>
         /// Custom logic implementation for outbound.
@@ -13,6 +13,6 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
         /// <param name="correlationID">Correlation ID.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Task representing the asynchronous operation.</returns>
-        Task<JObject> ProcessAsync(JObject payload, ExternalEndpointInfo endpointInfo, string correlationID, CancellationToken cancellationToken);
+        Task<dynamic> ProcessAsync(dynamic payload, ExternalEndpointInfo endpointInfo, string correlationID, CancellationToken cancellationToken);
     }
 }

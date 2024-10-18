@@ -1,6 +1,7 @@
 using System;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
+using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using Microsoft.SCIM;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
@@ -11,7 +12,8 @@ public class GetUserV2 : ProvisioningBase, IGetResourceV2
 
     public GetUserV2(
         IGetFullAppConfigQuery getFullAppConfigQuery,
-        IList<IIntegrationBase> integrations) : base(getFullAppConfigQuery)
+        IOutboundPayloadProcessor outboundPayloadProcessor,
+        IList<IIntegrationBase> integrations) : base(getFullAppConfigQuery, outboundPayloadProcessor)
     {
         _integrations = integrations;
     }

@@ -4,22 +4,23 @@ using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.ExternalEndpoint;
 using KN.KloudIdentity.Mapper.Utils;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
 {
-    public class CustomLogic : ICustomLogic
+    public class OutboundPayloadProcessor : IOutboundPayloadProcessor
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IKloudIdentityLogger _logger;
 
-        public CustomLogic(IHttpClientFactory httpClientFactory, IKloudIdentityLogger logger)
+        public OutboundPayloadProcessor(IHttpClientFactory httpClientFactory, IKloudIdentityLogger logger)
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
         }
 
-        public async Task<JObject> ProcessAsync(JObject payload, ExternalEndpointInfo endpointInfo, string correlationID, CancellationToken cancellationToken)
+        public async Task<dynamic> ProcessAsync(dynamic payload, ExternalEndpointInfo endpointInfo, string correlationID, CancellationToken cancellationToken)
         {
             var httpClient = _httpClientFactory.CreateClient();
 
@@ -33,7 +34,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
                 httpClient.DefaultRequestHeaders.Add("Bearer", endpointInfo.BearerAuth!.BearerToken);
             }
 
-            using (var response = await httpClient.PostAsJsonAsync(endpointInfo.EndpointUrl, payload, cancellationToken))
+            httpClient.DefaultRequestHeaders.Add("X-Correlation-ID", correlationID);
+
+            using (var response = await httpClient.PostAsJsonAsync(
+                endpointInfo.EndpointUrl, 
+                payload as JObject,
+                cancellationToken))
             {
                 if (!response.IsSuccessStatusCode)
                 {
@@ -42,11 +48,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
 
                 var responseContent = await response.Content.ReadAsStringAsync();
 
-                var jsonToken = JToken.Parse(responseContent);
+                var deserializedResponse = JsonConvert.DeserializeObject<dynamic>(responseContent!);
+                if (deserializedResponse == null)
+                {
+                    throw new InvalidOperationException("Deserialization resulted in a null object.");
+                }
 
                 _ = CreateLogAsync(endpointInfo, correlationID, "Custom logic executed successfully");
 
-                return (JObject)jsonToken;
+                return deserializedResponse;
             }
         }
 

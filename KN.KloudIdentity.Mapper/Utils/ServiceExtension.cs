@@ -14,6 +14,7 @@ using KN.KloudIdentity.Mapper.MapperCore.Group;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound.User;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound.Utils;
+using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.MapperCore.User;
 using KN.KloudIdentity.Mapper.Masstransit;
 using Microsoft.Extensions.Configuration;
@@ -77,5 +78,6 @@ public static class ServiceExtension
         services.AddScoped<IGetInboundAppConfigQuery, GetInboundAppConfigQuery>();
         services.AddScoped<IInboundMapper, InboundMapper>();
         services.AddScoped<ICreateResourceV2, CreateUserV2>();
+        services.AddScoped<IOutboundPayloadProcessor, OutboundPayloadProcessor>();
     }
 }
