@@ -21,6 +21,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 /// <summary>
 /// Implementation of IGetResource interface for retrieving a Core2User resource.
 /// </summary>
+[Obsolete("This class is obsolete. Use GetUserV2 instead.")]
 public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2EnterpriseUser>
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -50,6 +51,7 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
     /// <returns>A task that represents the asynchronous operation. The task result contains the retrieved user.</returns>
     /// <exception cref="Exception">Error retrieving user.</exception>
     /// <exception cref="ApplicationException">GET API for users is not configured.</exception>
+    [Obsolete("This method is obsolete. Use GetUserV2.GetAsync instead.")]
     public async Task<Core2EnterpriseUser> GetAsync(string identifier, string appId, string correlationID)
     {
         _appConfig = await GetAppConfigAsync(appId);

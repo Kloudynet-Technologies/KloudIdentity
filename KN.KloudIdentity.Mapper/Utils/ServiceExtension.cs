@@ -50,8 +50,8 @@ public static class ServiceExtension
         });
         services.AddScoped<ICreateResourceV2, CreateUserV2>();
         services.AddScoped<IIntegrationBase, RESTIntegration>();
+        services.AddScoped<IGetResourceV2, GetUserV2>();
 
-        services.AddScoped<IGetResource<Core2EnterpriseUser>, GetUser>();
         services.AddScoped<IDeleteResource<Core2EnterpriseUser>, DeleteUser>();
         services.AddScoped<IReplaceResource<Core2EnterpriseUser>, ReplaceUser>();
         services.AddScoped<IUpdateResource<Core2EnterpriseUser>, UpdateUser>();

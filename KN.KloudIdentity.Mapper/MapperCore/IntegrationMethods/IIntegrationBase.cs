@@ -48,4 +48,13 @@ public interface IIntegrationBase
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, string correlationID, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// List all users from LOB application asynchronously.
+    /// </summary>
+    /// <param name="appId">Application ID</param>
+    /// <param name="correlationID">Correlation ID</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>List of users</returns>
+    Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default);
 }

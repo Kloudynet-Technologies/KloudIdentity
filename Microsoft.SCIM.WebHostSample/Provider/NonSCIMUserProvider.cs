@@ -23,14 +23,14 @@ public class NonSCIMUserProvider : ProviderBase
     private readonly IDeleteResource<Core2EnterpriseUser> _deleteUser;
     private readonly IReplaceResource<Core2EnterpriseUser> _replaceUser;
     private readonly IUpdateResource<Core2EnterpriseUser> _updateUser;
-    private readonly IGetResource<Core2EnterpriseUser> _getUser;
+    private readonly IGetResourceV2 _getUser;
 
     public NonSCIMUserProvider(
         ICreateResourceV2 createUser,
         IDeleteResource<Core2EnterpriseUser> deleteUser,
         IReplaceResource<Core2EnterpriseUser> replaceUser,
         IUpdateResource<Core2EnterpriseUser> updateUser,
-        IGetResource<Core2EnterpriseUser> getUser
+        IGetResourceV2 getUser
     )
     {
         _createUser = createUser;
