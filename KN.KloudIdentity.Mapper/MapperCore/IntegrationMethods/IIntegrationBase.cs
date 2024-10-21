@@ -78,4 +78,13 @@ public interface IIntegrationBase
     /// <param name="correlationID"></param>
     /// <returns></returns>
     Task UpdateAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID);
+
+    /// <summary>
+    /// Deletes a user in the LOB application asynchronously.
+    /// </summary>
+    /// <param name="identifier"></param>
+    /// <param name="appConfig"></param>
+    /// <param name="correlationID"></param>
+    /// <returns></returns>
+    Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID);
 }

@@ -235,6 +235,15 @@ public class RESTIntegration : IIntegrationBase
         }
     }
 
+    /// <summary>
+    /// Updates a user in the LOB application asynchronously.
+    /// </summary>
+    /// <param name="payload"></param>
+    /// <param name="resource"></param>
+    /// <param name="appConfig"></param>
+    /// <param name="correlationID"></param>
+    /// <returns></returns>
+    /// <exception cref="HttpRequestException"></exception>
     public async Task UpdateAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
     {
         // Obtain authentication token.
@@ -258,6 +267,37 @@ public class RESTIntegration : IIntegrationBase
             {
                 throw new HttpRequestException(
                     $"Error updating user: {response.StatusCode} - {response.ReasonPhrase}"
+                );
+            }
+        }
+    }
+
+    /// <summary>
+    /// Deletes a resource asynchronously.
+    /// </summary>
+    /// <param name="identifier"></param>
+    /// <param name="appConfig"></param>
+    /// <param name="correlationID"></param>
+    /// <returns></returns>
+    /// <exception cref="HttpRequestException"></exception>
+    public async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID)
+    {
+        var userURIs = appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+
+        var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
+
+        var httpClient = _httpClientFactory.CreateClient();
+
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+
+        var apiUrl = DynamicApiUrlUtil.GetFullUrl(userURIs!.Delete!.ToString(), identifier);
+
+        using (var response = await httpClient.DeleteAsync(apiUrl))
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    $"HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}"
                 );
             }
         }

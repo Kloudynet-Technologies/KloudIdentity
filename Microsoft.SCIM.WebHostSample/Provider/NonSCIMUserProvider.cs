@@ -20,14 +20,14 @@ namespace Microsoft.SCIM.WebHostSample;
 public class NonSCIMUserProvider : ProviderBase
 {
     private readonly ICreateResourceV2 _createUser;
-    private readonly IDeleteResource<Core2EnterpriseUser> _deleteUser;
+    private readonly IDeleteResourceV2 _deleteUser;
     private readonly IReplaceResourceV2 _replaceUser;
     private readonly IUpdateResourceV2 _updateUser;
     private readonly IGetResourceV2 _getUser;
 
     public NonSCIMUserProvider(
         ICreateResourceV2 createUser,
-        IDeleteResource<Core2EnterpriseUser> deleteUser,
+        IDeleteResourceV2 deleteUser,
         IReplaceResourceV2 replaceUser,
         IUpdateResourceV2 updateUser,
         IGetResourceV2 getUser
