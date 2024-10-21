@@ -16,6 +16,7 @@ using System.Text;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User
 {
+    [Obsolete("This class is deprecated. Use UpdateUserV2 instead.")]
     public class UpdateUser
         : OperationsBase<Core2EnterpriseUser>,
             IUpdateResource<Core2EnterpriseUser>
@@ -39,6 +40,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             _logger = logger;
         }
 
+        [Obsolete("This method is deprecated. Use UpdateUserV2.UpdateAsync(IPatch, string, string) instead.")]
         public async Task UpdateAsync(IPatch patch, string appId, string correlationID)
         {
             PatchRequest2 patchRequest = patch.PatchRequest as PatchRequest2;

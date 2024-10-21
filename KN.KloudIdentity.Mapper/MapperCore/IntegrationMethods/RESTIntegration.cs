@@ -183,6 +183,16 @@ public class RESTIntegration : IIntegrationBase
         return property!.Value.ToString();
     }
 
+    /// <summary>
+    /// Replaces a user in the LOB application asynchronously.
+    /// </summary>
+    /// <param name="payload">Payload to send to the replace operation</param>
+    /// <param name="resource">Resource to be replaced</param>
+    /// <param name="appConfig">Application config</param>
+    /// <param name="correlationID">Correlation ID</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="HttpRequestException"></exception>
     public async Task ReplaceAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
     {
         // Obtain authentication token.
@@ -222,6 +232,34 @@ public class RESTIntegration : IIntegrationBase
             throw new HttpRequestException(
                 $"Error updating user: {response.StatusCode} - {response.ReasonPhrase}"
             );
+        }
+    }
+
+    public async Task UpdateAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
+    {
+        // Obtain authentication token.
+        var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
+
+        var userURIs = appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+
+        var httpClient = _httpClientFactory.CreateClient();
+
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+
+        var apiPath = DynamicApiUrlUtil.GetFullUrl(userURIs!.Patch!.ToString(), resource.Identifier);
+
+        var jsonPayload = payload.ToString();
+
+        var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+        using (var response = await httpClient.PatchAsync(apiPath, content))
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    $"Error updating user: {response.StatusCode} - {response.ReasonPhrase}"
+                );
+            }
         }
     }
 }

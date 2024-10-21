@@ -64,7 +64,18 @@ public interface IIntegrationBase
     /// </summary>
     /// <param name="payload">Payload of the user</param>
     /// <param name="resource">Object to be replaced</param>
+    /// <param name="appConfig">App configuration</param>
     /// <param name="correlationID">Correlation ID</param>
     /// <returns></returns>
     Task ReplaceAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID);
+
+    /// <summary>
+    /// Updates a user in the LOB application asynchronously.
+    /// </summary>
+    /// <param name="payload"></param>
+    /// <param name="resource"></param>
+    /// <param name="appConfig"></param>
+    /// <param name="correlationID"></param>
+    /// <returns></returns>
+    Task UpdateAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID);
 }
