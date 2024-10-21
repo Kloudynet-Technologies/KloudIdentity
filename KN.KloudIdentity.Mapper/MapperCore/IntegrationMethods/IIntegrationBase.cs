@@ -1,6 +1,7 @@
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using Microsoft.SCIM;
+using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
@@ -57,4 +58,13 @@ public interface IIntegrationBase
     /// <param name="cancellationToken"></param>
     /// <returns>List of users</returns>
     Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Replaces a user in the LOB application asynchronously.
+    /// </summary>
+    /// <param name="payload">Payload of the user</param>
+    /// <param name="resource">Object to be replaced</param>
+    /// <param name="correlationID">Correlation ID</param>
+    /// <returns></returns>
+    Task ReplaceAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID);
 }

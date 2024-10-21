@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Web.Http;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Application;
@@ -104,6 +105,17 @@ public class RESTIntegration : IIntegrationBase
         return Task.FromResult((true, Array.Empty<string>()));
     }
 
+    /// <summary>
+    /// List all users from LOB application asynchronously.
+    /// </summary>
+    /// <param name="identifier">Unique identifier of the user</param>
+    /// <param name="appConfig">App configurations</param>
+    /// <param name="correlationID">Correlation ID</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    /// <exception cref="NotFoundException">When user not found in the LOB app</exception>
+    /// <exception cref="HttpResponseException">When user not found in the LOB app</exception>
+    /// <exception cref="ApplicationException">When GET API is notCore2EnterpriseUser resource, string appId,</exception>
     public async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default)
     {
         var userURIs = appConfig.UserURIs.Where(x => x.SCIMDirection == SCIMDirections.Outbound).FirstOrDefault();
@@ -169,5 +181,47 @@ public class RESTIntegration : IIntegrationBase
             .FirstOrDefault(p => string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
 
         return property!.Value.ToString();
+    }
+
+    public async Task ReplaceAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
+    {
+        // Obtain authentication token.
+        var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
+
+        var httpClient = _httpClientFactory.CreateClient();
+
+        // Set headers based on authentication method.
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+
+        var userURIs = appConfig.UserURIs.Where(x => x.SCIMDirection == SCIMDirections.Outbound).FirstOrDefault();
+
+        HttpResponseMessage response;
+
+        if (userURIs!.Put != null)
+        {
+            var apiPath = DynamicApiUrlUtil.GetFullUrl(userURIs.Put!.ToString(), resource.Identifier);
+
+            response = await httpClient.PutAsJsonAsync(apiPath, payload);
+        }
+        else if (userURIs.Patch != null)
+        {
+            var apiPath = DynamicApiUrlUtil.GetFullUrl(userURIs.Patch.ToString(), resource.Identifier);
+            var jsonPayload = payload.ToString();
+            var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+            response = await httpClient.PatchAsync(apiPath, content);
+        }
+        else
+        {
+            throw new ArgumentNullException("PUTAPIForUsers and PATCHAPIForUsers cannot both be null or empty");
+        }
+
+        // Check if the request was successful; otherwise, throw an exception.
+        if (response != null && !response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException(
+                $"Error updating user: {response.StatusCode} - {response.ReasonPhrase}"
+            );
+        }
     }
 }
