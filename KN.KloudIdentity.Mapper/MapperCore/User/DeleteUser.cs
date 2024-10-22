@@ -13,6 +13,7 @@ using Microsoft.SCIM;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User
 {
+    [Obsolete("This class is deprecated. Use DeleteUserV2 instead.")]
     public class DeleteUser : OperationsBase<Core2EnterpriseUser>, IDeleteResource<Core2EnterpriseUser>
     {
         private AppConfig _appConfig;
@@ -41,6 +42,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <param name="appId">The application ID associated with the operation.</param>
         /// <param name="correlationID">The correlation ID associated with the operation.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
+        [Obsolete("This method is deprecated. Use DeleteUserV2.DeleteAsync(IResourceIdentifier, string, string) instead.")]
         public async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string appId, string correlationID)
         {
             // Retrieve application configuration asynchronously.
