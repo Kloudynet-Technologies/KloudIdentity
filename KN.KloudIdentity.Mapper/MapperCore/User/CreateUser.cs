@@ -18,6 +18,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 /// Class for creating a new Core2User resource.
 /// Implements the ICreateResource interface.
 /// </summary>
+[Obsolete("This class is obsolete. Use CreateUserV2 instead.")]
 public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<Core2EnterpriseUser>
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -46,6 +47,7 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
     /// <param name="appId">The ID of the application.</param>
     /// <param name="correlationID">The correlation ID.</param>
     /// <returns>The created user resource.</returns>
+    [Obsolete("This method is obsolete. Use CreateUserV2.ExecuteAsync instead.")]
     public async Task<Core2EnterpriseUser> ExecuteAsync(
         Core2EnterpriseUser resource,
         string appId,
@@ -79,7 +81,7 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
         var userURIs = appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
 
         var token = await base.GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
-        
+
         var httpClient = _httpClientFactory.CreateClient();
 
         Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);

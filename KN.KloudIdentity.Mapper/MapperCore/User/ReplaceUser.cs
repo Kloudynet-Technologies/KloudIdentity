@@ -19,6 +19,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
     /// <summary>
     /// Class responsible for replacing a user in the identity management system.
     /// </summary>
+    [Obsolete("This class is deprecated, use ReplaceUserV2 instead.")]
     public class ReplaceUser
         : OperationsBase<Core2EnterpriseUser>,
             IReplaceResource<Core2EnterpriseUser>
@@ -50,6 +51,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <param name="appId">Application ID.</param>
         /// <param name="correlationID">Correlation ID for tracking.</param>
         /// <returns>The replaced Core2EnterpriseUser object.</returns>
+        [Obsolete("This method is deprecated, use ReplaceUserV2.ReplaceAsync instead.")]
         public async Task<Core2EnterpriseUser> ReplaceAsync(
             Core2EnterpriseUser resource,
             string appId,

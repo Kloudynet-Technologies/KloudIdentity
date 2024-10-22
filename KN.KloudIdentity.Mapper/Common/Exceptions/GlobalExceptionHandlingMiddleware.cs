@@ -68,7 +68,7 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
                 exModel.Title = title;
                 exModel.Details = exception.StackTrace;
 
-                await CreateLogAsync(context, exception);
+                _ = CreateLogAsync(context, exception);
             }
 
             switch (exception)
@@ -129,23 +129,22 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
             var eventInfo = $@"path: [{context?.Request.Method}]{context?.Request.Path} - {exceptionType}";
 
             await _logger.CreateLogAsync(new CreateLogEntity(
-                appId??Guid.NewGuid().ToString(),
+                appId ?? Guid.NewGuid().ToString(),
                 LogType.Error.ToString(),
                 LogSeverities.Error,
                 eventInfo,
                 exception.Message,
-                context?.TraceIdentifier?? Guid.NewGuid().ToString(),
+                context?.TraceIdentifier ?? Guid.NewGuid().ToString(),
                 "KN.KloudIdentity.SCIM",
                 DateTime.UtcNow,
                 "system",
                 exception?.Message,
                 new ExceptionInfo(
-                    exception?.Message?? string.Empty,
+                    exception?.Message ?? string.Empty,
                     exception?.StackTrace ?? string.Empty,
                     exception?.InnerException?.Message,
                     exception?.InnerException?.StackTrace
                     )
-
                 ));
         }
     }
