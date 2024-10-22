@@ -43,7 +43,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
                     throw new InvalidOperationException("Deserialization resulted in a null object.");
                 }
 
-                await CreateLogAsync(endpointInfo, correlationID, "Custom logic executed successfully");
+                _ = CreateLogAsync(endpointInfo, correlationID, "Custom logic executed successfully");
 
                 return deserializedResponse;
             }

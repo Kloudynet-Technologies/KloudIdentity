@@ -21,9 +21,8 @@ namespace KN.KloudIdentity.Mapper.Utils
             this HttpClient httpClient,
             AuthenticationMethods method,
             dynamic authConfig,
-            string token,
-            SCIMDirections direction
-        )
+            string token
+            )
         {
             if (method == AuthenticationMethods.None)
                 return;

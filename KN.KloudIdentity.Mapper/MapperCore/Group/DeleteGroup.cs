@@ -68,7 +68,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <exception cref="HttpRequestException">Thrown when the HTTP request fails.</exception>
         private async Task DeleteGroupAsync(string identifier)
         {
-            var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+            var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault();
 
             var authConfig = _appConfig?.AuthenticationDetails;
 
@@ -76,7 +76,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token, SCIMDirections.Outbound);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token);
 
             // Build the API URL.
             var apiUrl = DynamicApiUrlUtil.GetFullUrl(groupURIs!.Delete!.ToString(), identifier);
@@ -100,7 +100,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <exception cref="ArgumentNullException">Thrown when the identifier or DELETEAPIForGroups is null or empty.</exception>
         private void ValidatedRequest(string identifier, AppConfig appConfig)
         {
-            var groupURIs = appConfig?.GroupURIs?.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+            var groupURIs = appConfig?.GroupURIs?.FirstOrDefault();
 
             if (string.IsNullOrWhiteSpace(identifier))
             {

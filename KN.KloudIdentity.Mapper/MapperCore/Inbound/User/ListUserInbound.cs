@@ -38,7 +38,7 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources
         var token = await GetAuthenticationAsync(inboundConfig, SCIMDirections.Inbound);
 
         var client = _httpClientFactory.CreateClient();
-        Mapper.Utils.HttpClientExtensions.SetAuthenticationHeaders(client, inboundConfig.AuthenticationMethodInbound, inboundConfig.AuthenticationDetails, token, SCIMDirections.Inbound);
+        Mapper.Utils.HttpClientExtensions.SetAuthenticationHeaders(client, inboundConfig.AuthenticationMethodInbound, inboundConfig.AuthenticationDetails, token);
 
         var response = await client.GetAsync(restConfig.UsersEndpoint);
 

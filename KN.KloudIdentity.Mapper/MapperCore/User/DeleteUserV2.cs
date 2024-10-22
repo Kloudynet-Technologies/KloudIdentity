@@ -4,6 +4,7 @@ using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
+using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using Microsoft.SCIM;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
@@ -14,7 +15,8 @@ public class DeleteUserV2 : ProvisioningBase, IDeleteResourceV2
 
     public DeleteUserV2(
         IGetFullAppConfigQuery getFullAppConfigQuery,
-        IList<IIntegrationBase> integrations) : base(getFullAppConfigQuery)
+        IOutboundPayloadProcessor outboundPayloadProcessor,
+        IList<IIntegrationBase> integrations) : base(getFullAppConfigQuery, outboundPayloadProcessor)
     {
         _integrations = integrations;
     }
@@ -46,7 +48,7 @@ public class DeleteUserV2 : ProvisioningBase, IDeleteResourceV2
     /// <exception cref="ArgumentNullException">Thrown when the identifier or DELETEAPIForUsers is null or empty.</exception>
     private void ValidatedRequest(string identifier, AppConfig appConfig)
     {
-        var userURIs = appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+        var userURIs = appConfig.UserURIs.FirstOrDefault();
 
         if (string.IsNullOrWhiteSpace(identifier))
         {

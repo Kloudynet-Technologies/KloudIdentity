@@ -84,7 +84,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             var httpClient = _httpClientFactory.CreateClient();
 
             // Set headers based on authentication method.
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token);
 
             using (var response = await ProcessRequestAsync(_appConfig, httpClient, payload, resource))
             {
@@ -109,7 +109,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// </returns>
         private async Task<HttpResponseMessage?> ProcessRequestAsync(AppConfig appConfig, HttpClient httpClient, JObject payload, Core2EnterpriseUser resource)
         {
-            var userURIs = _appConfig.UserURIs.Where(x => x.SCIMDirection == SCIMDirections.Outbound).FirstOrDefault();
+            var userURIs = _appConfig.UserURIs.FirstOrDefault();
             if (userURIs.Put != null)
             {
                 var apiPath = DynamicApiUrlUtil.GetFullUrl(userURIs.Put!.ToString(), resource.Identifier);

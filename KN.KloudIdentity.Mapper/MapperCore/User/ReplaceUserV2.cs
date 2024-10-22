@@ -3,6 +3,7 @@ using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
+using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using Microsoft.SCIM;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
@@ -17,9 +18,10 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
         IHttpClientFactory httpClientFactory,
         IGetFullAppConfigQuery getFullAppConfigQuery,
         IKloudIdentityLogger logger,
-        IList<IIntegrationBase> integrations
+        IList<IIntegrationBase> integrations,
+        IOutboundPayloadProcessor outboundPayloadProcessor
         )
-        : base(getFullAppConfigQuery)
+        : base(getFullAppConfigQuery, outboundPayloadProcessor)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
