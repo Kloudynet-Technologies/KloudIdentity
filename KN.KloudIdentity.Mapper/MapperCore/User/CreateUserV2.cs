@@ -1,7 +1,11 @@
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
+using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
@@ -13,12 +17,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
 {
     private readonly IList<IIntegrationBase> _integrations;
+    private readonly IKloudIdentityLogger _logger;
 
     public CreateUserV2(
         IGetFullAppConfigQuery getFullAppConfigQuery,
-        IList<IIntegrationBase> integrations) : base(getFullAppConfigQuery)
+        IList<IIntegrationBase> integrations,
+        IKloudIdentityLogger logger) : base(getFullAppConfigQuery)
     {
         _integrations = integrations;
+        _logger = logger;
     }
 
     /// <summary>
@@ -57,6 +64,28 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
         // Step 5: Provisioning
         await integrationOp.ProvisionAsync(payload, appConfig, correlationID);
 
+        // Step 6: Logging
+        await CreateLogAsync(appId, correlationID);
+
         return resource;
+    }
+
+    private async Task CreateLogAsync(string appId, string correlationID)
+    {
+        var logEntity = new CreateLogEntity(
+            appId,
+            LogType.Provision.ToString(),
+            LogSeverities.Information,
+            "User Provision",
+            "User provisioned successfully",
+            correlationID,
+            AppConstant.LoggerName,
+            DateTime.UtcNow,
+            AppConstant.User,
+            null,
+            null
+        );
+
+        await _logger.CreateLogAsync(logEntity);
     }
 }

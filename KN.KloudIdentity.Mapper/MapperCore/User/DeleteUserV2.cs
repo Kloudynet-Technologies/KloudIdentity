@@ -1,9 +1,13 @@
 using System;
 using System.Configuration.Provider;
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
+using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
@@ -11,12 +15,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 public class DeleteUserV2 : ProvisioningBase, IDeleteResourceV2
 {
     private readonly IList<IIntegrationBase> _integrations;
+    private readonly IKloudIdentityLogger _logger;
 
     public DeleteUserV2(
         IGetFullAppConfigQuery getFullAppConfigQuery,
-        IList<IIntegrationBase> integrations) : base(getFullAppConfigQuery)
+        IList<IIntegrationBase> integrations,
+        IKloudIdentityLogger logger) : base(getFullAppConfigQuery)
     {
         _integrations = integrations;
+        _logger = logger;
     }
 
     public async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string appId, string correlationID)
@@ -35,7 +42,7 @@ public class DeleteUserV2 : ProvisioningBase, IDeleteResourceV2
         await integrationOp.DeleteAsync(resourceIdentifier.Identifier, appConfig, correlationID);
 
         // Log the operation.
-        // await CreateLogAsync(_appConfig, resourceIdentifier.Identifier, correlationID);
+        await CreateLogAsync(appConfig.AppId, resourceIdentifier.Identifier, correlationID);
     }
 
     /// <summary>
@@ -56,5 +63,24 @@ public class DeleteUserV2 : ProvisioningBase, IDeleteResourceV2
         {
             throw new ArgumentNullException(nameof(userURIs.Delete), "Delete endpoint cannot be null or empty");
         }
+    }
+
+    private async Task CreateLogAsync(string appId, string identifier, string correlationID)
+    {
+        var logEntity = new CreateLogEntity(
+            appId,
+            LogType.Deprovision.ToString(),
+            LogSeverities.Information,
+            "User Deprovision",
+            $"User deleted successfully for the id {identifier}",
+            correlationID,
+            AppConstant.LoggerName,
+            DateTime.UtcNow,
+            AppConstant.User,
+            null,
+            null
+        );
+
+        await _logger.CreateLogAsync(logEntity);
     }
 }
