@@ -1,6 +1,10 @@
 using System;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Web.Http;
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
@@ -20,18 +24,21 @@ public class RESTIntegration : IIntegrationBase
     private readonly IAuthContext _authContext;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
+    private readonly IKloudIdentityLogger _logger;
 
     public IntegrationMethods IntegrationMethod { get; init; }
 
     public RESTIntegration(IAuthContext authContext,
                             IHttpClientFactory httpClientFactory,
-                            IConfiguration configuration)
+                            IConfiguration configuration,
+                            IKloudIdentityLogger logger)
     {
         IntegrationMethod = IntegrationMethods.REST;
 
         _authContext = authContext;
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
+        _logger = logger;
     }
 
     /// <summary>
@@ -90,6 +97,20 @@ public class RESTIntegration : IIntegrationBase
                 $"Error creating user: {response.StatusCode} - {response.ReasonPhrase}"
             );
         }
+
+        // Log the operation.
+        _ = Task.Run(() =>
+        {
+            var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
+            string? idVal = payload[idField].ToString();
+
+            _ = CreateLogAsync(appConfig.AppId,
+                              "Create User",
+                              $"User created successfully for the id {idVal}",
+                              LogType.Provision,
+                              LogSeverities.Information,
+                              correlationID);
+        });
     }
 
     /// <summary>
@@ -147,7 +168,13 @@ public class RESTIntegration : IIntegrationBase
                 core2EntUsr.Identifier = GetValueCaseInsensitive(user, idField);
                 core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
 
-                // await CreateLogAsync(_appConfig, identifier, correlationID);
+                // Create log for the operation.
+                _ = CreateLogAsync(appConfig.AppId,
+                                    "Get User",
+                                    $"User retrieved successfully for the id {identifier}",
+                                    LogType.Read,
+                                    LogSeverities.Information,
+                                    correlationID);
 
                 return core2EntUsr;
             }
@@ -212,6 +239,20 @@ public class RESTIntegration : IIntegrationBase
             var apiPath = DynamicApiUrlUtil.GetFullUrl(userURIs.Put!.ToString(), resource.Identifier);
 
             response = await httpClient.PutAsJsonAsync(apiPath, payload);
+
+            // Log the operation.
+            _ = Task.Run(() =>
+            {
+                var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
+                string? idVal = payload[idField]!.ToString();
+
+                _ = CreateLogAsync(appConfig.AppId,
+                                  "Replace User",
+                                  $"User replaced successfully for the id {idVal}",
+                                  LogType.Provision,
+                                  LogSeverities.Information,
+                                  correlationID);
+            });
         }
         else if (userURIs.Patch != null)
         {
@@ -220,6 +261,20 @@ public class RESTIntegration : IIntegrationBase
             var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
             response = await httpClient.PatchAsync(apiPath, content);
+
+            // Log the operation.
+            _ = Task.Run(() =>
+            {
+                var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
+                string? idVal = payload[idField].ToString();
+
+                _ = CreateLogAsync(appConfig.AppId,
+                                  "Replace User",
+                                  $"User replaced successfully for the id {idVal}",
+                                  LogType.Provision,
+                                  LogSeverities.Information,
+                                  correlationID);
+            });
         }
         else
         {
@@ -269,6 +324,20 @@ public class RESTIntegration : IIntegrationBase
                     $"Error updating user: {response.StatusCode} - {response.ReasonPhrase}"
                 );
             }
+
+            // Log the operation.
+            _ = Task.Run(() =>
+            {
+                var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
+                string? idVal = payload[idField]!.ToString();
+
+                _ = CreateLogAsync(appConfig.AppId,
+                                  "Update User",
+                                  $"User updated successfully for the id {idVal}",
+                                  LogType.Provision,
+                                  LogSeverities.Information,
+                                  correlationID);
+            });
         }
     }
 
@@ -300,6 +369,33 @@ public class RESTIntegration : IIntegrationBase
                     $"HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}"
                 );
             }
+
+            // Log the operation.
+            _ = CreateLogAsync(appConfig.AppId,
+                                  "Delete User",
+                                  $"User deleted successfully for the id {identifier}",
+                                  LogType.Provision,
+                                  LogSeverities.Information,
+                                  correlationID);
         }
+    }
+
+    private async Task CreateLogAsync(string appId, string eventInfo, string logMessage, LogType logType, LogSeverities logSeverity, string correlationID)
+    {
+        var logEntity = new CreateLogEntity(
+            appId,
+            logType.ToString(),
+            logSeverity,
+            eventInfo,
+            logMessage,
+            correlationID,
+            AppConstant.LoggerName,
+            DateTime.UtcNow,
+            AppConstant.User,
+            null,
+            null
+        );
+
+        await _logger.CreateLogAsync(logEntity);
     }
 }

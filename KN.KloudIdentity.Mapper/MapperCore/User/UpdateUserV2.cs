@@ -1,8 +1,11 @@
 using System;
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
-using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
+using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
@@ -10,13 +13,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
 {
     private readonly IList<IIntegrationBase> _integrations;
+    private readonly IKloudIdentityLogger _logger;
 
     public UpdateUserV2(
         IGetFullAppConfigQuery getFullAppConfigQuery,
-        IOutboundPayloadProcessor outboundPayloadProcessor,
-        IList<IIntegrationBase> integrations) : base(getFullAppConfigQuery, outboundPayloadProcessor)
+        IList<IIntegrationBase> integrations,
+        IKloudIdentityLogger logger) : base(getFullAppConfigQuery)
     {
         _integrations = integrations;
+        _logger = logger;
     }
 
     /// <summary>
@@ -53,6 +58,25 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         // Step 3: Update user
         await integrationOp.UpdateAsync(payload, user, appConfig, correlationID);
 
-        // await CreateLogAsync(appConfig, user.Identifier, correlationID);
+        _ = CreateLogAsync(appConfig.AppId, user.Identifier, correlationID);
+    }
+
+    private async Task CreateLogAsync(string appId, string identifier, string correlationID)
+    {
+        var logEntity = new CreateLogEntity(
+            appId,
+            LogType.Edit.ToString(),
+            LogSeverities.Information,
+            "Update user",
+            $"User updated successfully for the id {identifier}",
+            correlationID,
+            AppConstant.LoggerName,
+            DateTime.UtcNow,
+            AppConstant.User,
+            null,
+            null
+        );
+
+        await _logger.CreateLogAsync(logEntity);
     }
 }

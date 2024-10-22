@@ -1,7 +1,10 @@
 using System;
+using KN.KI.LogAggregator.Library;
+using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
-using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
+using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
@@ -9,13 +12,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 public class GetUserV2 : ProvisioningBase, IGetResourceV2
 {
     private readonly IList<IIntegrationBase> _integrations;
+    private readonly IKloudIdentityLogger _logger;
 
     public GetUserV2(
         IGetFullAppConfigQuery getFullAppConfigQuery,
-        IOutboundPayloadProcessor outboundPayloadProcessor,
-        IList<IIntegrationBase> integrations) : base(getFullAppConfigQuery, outboundPayloadProcessor)
+        IList<IIntegrationBase> integrations,
+        IKloudIdentityLogger logger) : base(getFullAppConfigQuery)
     {
         _integrations = integrations;
+        _logger = logger;
     }
 
     /// <summary>
@@ -38,6 +43,28 @@ public class GetUserV2 : ProvisioningBase, IGetResourceV2
         // Step 2: Retrieve user
         var user = await integrationOp.GetAsync(identifier, appConfig, correlationID);
 
+        // Log the operation.
+        _ = CreateLogAsync(appConfig.AppId, identifier, correlationID);
+
         return user;
+    }
+
+    private async Task CreateLogAsync(string appId, string identifier, string correlationID)
+    {
+        var logEntity = new CreateLogEntity(
+            appId,
+            LogType.Read.ToString(),
+            LogSeverities.Information,
+            "Retrieve user",
+            $"User retrieved successfully for the id {identifier}",
+            correlationID,
+            AppConstant.LoggerName,
+            DateTime.UtcNow,
+            AppConstant.User,
+            null,
+            null
+        );
+
+        await _logger.CreateLogAsync(logEntity);
     }
 }
