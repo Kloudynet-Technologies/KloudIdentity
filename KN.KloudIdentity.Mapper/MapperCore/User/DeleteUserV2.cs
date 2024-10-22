@@ -7,6 +7,7 @@ using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
+using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 
@@ -20,7 +21,8 @@ public class DeleteUserV2 : ProvisioningBase, IDeleteResourceV2
     public DeleteUserV2(
         IGetFullAppConfigQuery getFullAppConfigQuery,
         IList<IIntegrationBase> integrations,
-        IKloudIdentityLogger logger) : base(getFullAppConfigQuery)
+        IOutboundPayloadProcessor outboundPayloadProcessor,
+        IKloudIdentityLogger logger) : base(getFullAppConfigQuery, outboundPayloadProcessor)
     {
         _integrations = integrations;
         _logger = logger;
