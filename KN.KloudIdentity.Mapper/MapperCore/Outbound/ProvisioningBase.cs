@@ -32,7 +32,7 @@ public class ProvisioningBase : IProvisioningBase
     /// <returns></returns>
     public virtual async Task<dynamic> ExecuteCustomLogicAsync(dynamic payload, AppConfig appConfig, string correlationID)
     {
-        if (appConfig.IsExternalAPIEnabled == false || appConfig.IsExternalAPIEnabled == null)
+        if(appConfig is not { IsExternalAPIEnabled: false or null })
         {
             return payload;
         }
