@@ -77,7 +77,6 @@ public static class ServiceExtension
         services.AddScoped<IInboundJobExecutor, InboundJobExecutorService>();
         services.AddScoped<IGetInboundAppConfigQuery, GetInboundAppConfigQuery>();
         services.AddScoped<IInboundMapper, InboundMapper>();
-        services.AddScoped<ICreateResourceV2, CreateUserV2>();
         services.AddScoped<IOutboundPayloadProcessor, OutboundPayloadProcessor>();
     }
 }
