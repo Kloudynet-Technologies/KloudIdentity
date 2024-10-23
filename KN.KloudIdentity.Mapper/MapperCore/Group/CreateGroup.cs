@@ -51,8 +51,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         {
             _appConfig = await GetAppConfigAsync(appId);
 
-            var attributes = _appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == HttpRequestTypes.POST &&
-            x.SCIMDirection == SCIMDirections.Outbound).ToList();
+            var attributes = _appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
 
             var payload = await MapAndPreparePayloadAsync(attributes, resource);
 

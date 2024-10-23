@@ -56,8 +56,7 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
     {
         var appConfig = await GetAppConfigAsync(appId);
 
-        var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST &&
-        x.SCIMDirection == SCIMDirections.Outbound).ToList();
+        var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
 
         var payload = await MapAndPreparePayloadAsync(userAttributes, resource);
 

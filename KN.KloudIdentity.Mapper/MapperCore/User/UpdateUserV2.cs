@@ -51,8 +51,7 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         var integrationOp = _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??
                             throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
 
-        var attributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PATCH &&
-        x.SCIMDirection == SCIMDirections.Outbound).ToList();
+        var attributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PATCH).ToList();
 
         // Step 2: Map and prepare payload
         var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, user);

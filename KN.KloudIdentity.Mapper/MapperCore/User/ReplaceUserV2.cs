@@ -44,8 +44,7 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
         var integrationOp = _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??
                                 throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
 
-        var attributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PUT &&
-        x.SCIMDirection == SCIMDirections.Outbound).ToList();
+        var attributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PUT).ToList();
 
         // Step 2: Map and prepare payload
         var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, resource);

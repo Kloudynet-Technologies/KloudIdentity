@@ -60,8 +60,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         {
             _appConfig = await GetAppConfigAsync(appId);
 
-            var attributes = _appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PUT &&
-            x.SCIMDirection == SCIMDirections.Outbound).ToList();
+            var attributes = _appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PUT).ToList();
 
             var payload = await MapAndPreparePayloadAsync(attributes, resource);
 
