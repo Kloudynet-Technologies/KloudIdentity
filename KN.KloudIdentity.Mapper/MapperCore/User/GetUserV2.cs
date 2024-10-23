@@ -4,6 +4,7 @@ using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
+using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 
@@ -17,7 +18,8 @@ public class GetUserV2 : ProvisioningBase, IGetResourceV2
     public GetUserV2(
         IGetFullAppConfigQuery getFullAppConfigQuery,
         IList<IIntegrationBase> integrations,
-        IKloudIdentityLogger logger) : base(getFullAppConfigQuery)
+        IOutboundPayloadProcessor outboundPayloadProcessor,
+        IKloudIdentityLogger logger) : base(getFullAppConfigQuery, outboundPayloadProcessor)
     {
         _integrations = integrations;
         _logger = logger;

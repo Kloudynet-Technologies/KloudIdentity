@@ -34,7 +34,6 @@ namespace KN.KloudIdentity.Mapper.Masstransit
             var queryResponse = await getVerifiedAttributeMapping.GetVerifiedAsync(
                 query.AppId,
                 query.Type,
-                query.Direction,
                 query.HttpRequestType
             );
 

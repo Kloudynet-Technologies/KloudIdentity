@@ -61,8 +61,4 @@ public record SchemaBase
     /// Http Request Method
     /// </summary>  
     public HttpRequestTypes HttpRequestType { get; init; }
-    /// <summary>
-    /// SCIM Inbound or Outbound
-    /// </summary>
-    public SCIMDirections SCIMDirection { get; init; }
 }

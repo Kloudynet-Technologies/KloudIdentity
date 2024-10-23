@@ -70,7 +70,7 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
 
       )
         {
-            var json = await _getVerifiedAttributeMapping.GetVerifiedAsync(appId, type, direction, method);
+            var json = await _getVerifiedAttributeMapping.GetVerifiedAsync(appId, type, method);
 
             return Ok(json);
         }

@@ -41,14 +41,14 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
     {
         _appConfig = await GetAppConfigAsync(appId);
 
-        var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+        var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault();
 
         if (groupURIs != null && groupURIs!.Get != null)
         {
             var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Outbound);
 
             var client = _httpClientFactory.CreateClient();
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token);
             var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(groupURIs.Get.ToString(), identifier));
 
             if (response.IsSuccessStatusCode)

@@ -65,7 +65,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>Task representing the asynchronous operation.</returns>
         private async Task RemoveMembersToGroupAsync(string groupId, List<string> members)
         {
-            var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+            var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault();
 
             // Get authentication configuration
             var authConfig = _appConfig.AuthenticationDetails;
@@ -76,7 +76,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             // Use IHttpClientFactory to create an HttpClient instance
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token, SCIMDirections.Outbound);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token);
 
             // Construct the API path for adding members to the group
             var apiPath = DynamicApiUrlUtil.GetFullUrl(groupURIs!.Patch!.ToString(), groupId);

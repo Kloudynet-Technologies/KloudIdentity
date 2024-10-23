@@ -58,7 +58,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <exception cref="Exception">Thrown if the removal operation fails.</exception>
         private async Task RemoveAllGroupMembersAsync(string groupId)
         {
-            var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+            var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault();
 
             var authConfig = _appConfig.AuthenticationDetails;
 
@@ -66,7 +66,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token, SCIMDirections.Outbound);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token);
 
             var apiPath = DynamicApiUrlUtil.GetFullUrl(groupURIs!.Patch!.ToString(), groupId);
 

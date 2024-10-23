@@ -48,9 +48,4 @@ public record URIs
     /// List URI
     /// </summary>
     public Uri? List { get; init; }
-
-    /// <summary>
-    /// SCIM Direction Inbound or Outbound
-    /// </summary>
-    public SCIMDirections SCIMDirection { get; init; }
 }

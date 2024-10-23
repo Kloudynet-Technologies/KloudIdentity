@@ -55,8 +55,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         {
             _appConfig = await GetAppConfigAsync(appId);
 
-            var attributes = _appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == HttpRequestTypes.PUT &&
-            x.SCIMDirection == SCIMDirections.Outbound);
+            var attributes = _appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == HttpRequestTypes.PUT);
 
             var payload = await MapAndPreparePayloadAsync(
                attributes!.ToList(),
@@ -81,7 +80,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token, SCIMDirections.Outbound);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token);
 
             using (var response = await ProcessRequestAsync(_appConfig, httpClient, resource, payload))
             {
@@ -105,7 +104,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// </returns>
         private async Task<HttpResponseMessage?> ProcessRequestAsync(AppConfig appConfig, HttpClient httpClient, Core2Group resource, JObject payload)
         {
-            var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+            var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault();
 
             if (groupURIs!.Put != null)
             {

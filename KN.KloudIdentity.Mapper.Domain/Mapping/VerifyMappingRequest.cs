@@ -4,7 +4,6 @@
     {
         public required string AppId { get; set; } 
         public ObjectTypes Type { get; set; } 
-        public SCIMDirections Direction { get; set; }
         public HttpRequestTypes HttpRequestType { get; set; }
     }
 }
