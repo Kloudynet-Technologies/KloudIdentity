@@ -25,14 +25,16 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
             Validate(endpointInfo);
 
             var httpClient = _httpClientFactory.CreateClient();
+
             AddAuthenticationHeaders(httpClient, endpointInfo);
             httpClient.DefaultRequestHeaders.Add("X-Correlation-ID", correlationID);
+            httpClient.Timeout = TimeSpan.FromSeconds(5);
 
             using (var response = await httpClient.PostAsJsonAsync(endpointInfo.EndpointUrl, payload as JObject, cancellationToken))
             {
                 if (!response.IsSuccessStatusCode)
                 {
-                    throw new HttpRequestException($"Custom Logic Execution: {response.StatusCode} - {response.ReasonPhrase}");
+                    throw new HttpRequestException($"Error ocurred in custom logic execution: {response.StatusCode} - {response.ReasonPhrase}");
                 }
 
                 var responseContent = await response.Content.ReadAsStringAsync();
@@ -40,7 +42,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
 
                 if (deserializedResponse == null)
                 {
-                    throw new InvalidOperationException("Deserialization resulted in a null object.");
+                    throw new ArgumentNullException("External API response is null.");
                 }
 
                 _ = CreateLogAsync(endpointInfo, correlationID, "Custom logic executed successfully");
@@ -70,7 +72,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
         {
             if (string.IsNullOrEmpty(endpointInfo.EndpointUrl))
             {
-                throw new ArgumentException("EndpointUrl is required.", nameof(endpointInfo.EndpointUrl));
+                throw new ArgumentNullException("EndpointUrl is required.", nameof(endpointInfo.EndpointUrl));
             }
 
             switch (endpointInfo.AuthenticationMethod)
@@ -87,7 +89,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
                     break;
 
                 default:
-                    throw new ArgumentException("Invalid or unsupported authentication method.", nameof(endpointInfo.AuthenticationMethod));
+                    throw new NotSupportedException($"Invalid or unsupported authentication method: {endpointInfo.AuthenticationMethod}");
             }
         }
 
@@ -95,17 +97,17 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
         {
             if (apiKeyAuth == null)
             {
-                throw new ArgumentException("APIKeyAuth is required for APIKey authentication method.");
+                throw new ArgumentNullException("APIKeyAuth is required for APIKey authentication method.");
             }
 
             if (string.IsNullOrEmpty(apiKeyAuth.AuthHeaderName))
             {
-                throw new ArgumentException("AuthHeaderName is required for APIKey authentication method.");
+                throw new ArgumentNullException("AuthHeaderName is required for APIKey authentication method.");
             }
 
             if (string.IsNullOrEmpty(apiKeyAuth.APIKey))
             {
-                throw new ArgumentException("APIKey is required for APIKey authentication method.");
+                throw new ArgumentNullException("APIKey is required for APIKey authentication method.");
             }
         }
 
@@ -113,12 +115,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
         {
             if (bearerAuth == null)
             {
-                throw new ArgumentException("BearerAuth is required for Bearer authentication method.");
+                throw new ArgumentNullException("BearerAuth is required for Bearer authentication method.");
             }
 
             if (string.IsNullOrEmpty(bearerAuth.BearerToken))
             {
-                throw new ArgumentException("BearerToken is required for Bearer authentication method.");
+                throw new ArgumentNullException("BearerToken is required for Bearer authentication method.");
             }
         }
 
@@ -131,7 +133,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
                 endpointInfo.AppId,
                 LogType.Provision.ToString(),
                 LogSeverities.Information,
-                "Payload processed successfully",
+                "Payload processed successfully for external API endpoint",
                 logMessage,
                 correlationID,
                 AppConstant.LoggerName,

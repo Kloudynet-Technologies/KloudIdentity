@@ -37,11 +37,13 @@ public class ProvisioningBase : IProvisioningBase
             return payload;
         }
 
-        return await _outboundPayloadProcessor.ProcessAsync(
+        payload = await _outboundPayloadProcessor.ProcessAsync(
             payload,
             appConfig.ExternalEndpointInfo,
             correlationID,
             CancellationToken.None);
+
+        return payload;
     }
 
     /// <summary>
