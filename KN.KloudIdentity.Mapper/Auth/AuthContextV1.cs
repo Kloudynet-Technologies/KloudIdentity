@@ -44,8 +44,6 @@ public class AuthContextV1 : IAuthContext
 
         var authDetails = JsonConvert.DeserializeObject<dynamic>(appConfig.AuthenticationDetails.ToString());
 
-        var authConfig = direction == SCIMDirections.Inbound ? authDetails : authDetails.Outbound;
-
-        return await _authStrategy.GetTokenAsync(authConfig);
+        return await _authStrategy.GetTokenAsync(authDetails);
     }
 }

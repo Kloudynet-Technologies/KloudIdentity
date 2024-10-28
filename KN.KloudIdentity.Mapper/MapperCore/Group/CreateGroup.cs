@@ -51,8 +51,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         {
             _appConfig = await GetAppConfigAsync(appId);
 
-            var attributes = _appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == HttpRequestTypes.POST &&
-            x.SCIMDirection == SCIMDirections.Outbound).ToList();
+            var attributes = _appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
 
             var payload = await MapAndPreparePayloadAsync(attributes, resource);
 
@@ -73,13 +72,13 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// </exception>
         private async Task CreateGroupAsync(JObject payload)
         {
-            var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+            var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault();
 
             var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Outbound);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token);
 
             using (var response = await httpClient.PostAsJsonAsync(
                  groupURIs!.Post!.ToString(),

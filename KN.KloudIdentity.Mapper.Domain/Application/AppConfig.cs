@@ -1,4 +1,5 @@
 ﻿using KN.KloudIdentity.Mapper.Domain.Authentication;
+using KN.KloudIdentity.Mapper.Domain.ExternalEndpoint;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 
 namespace KN.KloudIdentity.Mapper.Domain.Application;
@@ -18,4 +19,7 @@ public record AppConfig
     public required dynamic AuthenticationDetails { get; set; }
     public required ICollection<AttributeSchema> UserAttributeSchemas { get; set; }
     public ICollection<AttributeSchema>? GroupAttributeSchemas { get; set; }
+    public bool? IsExternalAPIEnabled { get; set; }
+    public ExternalEndpointInfo? ExternalEndpointInfo { get; set; }
 }
+ 

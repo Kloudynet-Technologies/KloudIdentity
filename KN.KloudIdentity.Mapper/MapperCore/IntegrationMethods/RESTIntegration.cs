@@ -78,13 +78,13 @@ public class RESTIntegration : IIntegrationBase
     /// <exception cref="HttpRequestException">When an error occurred during provisioning</exception>
     public virtual async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default)
     {
-        var userURIs = appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+        var userURIs = appConfig.UserURIs.FirstOrDefault();
 
         var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
 
         var httpClient = _httpClientFactory.CreateClient();
 
-        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token);
 
         using var response = await httpClient.PostAsJsonAsync(
             userURIs?.Post,
@@ -139,14 +139,14 @@ public class RESTIntegration : IIntegrationBase
     /// <exception cref="ApplicationException">When GET API is notCore2EnterpriseUser resource, string appId,</exception>
     public async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default)
     {
-        var userURIs = appConfig.UserURIs.Where(x => x.SCIMDirection == SCIMDirections.Outbound).FirstOrDefault();
+        var userURIs = appConfig.UserURIs.FirstOrDefault();
 
         if (userURIs != null && userURIs.Get != null)
         {
             var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
 
             var client = _httpClientFactory.CreateClient();
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token);
             var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(userURIs.Get.ToString(), identifier));
 
             if (response.IsSuccessStatusCode)
@@ -228,9 +228,9 @@ public class RESTIntegration : IIntegrationBase
         var httpClient = _httpClientFactory.CreateClient();
 
         // Set headers based on authentication method.
-        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token);
 
-        var userURIs = appConfig.UserURIs.Where(x => x.SCIMDirection == SCIMDirections.Outbound).FirstOrDefault();
+        var userURIs = appConfig.UserURIs.FirstOrDefault();
 
         HttpResponseMessage response;
 
@@ -304,11 +304,11 @@ public class RESTIntegration : IIntegrationBase
         // Obtain authentication token.
         var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
 
-        var userURIs = appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+        var userURIs = appConfig.UserURIs.FirstOrDefault();
 
         var httpClient = _httpClientFactory.CreateClient();
 
-        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token);
 
         var apiPath = DynamicApiUrlUtil.GetFullUrl(userURIs!.Patch!.ToString(), resource.Identifier);
 
@@ -351,13 +351,13 @@ public class RESTIntegration : IIntegrationBase
     /// <exception cref="HttpRequestException"></exception>
     public async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID)
     {
-        var userURIs = appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+        var userURIs = appConfig.UserURIs.FirstOrDefault();
 
         var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
 
         var httpClient = _httpClientFactory.CreateClient();
 
-        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token);
 
         var apiUrl = DynamicApiUrlUtil.GetFullUrl(userURIs!.Delete!.ToString(), identifier);
 

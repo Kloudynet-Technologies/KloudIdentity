@@ -3,6 +3,7 @@ using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using Microsoft.SCIM;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Outbound;
@@ -14,10 +15,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound;
 public class ProvisioningBase : IProvisioningBase
 {
     private readonly IGetFullAppConfigQuery _getFullAppConfigQuery;
+    private readonly IOutboundPayloadProcessor _outboundPayloadProcessor;
 
-    public ProvisioningBase(IGetFullAppConfigQuery getFullAppConfigQuery)
+    public ProvisioningBase(IGetFullAppConfigQuery getFullAppConfigQuery, IOutboundPayloadProcessor outboundPayloadProcessor)
     {
         _getFullAppConfigQuery = getFullAppConfigQuery;
+        _outboundPayloadProcessor = outboundPayloadProcessor;
     }
 
     /// <summary>
@@ -27,9 +30,20 @@ public class ProvisioningBase : IProvisioningBase
     /// <param name="appConfig">App configuration</param>
     /// <param name="correlationID">Correlation ID</param>
     /// <returns></returns>
-    public virtual Task<dynamic> ExecuteCustomLogicAsync(dynamic payload, AppConfig appConfig, string correlationID)
+    public virtual async Task<dynamic> ExecuteCustomLogicAsync(dynamic payload, AppConfig appConfig, string correlationID)
     {
-        throw new NotImplementedException();
+        if(appConfig is { IsExternalAPIEnabled: false or null })
+        {
+            return payload;
+        }
+
+        payload = await _outboundPayloadProcessor.ProcessAsync(
+            payload,
+            appConfig.ExternalEndpointInfo,
+            correlationID,
+            CancellationToken.None);
+
+        return payload;
     }
 
     /// <summary>

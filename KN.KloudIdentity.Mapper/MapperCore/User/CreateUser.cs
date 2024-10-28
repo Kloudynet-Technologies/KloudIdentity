@@ -56,8 +56,7 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
     {
         var appConfig = await GetAppConfigAsync(appId);
 
-        var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST &&
-        x.SCIMDirection == SCIMDirections.Outbound).ToList();
+        var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
 
         var payload = await MapAndPreparePayloadAsync(userAttributes, resource);
 
@@ -78,13 +77,13 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
     /// </exception>
     private async Task CreateUserAsync(AppConfig appConfig, JObject payload)
     {
-        var userURIs = appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+        var userURIs = appConfig.UserURIs.FirstOrDefault();
 
         var token = await base.GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
 
         var httpClient = _httpClientFactory.CreateClient();
 
-        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token);
 
         using (var response = await httpClient.PostAsJsonAsync(
             userURIs?.Post,

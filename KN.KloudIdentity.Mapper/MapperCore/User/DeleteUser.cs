@@ -67,13 +67,13 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <exception cref="HttpRequestException">Thrown when the HTTP request fails.</exception>
         private async Task DeleteUserAsync(string identifier)
         {
-            var userURIs = _appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+            var userURIs = _appConfig.UserURIs.FirstOrDefault();
 
             var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Outbound);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token);
 
             var apiUrl = DynamicApiUrlUtil.GetFullUrl(userURIs.Delete!.ToString(), identifier);
 
@@ -96,7 +96,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <exception cref="ArgumentNullException">Thrown when the identifier or DELETEAPIForUsers is null or empty.</exception>
         private void ValidatedRequest(string identifier, AppConfig appConfig)
         {
-            var userURIs = _appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+            var userURIs = _appConfig.UserURIs.FirstOrDefault();
 
             if (string.IsNullOrWhiteSpace(identifier))
             {

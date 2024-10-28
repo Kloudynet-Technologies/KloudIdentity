@@ -5,6 +5,7 @@ using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
+using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 
@@ -20,9 +21,10 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
         IHttpClientFactory httpClientFactory,
         IGetFullAppConfigQuery getFullAppConfigQuery,
         IKloudIdentityLogger logger,
-        IList<IIntegrationBase> integrations
+        IList<IIntegrationBase> integrations,
+        IOutboundPayloadProcessor outboundPayloadProcessor
         )
-        : base(getFullAppConfigQuery)
+        : base(getFullAppConfigQuery, outboundPayloadProcessor)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
@@ -42,8 +44,7 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
         var integrationOp = _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??
                                 throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
 
-        var attributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PUT &&
-        x.SCIMDirection == SCIMDirections.Outbound).ToList();
+        var attributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PUT).ToList();
 
         // Step 2: Map and prepare payload
         var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, resource);
