@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.13.1" />
     <PackageReference Include="Hangfire" Version="1.8.12" />
     <PackageReference Include="KN.KI.LogAggregator.Messaging.RabbitMq" Version="0.0.6" />
     <PackageReference Include="MassTransit" Version="8.2.3" />
@@ -22,6 +23,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Identity.Web" Version="3.3.1" />
   </ItemGroup>
 
 </Project>

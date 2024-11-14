@@ -21,5 +21,5 @@ public record AppConfig
     public ICollection<AttributeSchema>? GroupAttributeSchemas { get; set; }
     public bool? IsExternalAPIEnabled { get; set; }
     public ExternalEndpointInfo? ExternalEndpointInfo { get; set; }
+    public dynamic? IntegrationDetails { get; set; }
 }
- 
