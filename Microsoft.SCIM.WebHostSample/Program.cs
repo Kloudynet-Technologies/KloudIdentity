@@ -2,6 +2,8 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //------------------------------------------------------------
 
+using Azure.Identity;
+
 namespace Microsoft.SCIM.WebHostSample
 {
     using System;
@@ -25,6 +27,10 @@ namespace Microsoft.SCIM.WebHostSample
                     {
                         options.Connect(settings["ConnectionStrings:AppConfig"])
                         .Select("KI:*", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development" ? "KloudIdentity-Dev" : "KloudIdentity-Demo")
+                        .ConfigureKeyVault(kv =>
+                        {
+                            kv.SetCredential(new DefaultAzureCredential());
+                        })
                         .ConfigureRefresh(refresh =>
                         {
                             refresh.Register("KI:RefreshOption", refreshAll: true)
