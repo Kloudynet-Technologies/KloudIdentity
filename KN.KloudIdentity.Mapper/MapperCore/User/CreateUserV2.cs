@@ -2,6 +2,7 @@ using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
+using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
@@ -51,7 +52,7 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
                                 throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
 
         // Step 2: Attribute mapping
-        var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
+        var userAttributes = GetUserAttributes(appConfig.UserAttributeSchemas, appConfig.IntegrationMethodOutbound);
         var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource);
 
         // Step 3: Payload validation
@@ -69,6 +70,18 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
         await CreateLogAsync(appId, correlationID);
 
         return resource;
+    }
+
+    private IList<AttributeSchema> GetUserAttributes(ICollection<AttributeSchema> userAttributeSchemas, IntegrationMethods? integrationMethodOutbound)
+    {
+        switch (integrationMethodOutbound)
+        {
+            case IntegrationMethods.REST:
+                return userAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
+            default:
+            case IntegrationMethods.Linux:
+                return userAttributeSchemas.ToList();
+        }
     }
 
     private async Task CreateLogAsync(string appId, string correlationID)

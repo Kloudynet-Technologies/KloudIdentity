@@ -6,6 +6,7 @@ using KN.KloudIdentity.Mapper.BackgroundJobs;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Config.Db;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Commands;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
@@ -51,6 +52,8 @@ public static class ServiceExtension
         });
         services.AddScoped<ICreateResourceV2, CreateUserV2>();
         services.AddScoped<IIntegrationBase, RESTIntegration>();
+        services.AddScoped<IIntegrationBase, LinuxIntegration>();
+        services.AddScoped<IReqStagQueuePublisher, ReqStagQueuePublisherV1>();
         services.AddScoped<IGetResourceV2, GetUserV2>();
         services.AddScoped<IReplaceResourceV2, ReplaceUserV2>();
         services.AddScoped<IUpdateResourceV2, UpdateUserV2>();
