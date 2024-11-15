@@ -115,7 +115,7 @@ public class LinuxIntegration : IIntegrationBase
         {
             { "Username", GetValueFromResource(schema, resource, "Username") },
             { "UID", GetValueFromResource(schema, resource, "UID") },
-            { "FullName", GetValueFromResource(schema, resource, "FullName", true) }
+            { "Identifier", GetValueFromResource(schema, resource, "Identifier", true) }
         };
 
         return await Task.FromResult(valuesForCommand);
@@ -154,7 +154,7 @@ public class LinuxIntegration : IIntegrationBase
     {
         Dictionary<string, string> valuesForCommand = payload;
 
-        string command = $"sudo useradd -u {valuesForCommand["UID"]} -c \"{valuesForCommand["FullName"]}\" {valuesForCommand["Username"]}";
+        string command = $"sudo useradd -u {valuesForCommand["UID"]} -c \"{valuesForCommand["Identifier"]}\" {valuesForCommand["Username"]}";
 
         LinuxRequestMessage linuxRequestMessage = new LinuxRequestMessage(
             appConfig.IntegrationDetails,
@@ -211,7 +211,7 @@ public class LinuxIntegration : IIntegrationBase
 
     public async Task UpdateAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
     {
-        string command = $"sudo usermod -c \"{payload["FullName"]}\" {resource.Identifier}";
+        string command = $"sudo usermod -c \"{payload["Identifier"]}\" {resource.Identifier}";
 
         LinuxRequestMessage linuxRequestMessage = new LinuxRequestMessage(
             appConfig.IntegrationDetails,
