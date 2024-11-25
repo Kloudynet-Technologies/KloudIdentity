@@ -7,4 +7,5 @@ public enum IntegrationMethods
     SOAP = 2,
     SDK = 3,
     Linux = 4,
+    AS400 = 5,
 }

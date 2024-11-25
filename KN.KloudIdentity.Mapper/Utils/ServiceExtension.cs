@@ -53,6 +53,7 @@ public static class ServiceExtension
         services.AddScoped<ICreateResourceV2, CreateUserV2>();
         services.AddScoped<IIntegrationBase, RESTIntegration>();
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
+        services.AddScoped<IIntegrationBase, AS400Integration>();
         services.AddScoped<IReqStagQueuePublisher, ReqStagQueuePublisherV1>();
         services.AddScoped<IGetResourceV2, GetUserV2>();
         services.AddScoped<IReplaceResourceV2, ReplaceUserV2>();

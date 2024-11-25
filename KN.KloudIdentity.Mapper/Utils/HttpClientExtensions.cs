@@ -3,7 +3,6 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Domain.Authentication;
-using KN.KloudIdentity.Mapper.Domain.Mapping;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 
