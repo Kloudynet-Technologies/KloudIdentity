@@ -49,7 +49,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             user.Apply(patchRequest);
             user.Identifier = patch.ResourceIdentifier.Identifier;
 
-            _appConfig = await GetAppConfigAsync(appId);
+            _appConfig = await GetAppConfigAsync(appId, correlationID);
 
             var attributes = _appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PATCH).ToList();
 

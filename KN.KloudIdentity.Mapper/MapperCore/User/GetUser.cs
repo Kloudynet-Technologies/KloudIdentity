@@ -54,7 +54,7 @@ public class GetUser : OperationsBase<Core2EnterpriseUser>, IGetResource<Core2En
     [Obsolete("This method is obsolete. Use GetUserV2.GetAsync instead.")]
     public async Task<Core2EnterpriseUser> GetAsync(string identifier, string appId, string correlationID)
     {
-        _appConfig = await GetAppConfigAsync(appId);
+        _appConfig = await GetAppConfigAsync(appId, correlationID);
 
         var userURIs = _appConfig.UserURIs.FirstOrDefault();
 

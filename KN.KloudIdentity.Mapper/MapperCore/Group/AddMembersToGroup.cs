@@ -49,7 +49,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>Task representing the asynchronous operation.</returns>
         public async Task AddAsync(string groupId, List<string> members, string appId, string correlationID)
         {
-            _appConfig = await GetAppConfigAsync(appId);
+            _appConfig = await GetAppConfigAsync(appId,correlationID);
 
             await AddMembersToGroupAsync(groupId, members);
 

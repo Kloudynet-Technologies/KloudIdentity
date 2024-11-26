@@ -47,7 +47,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>A Task representing the asynchronous operation.</returns>
         public async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string appId, string correlationID)
         {
-            _appConfig = await GetAppConfigAsync(appId);
+            _appConfig = await GetAppConfigAsync(appId,correlationID);
 
             // Validate the request.
             ValidatedRequest(resourceIdentifier.Identifier, _appConfig);

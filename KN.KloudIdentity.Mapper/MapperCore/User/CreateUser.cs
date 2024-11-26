@@ -54,7 +54,7 @@ public class CreateUser : OperationsBase<Core2EnterpriseUser>, ICreateResource<C
         string correlationID
     )
     {
-        var appConfig = await GetAppConfigAsync(appId);
+        var appConfig = await GetAppConfigAsync(appId, correlationID);
 
         var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
 

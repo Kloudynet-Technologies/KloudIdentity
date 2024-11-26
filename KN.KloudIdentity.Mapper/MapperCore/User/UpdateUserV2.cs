@@ -46,7 +46,7 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         user.Identifier = patch.ResourceIdentifier.Identifier;
 
         // Step 1: Get app config
-        var appConfig = await GetAppConfigAsync(appId);
+        var appConfig = await GetAppConfigAsync(appId, correlationID);
 
         var integrationOp = _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??
                             throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");

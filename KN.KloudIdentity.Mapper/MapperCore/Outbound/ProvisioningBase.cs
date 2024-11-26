@@ -52,9 +52,9 @@ public class ProvisioningBase : IProvisioningBase
     /// <param name="appId">Application ID</param>
     /// <returns></returns>
     /// <exception cref="NotFoundException"></exception>
-    public virtual async Task<AppConfig> GetAppConfigAsync(string appId)
+    public virtual async Task<AppConfig> GetAppConfigAsync(string appId, string correlationID)
     {
-        var config = await _getFullAppConfigQuery.GetAsync(appId);
+        var config = await _getFullAppConfigQuery.GetAsync(appId, correlationID);
 
         return config ?? throw new NotFoundException($"App configuration not found for app ID {appId}.");
     }

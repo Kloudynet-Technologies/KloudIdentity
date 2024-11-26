@@ -16,9 +16,9 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
         _getFullAppConfigQuery = getFullAppConfigQuery;
     }
 
-    public async Task<JObject> GetVerifiedAsync(string appId, ObjectTypes type, HttpRequestTypes httpRequestType)
+    public async Task<JObject> GetVerifiedAsync(string appId,string correlationId, ObjectTypes type, HttpRequestTypes httpRequestType)
     {
-        var appConfig = await GetAppConfigAsync(appId);
+        var appConfig = await GetAppConfigAsync(appId, correlationId);
 
         if (appConfig == null)
             throw new NotFoundException("Application not found");
@@ -45,9 +45,9 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
         throw new NotSupportedException("Object type not supported");
     }
 
-    private async Task<AppConfig?> GetAppConfigAsync(string appId)
+    private async Task<AppConfig?> GetAppConfigAsync(string appId, string correlationId)
     {
-        var result = await _getFullAppConfigQuery.GetAsync(appId);
+        var result = await _getFullAppConfigQuery.GetAsync(appId, correlationId);
 
         return result;
     }

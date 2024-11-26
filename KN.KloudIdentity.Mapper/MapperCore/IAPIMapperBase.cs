@@ -22,7 +22,7 @@ public interface IAPIMapperBase<T> where T : Resource
     /// </summary>
     /// <returns></returns>
     [Obsolete("This method is obsolete. Use IProvisioningBase.GetAppConfigAsync instead.")]
-    Task<AppConfig> GetAppConfigAsync(string appId);
+    Task<AppConfig> GetAppConfigAsync(string appId, string correlationId);
 
     /// <summary>
     /// Gets the authentication token asynchronously.

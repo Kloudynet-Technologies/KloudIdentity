@@ -5,5 +5,5 @@ namespace KN.KloudIdentity.Mapper.MapperCore;
 
 public interface IGetVerifiedAttributeMapping
 {
-    Task<JObject> GetVerifiedAsync(string appId, ObjectTypes type, HttpRequestTypes httpRequestType);
+    Task<JObject> GetVerifiedAsync(string appId,string correlationId, ObjectTypes type, HttpRequestTypes httpRequestType);
 }

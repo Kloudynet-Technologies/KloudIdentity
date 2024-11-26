@@ -53,7 +53,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             string correlationID
         )
         {
-            _appConfig = await GetAppConfigAsync(appId);
+            _appConfig = await GetAppConfigAsync(appId, correlationID);
 
             var attributes = _appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == HttpRequestTypes.PUT);
 

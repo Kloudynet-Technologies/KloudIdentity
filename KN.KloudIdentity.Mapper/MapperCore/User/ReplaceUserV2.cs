@@ -31,14 +31,10 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
         _integrations = integrations;
     }
 
-    public async Task ReplaceAsync(
-        Core2EnterpriseUser resource,
-        string appId,
-        string correlationID
-    )
+    public async Task ReplaceAsync(Core2EnterpriseUser resource, string appId, string correlationID )
     {
         // Step 1: Get app config
-        var appConfig = await GetAppConfigAsync(appId);
+        var appConfig = await GetAppConfigAsync(appId, correlationID);
 
         // Resolve integration method operations
         var integrationOp = _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??

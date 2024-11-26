@@ -49,7 +49,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>The created group resource.</returns>
         public async Task<Core2Group> ExecuteAsync(Core2Group resource, string appId, string correlationID)
         {
-            _appConfig = await GetAppConfigAsync(appId);
+            _appConfig = await GetAppConfigAsync(appId, correlationID);
 
             var attributes = _appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
 

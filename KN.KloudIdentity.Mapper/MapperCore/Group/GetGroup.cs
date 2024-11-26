@@ -39,7 +39,7 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
 
     public async Task<Core2Group> GetAsync(string identifier, string appId, string correlationID)
     {
-        _appConfig = await GetAppConfigAsync(appId);
+        _appConfig = await GetAppConfigAsync(appId, correlationID);
 
         var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault();
 

@@ -36,7 +36,7 @@ public class GetUserV2 : ProvisioningBase, IGetResourceV2
     public async Task<Core2EnterpriseUser> GetAsync(string identifier, string appId, string correlationID)
     {
         // Step 1: Get app config
-        var appConfig = await GetAppConfigAsync(appId);
+        var appConfig = await GetAppConfigAsync(appId, correlationID);
 
         // Resolve integration method operations
         var integrationOp = _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??

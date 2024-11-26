@@ -46,7 +46,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         public async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string appId, string correlationID)
         {
             // Retrieve application configuration asynchronously.
-            _appConfig = await GetAppConfigAsync(appId);
+            _appConfig = await GetAppConfigAsync(appId, correlationID);
 
             // Validate the request.
             ValidatedRequest(resourceIdentifier.Identifier, _appConfig);

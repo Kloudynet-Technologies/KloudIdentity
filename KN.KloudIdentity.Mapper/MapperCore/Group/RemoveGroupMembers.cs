@@ -50,7 +50,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         public async Task RemoveAsync(string groupId, List<string> members, string appId, string correlationID)
         {
             // Get application configuration
-            _appConfig = await GetAppConfigAsync(appId);
+            _appConfig = await GetAppConfigAsync(appId, correlationID);
 
             await RemoveMembersToGroupAsync(groupId, members);
 

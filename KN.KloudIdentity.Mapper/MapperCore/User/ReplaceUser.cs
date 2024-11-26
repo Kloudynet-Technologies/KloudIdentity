@@ -58,7 +58,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             string correlationID
         )
         {
-            _appConfig = await GetAppConfigAsync(appId);
+            _appConfig = await GetAppConfigAsync(appId, correlationID);
 
             var attributes = _appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PUT).ToList();
 

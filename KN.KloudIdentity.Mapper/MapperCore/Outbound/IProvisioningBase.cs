@@ -12,7 +12,7 @@ public interface IProvisioningBase
     /// Gets the application configuration asynchronously.
     /// </summary>
     /// <returns></returns>
-    Task<AppConfig> GetAppConfigAsync(string appId);
+    Task<AppConfig> GetAppConfigAsync(string appId, string correlationID);
 
     /// <summary>
     /// Executes custom logic asynchronously.

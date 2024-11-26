@@ -40,9 +40,9 @@ public abstract class OperationsBase<T> : IAPIMapperBase<T> where T : Resource
     /// Gets the application configuration asynchronously.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation. The task result contains the mapper configuration.</returns>
-    public virtual async Task<AppConfig> GetAppConfigAsync(string appId)
+    public virtual async Task<AppConfig> GetAppConfigAsync(string appId, string correlationId)
     {
-        var result = await _getFullAppConfigQuery.GetAsync(appId);
+        var result = await _getFullAppConfigQuery.GetAsync(appId, correlationId);
         if (result == null)
         {
             throw new KeyNotFoundException($"App configuration not found for app ID {appId}.");

@@ -19,22 +19,22 @@ public class GetFullAppConfigQuery : IGetFullAppConfigQuery
         _requestClient = serviceScope.ServiceProvider.GetRequiredService<IRequestClient<IMgtPortalServiceRequestMsg>>();
     }
 
-    public async Task<AppConfig?> GetAsync(string appId, CancellationToken cancellationToken = default)
+    public async Task<AppConfig?> GetAsync(string appId,string correlationId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(appId))
         {
             throw new ArgumentNullException(nameof(appId));
         }
 
-        return await SendMessageAndProcessResponse(appId);
+        return await SendMessageAndProcessResponse(appId, correlationId);
     }
 
-    private async Task<AppConfig> SendMessageAndProcessResponse(string appId)
+    private async Task<AppConfig> SendMessageAndProcessResponse(string appId, string correlationId)
     {
         var message = new MgtPortalServiceRequestMsg(
                        appId,
                        ActionType.GetFullApplication.ToString(),
-                       Guid.NewGuid().ToString(),
+                       correlationId,
                        null
                     );
 

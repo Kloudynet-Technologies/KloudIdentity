@@ -6,9 +6,11 @@ using KN.KloudIdentity.Mapper;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.MapperCore;
+using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -70,7 +72,8 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
 
       )
         {
-            var json = await _getVerifiedAttributeMapping.GetVerifiedAsync(appId, type, method);
+            string correlationId = Guid.NewGuid().ToString();            
+            var json = await _getVerifiedAttributeMapping.GetVerifiedAsync(appId, correlationId, type, method);
 
             return Ok(json);
         }
