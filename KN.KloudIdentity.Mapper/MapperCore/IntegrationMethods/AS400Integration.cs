@@ -40,18 +40,13 @@ public class AS400Integration : IIntegrationBase
     {
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
 
-        var payload = new Dictionary<string, string>
-        {
-            { "Identifier", identifier }
-        };
-
-        string jsonStringPayload = JsonConvert.SerializeObject(payload);
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users/" + identifier;
 
         var as400RequestMessage = new AS400RequestMessage(
-            appConfig.IntegrationDetails,
+            apiPath,
             basicAuth.Username,
             basicAuth.Password,
-            jsonStringPayload
+            string.Empty
         );
 
         var responseMessage = await SendMessage(correlationID, as400RequestMessage, OperationTypes.Delete, default);
@@ -66,18 +61,13 @@ public class AS400Integration : IIntegrationBase
     {
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
 
-        var payload = new Dictionary<string, string>
-        {
-            { "Identifier", identifier }
-        };
-
-        string jsonStringPayload = JsonConvert.SerializeObject(payload);
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users/" + identifier;
 
         var as400RequestMessage = new AS400RequestMessage(
-            appConfig.IntegrationDetails,
+            apiPath,
             basicAuth.Username,
             basicAuth.Password,
-            jsonStringPayload
+            string.Empty
         );
 
         var response = await SendMessage(correlationID, as400RequestMessage, OperationTypes.Get, cancellationToken);
@@ -93,7 +83,7 @@ public class AS400Integration : IIntegrationBase
             List<AS400UserResponse>? userList = JsonConvert.DeserializeObject<List<AS400UserResponse>>(response!.Message.ToString());
 
             var userFields = userList.Count > 0 ? userList.FirstOrDefault(p => p.Identifier == identifier) : null;
-
+              
             if (userFields != null)
             {
                 user.UserName = userFields.Username;
@@ -145,9 +135,6 @@ public class AS400Integration : IIntegrationBase
             { "Identifier", GetValueFromResource(schema, resource, "Identifier") }
         };
 
-        ValidateUsername(payload["Username"]);
-        ValidateUserClass(payload["UserClass"]);
-
         return await Task.FromResult(payload);
     }
 
@@ -167,12 +154,16 @@ public class AS400Integration : IIntegrationBase
 
     public async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default)
     {
+        await ValidatePayloadAsync(payload, correlationID, cancellationToken);
+
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
+
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users";
 
         string jsonStringPayload = JsonConvert.SerializeObject(payload);
 
         var as400RequestMessage = new AS400RequestMessage(
-            appConfig.IntegrationDetails,
+            apiPath,
             basicAuth.Username,
             basicAuth.Password,
             jsonStringPayload
@@ -227,11 +218,12 @@ public class AS400Integration : IIntegrationBase
     public async Task UpdateAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
     {
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users/" + resource.Identifier;
 
         string jsonStringPayload = JsonConvert.SerializeObject(payload);
 
         var as400RequestMessage = new AS400RequestMessage(
-            appConfig.IntegrationDetails,
+            apiPath,
             basicAuth.Username,
             basicAuth.Password,
             jsonStringPayload
@@ -246,7 +238,13 @@ public class AS400Integration : IIntegrationBase
     }
 
     public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, string correlationID, CancellationToken cancellationToken = default)
-    {
+    { 
+        var username = payload["Username"];
+        var userClass = payload["UserClass"];
+
+        ValidateUsername(username);
+        ValidateUserClass(userClass);
+        
         return Task.FromResult((true, Array.Empty<string>()));
     }
 
