@@ -203,12 +203,12 @@ public class LinuxIntegration : IIntegrationBase
         return Convert.ToBase64String(encryptedBytes);
     }
 
-    public Task ReplaceAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
+    public Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
     {
         throw new NotImplementedException();
     }
 
-    public async Task UpdateAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
+    public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
     {
         string command = $"sudo usermod -c \"{payload["Identifier"]}\" {resource.Identifier}";
 

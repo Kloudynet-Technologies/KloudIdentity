@@ -40,14 +40,14 @@ public class AS400Integration : IIntegrationBase
     {
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
 
-        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users/" + identifier;
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users?identifier=" + identifier;
 
         var as400RequestMessage = new AS400RequestMessage(
             apiPath,
             basicAuth.Username,
             basicAuth.Password,
             string.Empty
-        );
+        ); 
 
         var responseMessage = await SendMessage(correlationID, as400RequestMessage, OperationTypes.Delete, default);
 
@@ -61,7 +61,7 @@ public class AS400Integration : IIntegrationBase
     {
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
 
-        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users/" + identifier;
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/')+ "/api/users/" + identifier;
 
         var as400RequestMessage = new AS400RequestMessage(
             apiPath,
@@ -70,7 +70,7 @@ public class AS400Integration : IIntegrationBase
             string.Empty
         );
 
-        var response = await SendMessage(correlationID, as400RequestMessage, OperationTypes.Get, cancellationToken);
+        var response = await SendMessage(correlationID, as400RequestMessage, OperationTypes.List, cancellationToken);
 
         var user = new Core2EnterpriseUser();
 
@@ -80,7 +80,14 @@ public class AS400Integration : IIntegrationBase
         }
         else
         {
-            List<AS400UserResponse>? userList = JsonConvert.DeserializeObject<List<AS400UserResponse>>(response!.Message.ToString());
+            AS400UserResponse result = JsonConvert.DeserializeObject<AS400UserResponse>(response!.Message.ToString());
+
+            if(result.IsSuccessful == false)
+            {
+                throw new ApplicationException(result.Error);
+            }
+
+            var userList = result.ResponsePayload;
 
             var userFields = userList.Count > 0 ? userList.FirstOrDefault(p => p.Identifier == identifier) : null;
               
@@ -160,7 +167,13 @@ public class AS400Integration : IIntegrationBase
 
         var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users";
 
-        string jsonStringPayload = JsonConvert.SerializeObject(payload);
+        var requestPayload = new
+        {
+            correlationId = correlationID,
+            requestPayload = payload
+        };
+
+        string jsonStringPayload = JsonConvert.SerializeObject(requestPayload);
 
         var as400RequestMessage = new AS400RequestMessage(
             apiPath,
@@ -179,7 +192,7 @@ public class AS400Integration : IIntegrationBase
 
     private async Task<StagingQueueResponseMessage> SendMessage(string correlationID, AS400RequestMessage as400RequestMessage, OperationTypes operationType, CancellationToken cancellationToken)
     {
-        StagingQueueRequestMessage request = new StagingQueueRequestMessage(
+        StagingQueueRequestMessage request = new(
             correlationID,
             as400RequestMessage,
             HostTypes.AS400,
@@ -210,17 +223,48 @@ public class AS400Integration : IIntegrationBase
         return Convert.ToBase64String(encryptedBytes);
     }
 
-    public Task ReplaceAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
-    {
-        throw new NotImplementedException();
-    }
-
-    public async Task UpdateAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
+    public async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
     {
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
-        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users/" + resource.Identifier;
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users";
 
-        string jsonStringPayload = JsonConvert.SerializeObject(payload);
+        var requestPayload = new
+        {
+            identifier = payload["Identifier"],
+            username = payload["Username"],
+            description = payload["Description"],
+        };
+
+        string jsonStringPayload = JsonConvert.SerializeObject(requestPayload);
+
+        var as400RequestMessage = new AS400RequestMessage(
+            apiPath,
+            basicAuth.Username,
+            basicAuth.Password,
+            jsonStringPayload
+        );
+
+        var responseMessage = await SendMessage(correlationID, as400RequestMessage, OperationTypes.Update, default);
+
+        if (responseMessage == null || responseMessage?.IsError == true)
+        {
+            throw new ApplicationException($"Error occurred while updating the user: {responseMessage?.ErrorMessage}");
+        }
+    }
+
+    public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
+    {
+        var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users";
+
+        var requestPayload = new
+        {
+            identifier = payload["Identifier"],
+            username = payload["Username"],
+            description = payload["Description"],
+        };
+
+        string jsonStringPayload = JsonConvert.SerializeObject(requestPayload);
 
         var as400RequestMessage = new AS400RequestMessage(
             apiPath,
@@ -248,22 +292,22 @@ public class AS400Integration : IIntegrationBase
         return Task.FromResult((true, Array.Empty<string>()));
     }
 
-    private bool ValidateAttributeSchema(IList<AttributeSchema> schema)
+    private static bool ValidateAttributeSchema(IList<AttributeSchema> schema)
     {
         if (schema == null || schema.Count == 0)
         {
-            throw new ArgumentNullException("Attribute schema is empty.");
+            throw new ArgumentNullException(nameof(schema), "Attribute schema is empty.");
         }
 
         if (schema.Any(x => string.IsNullOrEmpty(x.SourceValue) || string.IsNullOrEmpty(x.DestinationField)))
         {
-            throw new ArgumentNullException("Source value or destination field is empty.");
+            throw new ArgumentNullException(nameof(schema), "Source value or destination field is empty.");
         }
 
         return true;
     }
 
-    private void ValidateUsername(string username)
+    private static void ValidateUsername(string username)
     {
         if (username.Length > 10)
         {
@@ -276,7 +320,7 @@ public class AS400Integration : IIntegrationBase
         }
     }
 
-    private void ValidateUserClass(string userClass)
+    private static void ValidateUserClass(string userClass)
     {
         var validUserClasses = new[] { "USER", "PGMR" };
         if (!validUserClasses.Contains(userClass))

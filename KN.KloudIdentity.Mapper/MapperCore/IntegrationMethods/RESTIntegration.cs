@@ -220,7 +220,7 @@ public class RESTIntegration : IIntegrationBase
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="HttpRequestException"></exception>
-    public async Task ReplaceAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
+    public async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
     {
         // Obtain authentication token.
         var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
@@ -238,7 +238,7 @@ public class RESTIntegration : IIntegrationBase
         {
             var apiPath = DynamicApiUrlUtil.GetFullUrl(userURIs.Put!.ToString(), resource.Identifier);
 
-            response = await httpClient.PutAsJsonAsync(apiPath, payload);
+            response = await httpClient.PutAsJsonAsync(apiPath, payload as JObject);
 
             // Log the operation.
             _ = Task.Run(() =>
@@ -299,7 +299,7 @@ public class RESTIntegration : IIntegrationBase
     /// <param name="correlationID"></param>
     /// <returns></returns>
     /// <exception cref="HttpRequestException"></exception>
-    public async Task UpdateAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
+    public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
     {
         // Obtain authentication token.
         var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);

@@ -67,7 +67,7 @@ public interface IIntegrationBase
     /// <param name="appConfig">App configuration</param>
     /// <param name="correlationID">Correlation ID</param>
     /// <returns></returns>
-    Task ReplaceAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID);
+    Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID);
 
     /// <summary>
     /// Updates a user in the LOB application asynchronously.
@@ -77,7 +77,7 @@ public interface IIntegrationBase
     /// <param name="appConfig"></param>
     /// <param name="correlationID"></param>
     /// <returns></returns>
-    Task UpdateAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID);
+    Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID);
 
     /// <summary>
     /// Deletes a user in the LOB application asynchronously.
