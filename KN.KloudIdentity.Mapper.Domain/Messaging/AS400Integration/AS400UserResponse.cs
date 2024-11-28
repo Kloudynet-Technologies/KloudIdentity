@@ -3,7 +3,7 @@
 public record AS400UserResponse
 {
     public required string CorrelationId { get; set; }
-    public required List<ResponsePayload> ResponsePayload { get; set; }
+    public required dynamic ResponsePayload { get; set; }
     public bool IsSuccessful { get; set; }
     public string? Error { get; set; }
 }

@@ -87,7 +87,7 @@ public class AS400Integration : IIntegrationBase
                 throw new ApplicationException(result.Error);
             }
 
-            var userList = result.ResponsePayload;
+            List<ResponsePayload> userList = JsonConvert.DeserializeObject<List<ResponsePayload>>(result.ResponsePayload.ToString());
 
             var userFields = userList.Count > 0 ? userList.FirstOrDefault(p => p.Identifier == identifier) : null;
               
@@ -136,10 +136,10 @@ public class AS400Integration : IIntegrationBase
         var userClassValue = schema.FirstOrDefault(x => x.DestinationField.Contains("UserClass"))!.SourceValue;
         var payload = new Dictionary<string, string>
         {
-            { "Username", GetValueFromResource(schema, resource, "Username") },
-            { "Description", GetValueFromResource(schema, resource, "Description") },
-            { "UserClass", userClassValue },
-            { "Identifier", GetValueFromResource(schema, resource, "Identifier") }
+            { "username", GetValueFromResource(schema, resource, "Username") },
+            { "description", GetValueFromResource(schema, resource, "Description") },
+            { "userClass", userClassValue },
+            { "identifier", GetValueFromResource(schema, resource, "Identifier") }
         };
 
         return await Task.FromResult(payload);
@@ -165,7 +165,10 @@ public class AS400Integration : IIntegrationBase
 
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
 
-        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users";
+        payload["identifier"] = "123";
+        payload["userClass"] = "PGMR";
+
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/USR1";
 
         var requestPayload = new
         {
@@ -183,6 +186,13 @@ public class AS400Integration : IIntegrationBase
         );
 
         var responseMessage = await SendMessage(correlationID, as400RequestMessage, OperationTypes.Create, cancellationToken);
+
+        AS400UserResponse result = JsonConvert.DeserializeObject<AS400UserResponse>(responseMessage!.Message.ToString());
+
+        if (!string.IsNullOrEmpty(result.Error))
+        {
+            throw new ApplicationException(result.Error);
+        }
 
         if (responseMessage == null || responseMessage?.IsError == true)
         {
@@ -230,9 +240,9 @@ public class AS400Integration : IIntegrationBase
 
         var requestPayload = new
         {
-            identifier = payload["Identifier"],
-            username = payload["Username"],
-            description = payload["Description"],
+            identifier = payload["identifier"],
+            username = payload["username"],
+            description = payload["description"],
         };
 
         string jsonStringPayload = JsonConvert.SerializeObject(requestPayload);
@@ -259,9 +269,9 @@ public class AS400Integration : IIntegrationBase
 
         var requestPayload = new
         {
-            identifier = payload["Identifier"],
-            username = payload["Username"],
-            description = payload["Description"],
+            identifier = payload["identifier"],
+            username = payload["username"],
+            description = payload["description"],
         };
 
         string jsonStringPayload = JsonConvert.SerializeObject(requestPayload);
@@ -283,8 +293,8 @@ public class AS400Integration : IIntegrationBase
 
     public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, string correlationID, CancellationToken cancellationToken = default)
     { 
-        var username = payload["Username"];
-        var userClass = payload["UserClass"];
+        var username = payload["username"];
+        var userClass = payload["userClass"];
 
         ValidateUsername(username);
         ValidateUserClass(userClass);
