@@ -5,7 +5,6 @@ using KN.KloudIdentity.Mapper.Domain.Messaging;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.SCIM;
-using Newtonsoft.Json.Linq;
 using KN.KloudIdentity.Mapper.Domain.Messaging.AS400Integration;
 using Newtonsoft.Json;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
@@ -61,7 +60,7 @@ public class AS400Integration : IIntegrationBase
     {
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
 
-        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/')+ "/api/users/" + identifier;
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/')+ "/api/USR1?username=ANDRE12W";
 
         var as400RequestMessage = new AS400RequestMessage(
             apiPath,
@@ -80,14 +79,7 @@ public class AS400Integration : IIntegrationBase
         }
         else
         {
-            AS400UserResponse result = JsonConvert.DeserializeObject<AS400UserResponse>(response!.Message.ToString());
-
-            if(result.IsSuccessful == false)
-            {
-                throw new ApplicationException(result.Error);
-            }
-
-            List<ResponsePayload> userList = JsonConvert.DeserializeObject<List<ResponsePayload>>(result.ResponsePayload.ToString());
+            List<AS400User> userList = JsonConvert.DeserializeObject<List<AS400User>>(response!.Message.ToString());
 
             var userFields = userList.Count > 0 ? userList.FirstOrDefault(p => p.Identifier == identifier) : null;
               
@@ -165,8 +157,7 @@ public class AS400Integration : IIntegrationBase
 
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
 
-        payload["identifier"] = "123";
-        payload["userClass"] = "PGMR";
+        //payload["identifier"] = "12356";
 
         var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/USR1";
 
@@ -186,13 +177,6 @@ public class AS400Integration : IIntegrationBase
         );
 
         var responseMessage = await SendMessage(correlationID, as400RequestMessage, OperationTypes.Create, cancellationToken);
-
-        AS400UserResponse result = JsonConvert.DeserializeObject<AS400UserResponse>(responseMessage!.Message.ToString());
-
-        if (!string.IsNullOrEmpty(result.Error))
-        {
-            throw new ApplicationException(result.Error);
-        }
 
         if (responseMessage == null || responseMessage?.IsError == true)
         {
@@ -240,9 +224,13 @@ public class AS400Integration : IIntegrationBase
 
         var requestPayload = new
         {
-            identifier = payload["identifier"],
-            username = payload["username"],
-            description = payload["description"],
+            correlationId = correlationID,
+            requestPayload = new
+            {
+                identifier = payload["identifier"],
+                username = payload["username"],
+                description = payload["description"],
+            }
         };
 
         string jsonStringPayload = JsonConvert.SerializeObject(requestPayload);
@@ -269,9 +257,13 @@ public class AS400Integration : IIntegrationBase
 
         var requestPayload = new
         {
-            identifier = payload["identifier"],
-            username = payload["username"],
-            description = payload["description"],
+            correlationId = correlationID,
+            requestPayload = new
+            {
+                identifier = payload["identifier"],
+                username = payload["username"],
+                description = payload["description"],
+            }
         };
 
         string jsonStringPayload = JsonConvert.SerializeObject(requestPayload);
@@ -332,7 +324,7 @@ public class AS400Integration : IIntegrationBase
 
     private static void ValidateUserClass(string userClass)
     {
-        var validUserClasses = new[] { "USER", "PGMR" };
+        var validUserClasses = new[] { "*USER", "*PGMR" };
         if (!validUserClasses.Contains(userClass))
         {
             throw new ArgumentException("UserClass must be either 'USER' or 'PGMR'.");
