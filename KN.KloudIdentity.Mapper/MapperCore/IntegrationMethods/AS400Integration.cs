@@ -39,7 +39,7 @@ public class AS400Integration : IIntegrationBase
     {
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
 
-        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users?identifier=" + identifier;
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/USERS?identifier=" + identifier;
 
         var as400RequestMessage = new AS400RequestMessage(
             apiPath,
@@ -60,7 +60,7 @@ public class AS400Integration : IIntegrationBase
     {
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
 
-        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/')+ "/api/USR1?username=ANDRE12W";
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/')+ "/api/USERS?identifier=" + identifier;
 
         var as400RequestMessage = new AS400RequestMessage(
             apiPath,
@@ -75,7 +75,7 @@ public class AS400Integration : IIntegrationBase
 
         if (response == null || response?.IsError == true)
         {
-            throw new ApplicationException($"Error occurred while fetching the user: {response?.ErrorMessage}");
+            throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
         }
         else
         {
@@ -159,7 +159,7 @@ public class AS400Integration : IIntegrationBase
 
         //payload["identifier"] = "12356";
 
-        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/USR1";
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/USERS";
 
         var requestPayload = new
         {
@@ -220,7 +220,7 @@ public class AS400Integration : IIntegrationBase
     public async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
     {
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
-        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users";
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/USERS";
 
         var requestPayload = new
         {
@@ -228,7 +228,6 @@ public class AS400Integration : IIntegrationBase
             requestPayload = new
             {
                 identifier = payload["identifier"],
-                username = payload["username"],
                 description = payload["description"],
             }
         };
@@ -253,7 +252,7 @@ public class AS400Integration : IIntegrationBase
     public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
     {
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
-        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/users";
+        var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/USERS";
 
         var requestPayload = new
         {
@@ -261,7 +260,6 @@ public class AS400Integration : IIntegrationBase
             requestPayload = new
             {
                 identifier = payload["identifier"],
-                username = payload["username"],
                 description = payload["description"],
             }
         };
