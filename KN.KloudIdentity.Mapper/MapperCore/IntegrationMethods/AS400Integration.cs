@@ -157,8 +157,6 @@ public class AS400Integration : IIntegrationBase
 
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
 
-        //payload["identifier"] = "12356";
-
         var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/USERS";
 
         var requestPayload = new
@@ -325,7 +323,7 @@ public class AS400Integration : IIntegrationBase
         var validUserClasses = new[] { "*USER", "*PGMR" };
         if (!validUserClasses.Contains(userClass))
         {
-            throw new ArgumentException("UserClass must be either 'USER' or 'PGMR'.");
+            throw new ArgumentException("UserClass must be either '*USER' or '*PGMR'.");
         }
     }
 }
