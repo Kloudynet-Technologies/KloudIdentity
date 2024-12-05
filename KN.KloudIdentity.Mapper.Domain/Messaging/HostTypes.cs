@@ -6,5 +6,6 @@ public enum HostTypes
     Windows,
     Linux,
     Application,
-    Database
+    Database,
+    AS400,
 }

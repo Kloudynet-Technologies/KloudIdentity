@@ -55,6 +55,8 @@ public class DeleteUserV2 : ProvisioningBase, IDeleteResourceV2
     /// <exception cref="ArgumentNullException">Thrown when the identifier or DELETEAPIForUsers is null or empty.</exception>
     private void ValidatedRequest(string identifier, AppConfig appConfig)
     {
+        if (appConfig.IntegrationMethodOutbound == IntegrationMethods.AS400) return;
+
         var userURIs = appConfig.UserURIs.FirstOrDefault();
 
         if (string.IsNullOrWhiteSpace(identifier))

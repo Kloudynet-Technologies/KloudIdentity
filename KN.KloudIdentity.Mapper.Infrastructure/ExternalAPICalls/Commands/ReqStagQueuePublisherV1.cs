@@ -35,12 +35,7 @@ public class ReqStagQueuePublisherV1 : IReqStagQueuePublisher
         }
         else if (operationType == OperationTypes.Delete)
         {
-            var requestMessage = new HttpRequestMessage(HttpMethod.Delete, $"{_appSettings.Value.ExternalQueueUrl}/")
-            {
-                Content = new StringContent(request, Encoding.UTF8, "application/json")
-            };
-
-            response = await _httpClient.SendAsync(requestMessage, cancellationToken);
+            response = await _httpClient.DeleteAsync($"{_appSettings.Value.ExternalQueueUrl}/api/users?encryptedMessage={request}", cancellationToken);
         }
         else if (operationType == OperationTypes.List)
         {

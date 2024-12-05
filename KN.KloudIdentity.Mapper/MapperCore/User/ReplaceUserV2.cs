@@ -9,6 +9,7 @@ using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
+using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
@@ -63,7 +64,6 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
             case IntegrationMethods.REST:
                 return userAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PUT).ToList();
             default:
-            case IntegrationMethods.Linux:
                 return userAttributeSchemas.ToList();
         }
     }

@@ -79,7 +79,6 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
             case IntegrationMethods.REST:
                 return userAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
             default:
-            case IntegrationMethods.Linux:
                 return userAttributeSchemas.ToList();
         }
     }
