@@ -16,5 +16,12 @@ namespace Microsoft.SCIM
             get;
             set;
         }
+        
+        [DataMember(Name = AttributeNames.AppId, IsRequired = false, EmitDefaultValue = false)]
+        public string AppId
+        {
+            get;
+            set;
+        }
     }
 }

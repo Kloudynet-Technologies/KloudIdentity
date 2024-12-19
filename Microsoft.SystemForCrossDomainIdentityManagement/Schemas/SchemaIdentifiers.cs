@@ -9,6 +9,7 @@ namespace Microsoft.SCIM
         public const string Extension = "extension:";
 
         private const string ExtensionEnterprise2 = SchemaIdentifiers.Extension + "enterprise:2.0:";
+        private const string ExtensionKIUser2 = SchemaIdentifiers.Extension + "ki:1.0:";
 
         public const string None = "/";
 
@@ -50,6 +51,11 @@ namespace Microsoft.SCIM
         public const string PrefixExtension =
             SchemaIdentifiers.PrefixTypes2 +
             SchemaIdentifiers.Extension;
+        
+        public const string Core2KIUser =
+            SchemaIdentifiers.PrefixTypes2 +
+            SchemaIdentifiers.ExtensionKIUser2 +
+            Types.User;
 
     }
 }

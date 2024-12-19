@@ -24,7 +24,7 @@ public class AS400Integration : IIntegrationBase
     private readonly IReqStagQueuePublisher _reqStagQueuePublisher;
     private readonly IOptions<AppSettings> _appSettings;
 
-    private readonly string urnPrefix = "urn:kn:ki:schema:";
+    private readonly string _urnPrefix = "urn:kn:ki:schema:";
 
     public AS400Integration(IReqStagQueuePublisher reqStagQueuePublisher, IOptions<AppSettings> appSettings)
     {
@@ -35,7 +35,7 @@ public class AS400Integration : IIntegrationBase
         _appSettings = appSettings;
     }
 
-    public async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID)
+    public async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationId)
     {
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
 
@@ -48,7 +48,7 @@ public class AS400Integration : IIntegrationBase
             string.Empty
         ); 
 
-        var responseMessage = await SendMessage(correlationID, as400RequestMessage, OperationTypes.Delete, default);
+        var responseMessage = await SendMessage(correlationId, as400RequestMessage, OperationTypes.Delete, default);
 
         if (responseMessage == null || responseMessage?.IsError == true)
         {
@@ -56,7 +56,7 @@ public class AS400Integration : IIntegrationBase
         }
     }
 
-    public async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default)
+    public async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
     {
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
 
@@ -69,7 +69,7 @@ public class AS400Integration : IIntegrationBase
             string.Empty
         );
 
-        var response = await SendMessage(correlationID, as400RequestMessage, OperationTypes.List, cancellationToken);
+        var response = await SendMessage(correlationId, as400RequestMessage, OperationTypes.List, cancellationToken);
 
         var user = new Core2EnterpriseUser();
 
@@ -77,22 +77,20 @@ public class AS400Integration : IIntegrationBase
         {
             throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
         }
-        else
-        {
-            List<AS400User> userList = JsonConvert.DeserializeObject<List<AS400User>>(response!.Message.ToString());
 
-            var userFields = userList.Count > 0 ? userList.FirstOrDefault(p => p.Identifier == identifier) : null;
+        List<AS400User> userList = JsonConvert.DeserializeObject<List<AS400User>>(response!.Message.ToString());
+
+        var userFields = userList.Count > 0 ? userList.FirstOrDefault(p => p.Identifier == identifier) : null;
               
-            if (userFields != null)
-            {
-                user.UserName = userFields.Username;
-                user.Identifier = userFields.Identifier;
+        if (userFields != null)
+        {
+            user.UserName = userFields.Username;
+            user.Identifier = userFields.Identifier;
 
-                return user;
-            }
-
-            throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
+            return user;
         }
+
+        throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
     }
 
     public async Task<dynamic> GetAuthenticationAsync(AppConfig config, SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default)
@@ -125,13 +123,30 @@ public class AS400Integration : IIntegrationBase
             throw new ArgumentException("Invalid attribute schema.");
         }
 
+        string groupProfile = string.Empty;
+        string supplementalGroupProfile = string.Empty;
         var userClassValue = schema.FirstOrDefault(x => x.DestinationField.Contains("UserClass"))!.SourceValue;
+        var groupProfileAttribute = schema.FirstOrDefault(x => x.DestinationField.Contains("GroupProfile"));
+        var supplementalGroupProfileAttribute = schema.FirstOrDefault(x => x.DestinationField.Contains("SupplementalGroupProfile"));
+        
+        if (groupProfileAttribute != null)
+        {
+            groupProfile = GetValueFromResource(schema, resource, "GroupProfile") ?? string.Empty;
+        }
+        if(supplementalGroupProfileAttribute != null)
+        {
+            supplementalGroupProfile = GetValueFromResource(schema, resource, "SupplementalGroupProfile")?? string.Empty;
+            supplementalGroupProfile = supplementalGroupProfile.Replace(',', ' ');
+        }
+        
         var payload = new Dictionary<string, string>
         {
             { "username", GetValueFromResource(schema, resource, "Username") },
             { "description", GetValueFromResource(schema, resource, "Description") },
             { "userClass", userClassValue },
-            { "identifier", GetValueFromResource(schema, resource, "Identifier") }
+            { "identifier", GetValueFromResource(schema, resource, "Identifier") },
+            { "groupProfile", groupProfile },
+            { "supplementalGroupProfile", supplementalGroupProfile }
         };
 
         return await Task.FromResult(payload);
@@ -139,21 +154,23 @@ public class AS400Integration : IIntegrationBase
 
     private string GetValueFromResource(IList<AttributeSchema> schema, Core2EnterpriseUser resource, string destinationField)
     {
-        var field = schema.FirstOrDefault(x => x.DestinationField.Replace(urnPrefix, string.Empty) == destinationField)?.SourceValue
-                    ?? throw new ArgumentNullException(destinationField, $"{destinationField} not configured in attribute mappings.");
+        var field = schema.FirstOrDefault(x => x.DestinationField.Replace(_urnPrefix, string.Empty) == destinationField)?.SourceValue
+                    ?? throw new ArgumentNullException($"{destinationField} not configured in attribute mappings.");
         var value = JSONParserUtilV2<Core2EnterpriseUser>.ReadProperty(resource, field)?.ToString();
 
-        if (string.IsNullOrEmpty(value))
+        if (string.IsNullOrEmpty(value) && 
+            !destinationField.Equals("GroupProfile", StringComparison.OrdinalIgnoreCase) && 
+            !destinationField.Equals("SupplementalGroupProfile", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentNullException(destinationField, $"{destinationField} is empty.");
+            throw new ArgumentNullException($"{destinationField} is empty.");
         }
 
         return value ?? string.Empty;
     }
 
-    public async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default)
+    public async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
     {
-        await ValidatePayloadAsync(payload, correlationID, cancellationToken);
+        await ValidatePayloadAsync(payload, correlationId, cancellationToken);
 
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
 
@@ -161,7 +178,7 @@ public class AS400Integration : IIntegrationBase
 
         var requestPayload = new
         {
-            correlationId = correlationID,
+            correlationId = correlationId,
             requestPayload = payload
         };
 
@@ -174,7 +191,7 @@ public class AS400Integration : IIntegrationBase
             jsonStringPayload
         );
 
-        var responseMessage = await SendMessage(correlationID, as400RequestMessage, OperationTypes.Create, cancellationToken);
+        var responseMessage = await SendMessage(correlationId, as400RequestMessage, OperationTypes.Create, cancellationToken);
 
         if (responseMessage == null || responseMessage?.IsError == true)
         {
@@ -182,10 +199,10 @@ public class AS400Integration : IIntegrationBase
         }
     }
 
-    private async Task<StagingQueueResponseMessage> SendMessage(string correlationID, AS400RequestMessage as400RequestMessage, OperationTypes operationType, CancellationToken cancellationToken)
+    private async Task<StagingQueueResponseMessage> SendMessage(string correlationId, AS400RequestMessage as400RequestMessage, OperationTypes operationType, CancellationToken cancellationToken)
     {
         StagingQueueRequestMessage request = new(
-            correlationID,
+            correlationId,
             as400RequestMessage,
             HostTypes.AS400,
             operationType
@@ -193,7 +210,7 @@ public class AS400Integration : IIntegrationBase
 
         var encryptedMessage = EncryptWithPrivateKey(request);
 
-        var responseMessage = await _reqStagQueuePublisher.SendAsync(encryptedMessage, correlationID, operationType, cancellationToken);
+        var responseMessage = await _reqStagQueuePublisher.SendAsync(encryptedMessage, correlationId, operationType, cancellationToken);
         // @ToDo: Decrypt the response message
         // var result = DecryptWithPublicKey(responseMessage);
 
@@ -215,18 +232,21 @@ public class AS400Integration : IIntegrationBase
         return Convert.ToBase64String(encryptedBytes);
     }
 
-    public async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
+    public async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
     {
+        ValidatePayloadAsync(payload, correlationId, CancellationToken.None);
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
         var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/USERS";
 
         var requestPayload = new
         {
-            correlationId = correlationID,
+            correlationId = correlationId,
             requestPayload = new
             {
                 identifier = payload["identifier"],
                 description = payload["description"],
+                groupProfile = string.IsNullOrEmpty(payload["groupProfile"]) ? "*NONE" : payload["groupProfile"],
+                supplementalGroupProfile = string.IsNullOrEmpty(payload["supplementalGroupProfile"])? "*NONE" : payload["supplementalGroupProfile"]
             }
         };
 
@@ -239,7 +259,7 @@ public class AS400Integration : IIntegrationBase
             jsonStringPayload
         );
 
-        var responseMessage = await SendMessage(correlationID, as400RequestMessage, OperationTypes.Update, default);
+        var responseMessage = await SendMessage(correlationId, as400RequestMessage, OperationTypes.Update, default);
 
         if (responseMessage == null || responseMessage?.IsError == true)
         {
@@ -247,18 +267,21 @@ public class AS400Integration : IIntegrationBase
         }
     }
 
-    public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
+    public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
     {
+        ValidatePayloadAsync(payload, correlationId, CancellationToken.None);
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
         var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/USERS";
 
         var requestPayload = new
         {
-            correlationId = correlationID,
+            correlationId = correlationId,
             requestPayload = new
             {
                 identifier = payload["identifier"],
                 description = payload["description"],
+                groupProfile = string.IsNullOrEmpty(payload["groupProfile"]) ? "*NONE" : payload["groupProfile"],
+                supplementalGroupProfile = string.IsNullOrEmpty(payload["supplementalGroupProfile"])? "*NONE" : payload["supplementalGroupProfile"]
             }
         };
 
@@ -271,7 +294,7 @@ public class AS400Integration : IIntegrationBase
             jsonStringPayload
         );
 
-        var responseMessage = await SendMessage(correlationID, as400RequestMessage, OperationTypes.Update, default);
+        var responseMessage = await SendMessage(correlationId, as400RequestMessage, OperationTypes.Update, default);
 
         if (responseMessage == null || responseMessage?.IsError == true)
         {
@@ -279,13 +302,22 @@ public class AS400Integration : IIntegrationBase
         }
     }
 
-    public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, string correlationID, CancellationToken cancellationToken = default)
+    public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, string correlationId, CancellationToken cancellationToken = default)
     { 
         var username = payload["username"];
         var userClass = payload["userClass"];
+        var groupProfile = payload["groupProfile"];
+        var supplementalGroupProfile = payload["supplementalGroupProfile"];
 
         ValidateUsername(username);
         ValidateUserClass(userClass);
+        ValidateGroupProfile(groupProfile);
+        ValidateSupplementalGroupProfile(supplementalGroupProfile);
+        
+        if(string.IsNullOrEmpty(groupProfile) && !string.IsNullOrEmpty(supplementalGroupProfile))
+        {
+            throw new ArgumentException("GroupProfile must be provided when SupplementalGroupProfile is provided.");
+        }
         
         return Task.FromResult((true, Array.Empty<string>()));
     }
@@ -324,6 +356,42 @@ public class AS400Integration : IIntegrationBase
         if (!validUserClasses.Contains(userClass))
         {
             throw new ArgumentException("UserClass must be either '*USER' or '*PGMR'.");
+        }
+    }
+    
+    private static void ValidateGroupProfile(string groupProfile)
+    {
+        if(string.IsNullOrEmpty(groupProfile)) return;
+        
+        if (groupProfile.Length > 10)
+        {
+            throw new ArgumentException("GroupProfile must be at most 10 characters long.");
+        }
+
+        if (!groupProfile.All(char.IsLetterOrDigit))
+        {
+            throw new ArgumentException("GroupProfile must not contain special characters.");
+        }
+    } 
+    
+    private static void ValidateSupplementalGroupProfile(string supplementalGroupProfile)
+    {
+        if(string.IsNullOrEmpty(supplementalGroupProfile)) return;
+        
+        var totalGroups = supplementalGroupProfile.Split(' ');
+        if (supplementalGroupProfile.Length > 200)
+        {
+            throw new ArgumentException("SupplementalGroupProfile must be at most 10 characters long.");
+        }
+        
+        if (totalGroups.Length > 16)
+        {
+            throw new ArgumentException("SupplementalGroupProfile must not contain more than 16 groups.");
+        }
+
+        foreach (var group in totalGroups)
+        {
+           ValidateGroupProfile(group);
         }
     }
 }

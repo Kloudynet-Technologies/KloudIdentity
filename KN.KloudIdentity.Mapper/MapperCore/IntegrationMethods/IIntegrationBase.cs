@@ -36,28 +36,29 @@ public interface IIntegrationBase
     /// </summary>
     /// <param name="payload">Payload to be provisioned to LOB app</param>
     /// <param name="appConfig">App configuration</param>
-    /// <param name="correlationID">Correlation ID</param>
+    /// <param name="correlationId">Correlation ID</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default);
+    Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Validates the payload asynchronously before been sent to LOB app.
     /// </summary>
     /// <param name="payload">Payload to be sent to LOB app</param>
-    /// <param name="correlationID">Correlation ID</param>
+    /// <param name="correlationId">Correlation ID</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, string correlationID, CancellationToken cancellationToken = default);
+    Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, string correlationId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// List all users from LOB application asynchronously.
     /// </summary>
-    /// <param name="appId">Application ID</param>
-    /// <param name="correlationID">Correlation ID</param>
+    /// <param name="appConfig"></param>
+    /// <param name="correlationId">Correlation ID</param>
     /// <param name="cancellationToken"></param>
+    /// <param name="identifier"></param>
     /// <returns>List of users</returns>
-    Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default);
+    Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Replaces a user in the LOB application asynchronously.
@@ -65,9 +66,9 @@ public interface IIntegrationBase
     /// <param name="payload">Payload of the user</param>
     /// <param name="resource">Object to be replaced</param>
     /// <param name="appConfig">App configuration</param>
-    /// <param name="correlationID">Correlation ID</param>
+    /// <param name="correlationId">Correlation ID</param>
     /// <returns></returns>
-    Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID);
+    Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId);
 
     /// <summary>
     /// Updates a user in the LOB application asynchronously.
@@ -75,16 +76,16 @@ public interface IIntegrationBase
     /// <param name="payload"></param>
     /// <param name="resource"></param>
     /// <param name="appConfig"></param>
-    /// <param name="correlationID"></param>
+    /// <param name="correlationId"></param>
     /// <returns></returns>
-    Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID);
+    Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId);
 
     /// <summary>
     /// Deletes a user in the LOB application asynchronously.
     /// </summary>
     /// <param name="identifier"></param>
     /// <param name="appConfig"></param>
-    /// <param name="correlationID"></param>
+    /// <param name="correlationId"></param>
     /// <returns></returns>
-    Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID);
+    Task DeleteAsync(string identifier, AppConfig appConfig, string correlationId);
 }

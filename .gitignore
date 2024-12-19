@@ -332,3 +332,4 @@ ASALocalRun/
 # log files
 Log/
 *.txt
+.DS_Store

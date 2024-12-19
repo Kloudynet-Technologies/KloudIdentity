@@ -96,5 +96,9 @@ namespace Microsoft.SCIM
         public const string Value = "value";
         public const string Version = "version";
         public const string Watermark = "watermark";
+        public const string GroupProfile = "groupProfile";
+        public const string SupplementalGroupProfile = "supplementalGroupProfile";
+        public const string ExtensionKIUser = SchemaIdentifiers.Core2KIUser;
+        public const string AppId = "appId";
     }
 }
