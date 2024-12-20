@@ -211,8 +211,6 @@ public class AS400Integration : IIntegrationBase
         var encryptedMessage = EncryptWithPrivateKey(request);
 
         var responseMessage = await _reqStagQueuePublisher.SendAsync(encryptedMessage, correlationId, operationType, cancellationToken);
-        // @ToDo: Decrypt the response message
-        // var result = DecryptWithPublicKey(responseMessage);
 
         var result = JsonConvert.DeserializeObject<StagingQueueResponseMessage>(responseMessage);
 
@@ -381,7 +379,7 @@ public class AS400Integration : IIntegrationBase
         var totalGroups = supplementalGroupProfile.Split(' ');
         if (supplementalGroupProfile.Length > 200)
         {
-            throw new ArgumentException("SupplementalGroupProfile must be at most 10 characters long.");
+            throw new ArgumentException("SupplementalGroupProfile must be at most 200 characters long.");
         }
         
         if (totalGroups.Length > 16)

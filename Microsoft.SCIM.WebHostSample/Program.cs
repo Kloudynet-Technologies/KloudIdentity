@@ -22,16 +22,14 @@ namespace Microsoft.SCIM.WebHostSample
             Host.CreateDefaultBuilder(args)
             .ConfigureAppConfiguration((hostingContext, config) =>
                 {
-                    config.AddUserSecrets<Program>(); // Add this line to include user secrets
                     var settings = config.Build();
                     config.AddAzureAppConfiguration(options =>
                     {
-                        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
                         options.Connect(settings["ConnectionStrings:AppConfig"])
                         .Select("KI:*", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development" ? "KloudIdentity-Dev" : "KloudIdentity-Demo")
                         .ConfigureKeyVault(kv =>
                         {
-                            kv.SetCredential(new InteractiveBrowserCredential());
+                            kv.SetCredential(new DefaultAzureCredential());
                         })
                         .ConfigureRefresh(refresh =>
                         {
