@@ -14,10 +14,18 @@ namespace Microsoft.SCIM
         {
             this.AddSchema(SchemaIdentifiers.Core2EnterpriseUser);
             this.EnterpriseExtension = new ExtensionAttributeEnterpriseUser2();
+            this.KIExtension = new ExtensionAttributeKIUser();
         }
 
         [DataMember(Name = AttributeNames.ExtensionEnterpriseUser2)]
         public ExtensionAttributeEnterpriseUser2 EnterpriseExtension
+        {
+            get;
+            set;
+        }
+        
+        [DataMember(Name = AttributeNames.ExtensionKIUser, IsRequired = false, EmitDefaultValue = false)]
+        public ExtensionAttributeKIUser KIExtension
         {
             get;
             set;

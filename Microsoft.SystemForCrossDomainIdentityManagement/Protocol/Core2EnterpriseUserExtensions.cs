@@ -108,6 +108,16 @@ namespace Microsoft.SCIM
                 user.PatchEnterpriseExtension(operation);
                 return;
             }
+            
+            if (
+                !string.IsNullOrWhiteSpace(operation.Path.SchemaIdentifier)
+                && (operation?.Path?.SchemaIdentifier?.Equals(
+                    SchemaIdentifiers.Core2KIUser,
+                    StringComparison.OrdinalIgnoreCase) == true))
+            {
+                user.PatchExtensionKIUser(operation);
+                return;
+            }
 
             OperationValue value;
             switch (operation.Path.AttributePath)
@@ -1001,6 +1011,82 @@ namespace Microsoft.SCIM
         private static void PatchRoles(this Core2EnterpriseUser user, PatchOperation2 operation)
         {
             user.Roles = ProtocolExtensions.PatchRoles(user.Roles, operation);
+        }
+        private static void PatchGroupProfile(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.GroupProfile, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+
+            if (null == value)
+            {
+                extension.GroupProfile = null;
+            }
+            else
+            {
+                extension.GroupProfile = value.Value;
+            }
+        }
+
+        private static void PatchSupplementalGroupProfile(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.SupplementalGroupProfile, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+
+            if (null == value)
+            {
+                extension.SupplementalGroupProfile = null;
+            }
+            else
+            {
+                extension.SupplementalGroupProfile = value.Value;
+            }
+        }
+        
+        private static void PatchExtensionKIUser(this Core2EnterpriseUser user, PatchOperation2 operation)
+        {
+            if (null == operation)
+            {
+                return;
+            }
+
+            if (null == operation.Path || string.IsNullOrWhiteSpace(operation.Path.AttributePath))
+            {
+                return;
+            }
+
+            ExtensionAttributeKIUser extension = user.KIExtension;
+            switch (operation.Path.AttributePath)
+            {
+                case AttributeNames.GroupProfile:
+                    Core2EnterpriseUserExtensions.PatchGroupProfile(extension, operation);
+                    break;
+
+                case AttributeNames.SupplementalGroupProfile:
+                    Core2EnterpriseUserExtensions.PatchSupplementalGroupProfile(extension, operation);
+                    break;
+            }
         }
     }
 }
