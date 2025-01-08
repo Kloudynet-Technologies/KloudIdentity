@@ -38,5 +38,5 @@ jobs:
       # Push the Docker image to ACR
       - name: Push Docker Image
         run: | 
-          docker push crkloudidentity.azurecr.io/metaverseservice-api-1:${{ github.ref_name }}-${{ github.run_number }}-${{ env.SHORT_SHA }}
+          docker push crkloudidentity.azurecr.io/scimconnector-api-1:${{ github.ref_name }}-${{ github.run_number }}-${{ env.SHORT_SHA }}
     
