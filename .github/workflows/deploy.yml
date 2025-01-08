@@ -1,0 +1,41 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: Project Deployment
+
+on:
+  push:
+    branches: ["main", "dev","ci-cd-pipeline"]
+  # pull_request:
+  #   branches: ["main", "dev","ci-cd-pipeline"]
+  jobs:
+  deploy:
+    name: Build Docker Image and Push to ACR
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
+
+    steps:
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v2     
+       
+      # Login to Azure Container Registry
+      - name: Login to ACR
+      #  run: docker login crkloudidentity.azurecr.io -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
+
+      # Get short SHA
+      - name: Set Short SHA
+        id: vars
+        run: echo "SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
+
+      # Build the .NET backend Docker image
+      - name: Build Docker Image
+        run: docker build --progress=plain -t crkloudidentity.azurecr.io/scimconnector-api-1:${{ github.ref_name }}-${{ github.run_number }}-${{ env.SHORT_SHA }} -f ./dockerfile .
+
+      # Push the Docker image to ACR
+      - name: Push Docker Image
+        run: | 
+          docker push crkloudidentity.azurecr.io/scimconnector-api-1:${{ github.ref_name }}-${{ github.run_number }}-${{ env.SHORT_SHA }}
+    
