@@ -23,8 +23,8 @@ jobs:
         uses: actions/checkout@v2     
        
       # Login to Azure Container Registry
-      #- name: Login to ACR
-      #run: docker login crkloudidentity.azurecr.io -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
+      - name: Login to ACR
+        run: docker login crkloudidentity.azurecr.io -u crkloudidentity -p lcn+9MTp2onMgXi+gVdW008Yv47XQ09Sl3cXZhuXcA+ACRDl3d4T
 
       # Get short SHA
       - name: Set Short SHA
@@ -36,7 +36,7 @@ jobs:
         run: docker build --progress=plain -t crkloudidentity.azurecr.io/scimconnector-api-1:${{ github.ref_name }}-${{ github.run_number }}-${{ env.SHORT_SHA }} -f ./dockerfile .
 
       # Push the Docker image to ACR
-      #- name: Push Docker Image
-       # run: | 
-       #   #docker push crkloudidentity.azurecr.io/metaverseservice-api-1:${{ github.ref_name }}-${{ github.run_number }}-${{ env.SHORT_SHA }}
+      - name: Push Docker Image
+        run: | 
+          docker push crkloudidentity.azurecr.io/metaverseservice-api-1:${{ github.ref_name }}-${{ github.run_number }}-${{ env.SHORT_SHA }}
     
