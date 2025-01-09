@@ -6,8 +6,8 @@ name: Project Deployment
 on:
   push:
     branches: ["main", "dev","ci-cd-pipeline"]
-  # pull_request:
-  #   branches: ["main", "dev","ci-cd-pipeline"]
+  pull_request:
+    branches: ["main", "dev","ci-cd-pipeline"]
 
 jobs:
   deploy:
@@ -24,7 +24,7 @@ jobs:
        
       # Login to Azure Container Registry
       - name: Login to ACR
-        run: docker login crkloudidentity.azurecr.io -u crkloudidentity -p lcn+9MTp2onMgXi+gVdW008Yv47XQ09Sl3cXZhuXcA+ACRDl3d4T
+        run: docker login crkloudidentity.azurecr.io -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
 
       # Get short SHA
       - name: Set Short SHA

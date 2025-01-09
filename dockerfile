@@ -7,7 +7,6 @@ WORKDIR /src
 # Copy project files based on the context of SCIM Service
 COPY . .
 
-
 # Navigate to the API project folder
 WORKDIR /src/Microsoft.SCIM.WebHostSample
 
