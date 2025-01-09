@@ -11,6 +11,7 @@ using KN.KloudIdentity.Mapper.Domain.Authentication;
 using System.Security.Cryptography;
 using System.Text;
 using System.Web.Http;
+using KN.KloudIdentity.Mapper.Domain.As400;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
@@ -23,15 +24,20 @@ public class AS400Integration : IIntegrationBase
     private readonly JSONParserUtilV2<Core2EnterpriseUser> _jsonParserUtilV2;
     private readonly IReqStagQueuePublisher _reqStagQueuePublisher;
     private readonly IOptions<AppSettings> _appSettings;
+    private readonly IListAs400GroupsQuery _listAs400GroupsQuery;
 
     private readonly string _urnPrefix = "urn:kn:ki:schema:";
 
-    public AS400Integration(IReqStagQueuePublisher reqStagQueuePublisher, IOptions<AppSettings> appSettings)
+    public AS400Integration(
+        IReqStagQueuePublisher reqStagQueuePublisher, 
+        IOptions<AppSettings> appSettings,
+        IListAs400GroupsQuery listAs400GroupsQuery
+        )
     {
         IntegrationMethod = IntegrationMethods.AS400;
         _jsonParserUtilV2 = new JSONParserUtilV2<Core2EnterpriseUser>();
         _reqStagQueuePublisher = reqStagQueuePublisher;
-
+        _listAs400GroupsQuery = listAs400GroupsQuery;
         _appSettings = appSettings;
     }
 
@@ -52,7 +58,7 @@ public class AS400Integration : IIntegrationBase
 
         if (responseMessage == null || responseMessage?.IsError == true)
         {
-            throw new ApplicationException($"Error occurred while deleting the user: {responseMessage?.ErrorMessage}");
+            throw new HttpRequestException($"Error occurred while deleting the user: {responseMessage?.ErrorMessage}");
         }
     }
 
@@ -97,7 +103,7 @@ public class AS400Integration : IIntegrationBase
     {
         if (config?.AuthenticationDetails == null)
         {
-            throw new ArgumentException("Authentication details are missing.");
+            throw new HttpRequestException("Authentication details are missing.");
         }
 
         var basicAuth = JsonConvert.DeserializeObject<BasicAuthentication>(config.AuthenticationDetails.ToString())
@@ -105,12 +111,12 @@ public class AS400Integration : IIntegrationBase
 
         if (string.IsNullOrWhiteSpace(basicAuth.Username))
         {
-            throw new ArgumentException("Username is missing.");
+            throw new HttpRequestException("Username is missing.");
         }
 
         if (string.IsNullOrWhiteSpace(basicAuth.Password))
         {
-            throw new ArgumentException("Password is missing.");
+            throw new HttpRequestException("Password is missing.");
         }
 
         return await Task.FromResult(basicAuth);
@@ -120,7 +126,7 @@ public class AS400Integration : IIntegrationBase
     {
         if (!ValidateAttributeSchema(schema))
         {
-            throw new ArgumentException("Invalid attribute schema.");
+            throw new HttpRequestException("Invalid attribute schema.");
         }
 
         string groupProfile = string.Empty;
@@ -155,14 +161,14 @@ public class AS400Integration : IIntegrationBase
     private string GetValueFromResource(IList<AttributeSchema> schema, Core2EnterpriseUser resource, string destinationField)
     {
         var field = schema.FirstOrDefault(x => x.DestinationField.Replace(_urnPrefix, string.Empty) == destinationField)?.SourceValue
-                    ?? throw new ArgumentNullException($"{destinationField} not configured in attribute mappings.");
+                    ?? throw new HttpRequestException($"{destinationField} not configured in attribute mappings.");
         var value = JSONParserUtilV2<Core2EnterpriseUser>.ReadProperty(resource, field)?.ToString();
 
         if (string.IsNullOrEmpty(value) && 
             !destinationField.Equals("GroupProfile", StringComparison.OrdinalIgnoreCase) && 
             !destinationField.Equals("SupplementalGroupProfile", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentNullException($"{destinationField} is empty.");
+            throw new HttpRequestException($"{destinationField} is empty.");
         }
 
         return value ?? string.Empty;
@@ -170,7 +176,7 @@ public class AS400Integration : IIntegrationBase
 
     public async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
     {
-        await ValidatePayloadAsync(payload, correlationId, cancellationToken);
+        await ValidatePayloadAsync(payload,appConfig, correlationId, cancellationToken);
 
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
 
@@ -195,7 +201,7 @@ public class AS400Integration : IIntegrationBase
 
         if (responseMessage == null || responseMessage?.IsError == true)
         {
-            throw new ApplicationException($"Error occurred while creating the user: {responseMessage?.ErrorMessage}");
+            throw new HttpRequestException($"Error occurred while creating the user: {responseMessage?.ErrorMessage}");
         }
     }
 
@@ -232,7 +238,7 @@ public class AS400Integration : IIntegrationBase
 
     public async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
     {
-        ValidatePayloadAsync(payload, correlationId, CancellationToken.None);
+        ValidatePayloadAsync(payload, appConfig, correlationId, CancellationToken.None);
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
         var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/USERS";
 
@@ -261,13 +267,13 @@ public class AS400Integration : IIntegrationBase
 
         if (responseMessage == null || responseMessage?.IsError == true)
         {
-            throw new ApplicationException($"Error occurred while updating the user: {responseMessage?.ErrorMessage}");
+            throw new HttpRequestException($"Error occurred while updating the user: {responseMessage?.ErrorMessage}");
         }
     }
 
     public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
     {
-        ValidatePayloadAsync(payload, correlationId, CancellationToken.None);
+        await ValidatePayloadAsync(payload, appConfig, correlationId, CancellationToken.None);
         var basicAuth = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, default);
         var apiPath = appConfig.IntegrationDetails!.TrimEnd('/') + "/api/USERS";
 
@@ -296,40 +302,47 @@ public class AS400Integration : IIntegrationBase
 
         if (responseMessage == null || responseMessage?.IsError == true)
         {
-            throw new ApplicationException($"Error occurred while updating the user: {responseMessage?.ErrorMessage}");
+            throw new HttpRequestException($"Error occurred while updating the user: {responseMessage?.ErrorMessage}");
         }
     }
 
-    public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, string correlationId, CancellationToken cancellationToken = default)
+    public async Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
     { 
+        var groups = new List<As400Group>();
+        
         var username = payload["username"];
         var userClass = payload["userClass"];
         var groupProfile = payload["groupProfile"];
         var supplementalGroupProfile = payload["supplementalGroupProfile"];
 
+        if (!string.IsNullOrEmpty(groupProfile))
+        {
+            groups = (List<As400Group>)await _listAs400GroupsQuery.ListAsync(appConfig.AppId, cancellationToken);        
+        }
+        
         ValidateUsername(username);
         ValidateUserClass(userClass);
-        ValidateGroupProfile(groupProfile);
-        ValidateSupplementalGroupProfile(supplementalGroupProfile);
+        ValidateGroupProfile(groupProfile, groups);
+        ValidateSupplementalGroupProfile(supplementalGroupProfile, groups);
         
         if(string.IsNullOrEmpty(groupProfile) && !string.IsNullOrEmpty(supplementalGroupProfile))
         {
-            throw new ArgumentException("GroupProfile must be provided when SupplementalGroupProfile is provided.");
+            throw new HttpRequestException("GroupProfile must be provided when SupplementalGroupProfile is provided.");
         }
         
-        return Task.FromResult((true, Array.Empty<string>()));
+        return await Task.FromResult((true, Array.Empty<string>()));
     }
 
     private static bool ValidateAttributeSchema(IList<AttributeSchema> schema)
     {
         if (schema == null || schema.Count == 0)
         {
-            throw new ArgumentNullException(nameof(schema), "Attribute schema is empty.");
+            throw new HttpRequestException("Attribute schema is empty.");
         }
 
         if (schema.Any(x => string.IsNullOrEmpty(x.SourceValue) || string.IsNullOrEmpty(x.DestinationField)))
         {
-            throw new ArgumentNullException(nameof(schema), "Source value or destination field is empty.");
+            throw new HttpRequestException("Source value or destination field is empty.");
         }
 
         return true;
@@ -339,12 +352,12 @@ public class AS400Integration : IIntegrationBase
     {
         if (username.Length > 10)
         {
-            throw new ArgumentException("Username must be at most 10 characters long.");
+            throw new HttpRequestException("Username must be at most 10 characters long.");
         }
 
         if (!username.All(char.IsLetterOrDigit))
         {
-            throw new ArgumentException("Username must not contain special characters.");
+            throw new HttpRequestException("Username must not contain special characters.");
         }
     }
 
@@ -353,43 +366,49 @@ public class AS400Integration : IIntegrationBase
         var validUserClasses = new[] { "*USER", "*PGMR" };
         if (!validUserClasses.Contains(userClass))
         {
-            throw new ArgumentException("UserClass must be either '*USER' or '*PGMR'.");
+            throw new HttpRequestException("UserClass must be either '*USER' or '*PGMR'.");
         }
     }
     
-    private static void ValidateGroupProfile(string groupProfile)
+    private static void ValidateGroupProfile(string groupProfile, List<As400Group> groups)
     {
         if(string.IsNullOrEmpty(groupProfile)) return;
         
+        var isExistingGroup = groups.Any(x => x.DisplayName == groupProfile);
+        if (!isExistingGroup)
+        {
+            throw new HttpRequestException($"{groupProfile} is not a valid group.");
+        }
+        
         if (groupProfile.Length > 10)
         {
-            throw new ArgumentException("GroupProfile must be at most 10 characters long.");
+            throw new HttpRequestException($"{groupProfile} must be at most 10 characters long.");
         }
 
         if (!groupProfile.All(char.IsLetterOrDigit))
         {
-            throw new ArgumentException("GroupProfile must not contain special characters.");
+            throw new HttpRequestException($"{groupProfile} must not contain special characters.");
         }
     } 
     
-    private static void ValidateSupplementalGroupProfile(string supplementalGroupProfile)
+    private static void ValidateSupplementalGroupProfile(string supplementalGroupProfile, List<As400Group>groups)
     {
         if(string.IsNullOrEmpty(supplementalGroupProfile)) return;
         
         var totalGroups = supplementalGroupProfile.Split(' ');
         if (supplementalGroupProfile.Length > 200)
         {
-            throw new ArgumentException("SupplementalGroupProfile must be at most 200 characters long.");
+            throw new HttpRequestException("SupplementalGroupProfile must be at most 200 characters long.");
         }
         
         if (totalGroups.Length > 16)
         {
-            throw new ArgumentException("SupplementalGroupProfile must not contain more than 16 groups.");
+            throw new HttpRequestException("SupplementalGroupProfile must not contain more than 16 groups.");
         }
 
         foreach (var group in totalGroups)
         {
-           ValidateGroupProfile(group);
+           ValidateGroupProfile(group, groups);
         }
     }
 }

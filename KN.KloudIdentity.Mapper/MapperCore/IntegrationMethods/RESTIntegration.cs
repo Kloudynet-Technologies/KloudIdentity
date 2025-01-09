@@ -120,7 +120,7 @@ public class RESTIntegration : IIntegrationBase
     /// <param name="correlationID"></param>
     /// <param name="cancellationToken"></param>
     /// <returns>Validation status and error messages</returns>
-    public virtual Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, string correlationID, CancellationToken cancellationToken = default)
+    public virtual Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default)
     {
         // No payload validation required for REST integration. Always return true.
         return Task.FromResult((true, Array.Empty<string>()));

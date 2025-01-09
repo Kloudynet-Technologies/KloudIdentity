@@ -226,7 +226,7 @@ public class LinuxIntegration : IIntegrationBase
         }
     }
 
-    public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, string correlationID, CancellationToken cancellationToken = default)
+    public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default)
     {
         return Task.FromResult((true, Array.Empty<string>()));
     }
