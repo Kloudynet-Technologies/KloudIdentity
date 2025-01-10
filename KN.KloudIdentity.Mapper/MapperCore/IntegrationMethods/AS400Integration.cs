@@ -374,7 +374,7 @@ public class AS400Integration : IIntegrationBase
     {
         if(string.IsNullOrEmpty(groupProfile)) return;
         
-        var isExistingGroup = groups.Any(x => x.DisplayName == groupProfile);
+        var isExistingGroup = groups.Any(x => x.GroupName == groupProfile);
         if (!isExistingGroup)
         {
             throw new HttpRequestException($"{groupProfile} is not a valid group.");
