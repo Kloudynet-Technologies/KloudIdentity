@@ -333,3 +333,4 @@ ASALocalRun/
 Log/
 *.txt
 .DS_Store
+config.env
