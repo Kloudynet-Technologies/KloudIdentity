@@ -38,10 +38,9 @@ jobs:
 
       # Build the .NET backend Docker image
       - name: Build Docker Image
-        run: docker build --progress=plain -t crkloudidentity.azurecr.io/scimconnector-api-1:${{ env.sanitized_ref_name }}-${{ github.run_number }}-${{ env.short_sha }} -f ./dockerfile .
+        run: docker build --progress=plain -t crkloudidentity.azurecr.io/scimconnector-api:${{ env.sanitized_ref_name }}-${{ github.run_number }}-${{ env.short_sha }} -f ./dockerfile .
 
       # Push the Docker image to ACR
       - name: Push Docker Image
         run: | 
-          docker push crkloudidentity.azurecr.io/scimconnector-api-1:${{ env.sanitized_ref_name }}-${{ github.run_number }}-${{ env.short_sha }}
-    
+          docker push crkloudidentity.azurecr.io/scimconnector-api:${{ env.sanitized_ref_name }}-${{ github.run_number }}-${{ env.short_sha }}
