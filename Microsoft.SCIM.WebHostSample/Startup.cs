@@ -137,6 +137,7 @@ namespace Microsoft.SCIM.WebHostSample
             {
                 x.SetKebabCaseEndpointNameFormatter();
                 x.AddRequestClient<IMgtPortalServiceRequestMsg>(new Uri("queue:mgtportal_in"));
+                x.AddRequestClient<IMetaverseServiceRequestMsg>(new Uri("queue:metaverse_in"));
                 x.AddConsumer<InterserviceConsumer>();
                 x.UsingRabbitMq((context, cfg) =>
                 {

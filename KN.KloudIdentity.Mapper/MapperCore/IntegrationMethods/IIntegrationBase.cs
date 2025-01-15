@@ -45,10 +45,11 @@ public interface IIntegrationBase
     /// Validates the payload asynchronously before been sent to LOB app.
     /// </summary>
     /// <param name="payload">Payload to be sent to LOB app</param>
+    /// <param name="appConfig"></param>
     /// <param name="correlationId">Correlation ID</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, string correlationId, CancellationToken cancellationToken = default);
+    Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// List all users from LOB application asynchronously.

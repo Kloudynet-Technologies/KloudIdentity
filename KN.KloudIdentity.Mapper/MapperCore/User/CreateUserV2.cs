@@ -56,7 +56,7 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
         var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource);
 
         // Step 3: Payload validation
-        var payloadValidationResult = await integrationOp.ValidatePayloadAsync(payload, correlationID);
+        var payloadValidationResult = await integrationOp.ValidatePayloadAsync(payload,appConfig, correlationID);
         if (!payloadValidationResult.Item1)
             throw new PayloadValidationException(appId, payloadValidationResult.Item2);
 

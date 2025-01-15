@@ -82,5 +82,7 @@ public static class ServiceExtension
         services.AddScoped<IGetInboundAppConfigQuery, GetInboundAppConfigQuery>();
         services.AddScoped<IInboundMapper, InboundMapper>();
         services.AddScoped<IOutboundPayloadProcessor, OutboundPayloadProcessor>();
+
+        services.AddScoped<IListAs400GroupsQuery, ListAs400GroupsQuery>();
     }
 }
