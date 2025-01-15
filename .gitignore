@@ -333,3 +333,6 @@ ASALocalRun/
 Log/
 *.txt
 .DS_Store
+
+#.env files for docker image run
+*.env

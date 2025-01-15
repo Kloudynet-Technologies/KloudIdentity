@@ -1,0 +1,39 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: Project Deployment
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    name: Build Docker Image and Push to ACR
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
+
+    steps:
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v2     
+       
+      # Login to Azure Container Registry
+      - name: Login to ACR
+        run: docker login crkloudidentity.azurecr.io -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
+
+      # Extract version tag
+      - name: Extract version tag
+        id: version
+        run: echo "version=${{github.event.release.tag_name}}" >> $GITHUB_ENV
+
+      # Build the .NET backend Docker image
+      - name: Build Docker Image
+        run: docker build --progress=plain -t crkloudidentity.azurecr.io/scimconnector-api:${{ env.version }} -f ./dockerfile .
+
+      # Push the Docker image to ACR
+      - name: Push Docker Image
+        run: | 
+          docker push crkloudidentity.azurecr.io/scimconnector-api:${{ env.version }}

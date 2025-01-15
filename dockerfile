@@ -4,9 +4,8 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 # Set the working directory in the image to '/src'
 WORKDIR /src
 
-# Copy project files based on the context of LoggerService
+# Copy project files based on the context of SCIM Service
 COPY . .
-
 
 # Navigate to the API project folder
 WORKDIR /src/Microsoft.SCIM.WebHostSample
