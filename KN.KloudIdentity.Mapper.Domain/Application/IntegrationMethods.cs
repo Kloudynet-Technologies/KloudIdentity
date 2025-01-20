@@ -8,4 +8,5 @@ public enum IntegrationMethods
     SDK = 3,
     Linux = 4,
     AS400 = 5,
+    ODBC = 6,
 }
