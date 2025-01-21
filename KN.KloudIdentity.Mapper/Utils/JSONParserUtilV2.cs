@@ -77,14 +77,14 @@ public class JSONParserUtilV2<T> where T : Resource
     {
         return schemaAttribute.DestinationType switch
         {
-            JsonDataTypes.String => _isSamplePayload ? GetSampleValue<string>(schemaAttribute) :
+            AttributeDataTypes.String => _isSamplePayload ? GetSampleValue<string>(schemaAttribute) :
                                     GetValue<string>(resource, schemaAttribute),
-            JsonDataTypes.Boolean => _isSamplePayload ? GetSampleValue<bool>(schemaAttribute) :
+            AttributeDataTypes.Boolean => _isSamplePayload ? GetSampleValue<bool>(schemaAttribute) :
                                     GetValue<bool>(resource, schemaAttribute),
-            JsonDataTypes.Number => _isSamplePayload ? GetSampleValue<long>(schemaAttribute) :
+            AttributeDataTypes.Number => _isSamplePayload ? GetSampleValue<long>(schemaAttribute) :
                                     GetValue<long>(resource, schemaAttribute),
-            JsonDataTypes.Object => MakeJsonObject(resource, schemaAttribute),
-            JsonDataTypes.Array => MakeJsonArray(resource, schemaAttribute),
+            AttributeDataTypes.Object => MakeJsonObject(resource, schemaAttribute),
+            AttributeDataTypes.Array => MakeJsonArray(resource, schemaAttribute),
             _ => default,
         };
     }
@@ -106,11 +106,11 @@ public class JSONParserUtilV2<T> where T : Resource
         {
             switch (schemaAttribute.DestinationType)
             {
-                case JsonDataTypes.String:
+                case AttributeDataTypes.String:
                     return (T2)Convert.ChangeType("string", typeof(T2));
-                case JsonDataTypes.Boolean:
+                case AttributeDataTypes.Boolean:
                     return (T2)Convert.ChangeType(false, typeof(T2));
-                case JsonDataTypes.Number:
+                case AttributeDataTypes.Number:
                     return (T2)Convert.ChangeType(0, typeof(T2));
                 default:
                     return default;
@@ -236,7 +236,7 @@ public class JSONParserUtilV2<T> where T : Resource
     {
         var newArray = new JArray();
 
-        if (schemaAttribute.ArrayDataType == JsonDataTypes.Object)
+        if (schemaAttribute.ArrayDataType == AttributeDataTypes.Object)
         {
             var objVal = MakeJsonObject(resource, schemaAttribute);
             newArray.Add(objVal);
@@ -246,7 +246,7 @@ public class JSONParserUtilV2<T> where T : Resource
 
         var data = ReadProperty(resource, schemaAttribute.SourceValue);
 
-        if (data is not IEnumerable<object> && schemaAttribute.ArrayDataType != JsonDataTypes.Object)
+        if (data is not IEnumerable<object> && schemaAttribute.ArrayDataType != AttributeDataTypes.Object)
         {
             if (schemaAttribute.IsRequired && string.IsNullOrEmpty(data?.ToString()))
                 return new JArray(ParseValue(schemaAttribute.DefaultValue, schemaAttribute.ArrayDataType));
@@ -287,20 +287,20 @@ public class JSONParserUtilV2<T> where T : Resource
         return newArray;
     }
 
-    private static bool IsSimpleDataType(JsonDataTypes dataType)
+    private static bool IsSimpleDataType(AttributeDataTypes dataType)
     {
-        return dataType == JsonDataTypes.String ||
-               dataType == JsonDataTypes.Number ||
-               dataType == JsonDataTypes.Boolean;
+        return dataType == AttributeDataTypes.String ||
+               dataType == AttributeDataTypes.Number ||
+               dataType == AttributeDataTypes.Boolean;
     }
 
-    private static dynamic ParseValue(string? value, JsonDataTypes dataType)
+    private static dynamic ParseValue(string? value, AttributeDataTypes dataType)
     {
         return dataType switch
         {
-            JsonDataTypes.String => value ?? "",
-            JsonDataTypes.Number => int.TryParse(value, out var intValue) ? intValue : default(int?),
-            JsonDataTypes.Boolean => bool.TryParse(value, out var boolValue) ? boolValue : default(bool?),
+            AttributeDataTypes.String => value ?? "",
+            AttributeDataTypes.Number => int.TryParse(value, out var intValue) ? intValue : default(int?),
+            AttributeDataTypes.Boolean => bool.TryParse(value, out var boolValue) ? boolValue : default(bool?),
             _ => throw new NotSupportedException($"Unsupported array data type: {dataType}")
         };
     }
@@ -338,7 +338,7 @@ public class JSONParserUtilV2<T> where T : Resource
             string attrUrn = childSchema.DestinationField.Remove(0, urnPrefix.Length);
             var attrArray = attrUrn.Split(':');
 
-            if (childSchema.DestinationType == JsonDataTypes.Array)
+            if (childSchema.DestinationType == AttributeDataTypes.Array)
             {
                 var childValue = ReadProperty(resource, childSchema.SourceValue);
                 ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], MakeJsonArray(resource, childSchema));
@@ -346,7 +346,7 @@ public class JSONParserUtilV2<T> where T : Resource
             }
             else
             {
-                if (childSchema.DestinationType == JsonDataTypes.Object)
+                if (childSchema.DestinationType == AttributeDataTypes.Object)
                 {
                     var childValue = ReadProperty(resource, childSchema.SourceValue);
                     ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], MakeJsonObject(resource, childSchema));
@@ -365,13 +365,13 @@ public class JSONParserUtilV2<T> where T : Resource
                     {
                         switch (childSchema.DestinationType)
                         {
-                            case JsonDataTypes.String:
+                            case AttributeDataTypes.String:
                                 childValue = GetValue<string>(resource, childSchema);
                                 break;
-                            case JsonDataTypes.Boolean:
+                            case AttributeDataTypes.Boolean:
                                 childValue = GetValue<bool>(resource, childSchema);
                                 break;
-                            case JsonDataTypes.Number:
+                            case AttributeDataTypes.Number:
                                 childValue = GetValue<long>(resource, childSchema);
                                 break;
                             default:

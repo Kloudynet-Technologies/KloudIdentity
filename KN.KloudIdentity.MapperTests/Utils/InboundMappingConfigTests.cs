@@ -20,18 +20,18 @@ public class InboundMappingConfigTests
             "users",
             new List<InboundAttributeMapping>
             {
-                new InboundAttributeMapping("1", MappingTypes.Direct, JsonDataTypes.String, "userId", "externalId", true, "1"),
-                new InboundAttributeMapping("2", MappingTypes.Constant, JsonDataTypes.String, "en-US", "preferredLanguage", true, "en-US"),
-                new InboundAttributeMapping("3", MappingTypes.Direct, JsonDataTypes.String, "userId", "userId", true, "mail@mail.com"),
-                new InboundAttributeMapping("4", MappingTypes.Direct, JsonDataTypes.String, "firstName", "firstName", true, "John Doe"),
-                new InboundAttributeMapping("5", MappingTypes.Direct, JsonDataTypes.String, "lastName", "lastName", true, "John Doe"),
-                new InboundAttributeMapping("6", MappingTypes.Direct, JsonDataTypes.String, "email", "userPrincipalName", true, "true"),
-                new InboundAttributeMapping("7", MappingTypes.Direct, JsonDataTypes.String, "firstName", "mailNickName", true, "D100"),
-                new InboundAttributeMapping("8", MappingTypes.Direct, JsonDataTypes.Boolean, "active", "isActive", true, "true"),
-                new InboundAttributeMapping("9", MappingTypes.Direct, JsonDataTypes.String, "departmentId", "departmentId", false, ""),
-                new InboundAttributeMapping("10", MappingTypes.Direct, JsonDataTypes.String, "email", "email", false, ""),
-                new InboundAttributeMapping("11", MappingTypes.Direct, JsonDataTypes.DateTime, "startingDate", "startingDate", false, ""),
-                new InboundAttributeMapping("12", MappingTypes.Direct, JsonDataTypes.Number, "sequenceNumber", "empSequenceNumber", false, "")
+                new InboundAttributeMapping("1", MappingTypes.Direct, AttributeDataTypes.String, "userId", "externalId", true, "1"),
+                new InboundAttributeMapping("2", MappingTypes.Constant, AttributeDataTypes.String, "en-US", "preferredLanguage", true, "en-US"),
+                new InboundAttributeMapping("3", MappingTypes.Direct, AttributeDataTypes.String, "userId", "userId", true, "mail@mail.com"),
+                new InboundAttributeMapping("4", MappingTypes.Direct, AttributeDataTypes.String, "firstName", "firstName", true, "John Doe"),
+                new InboundAttributeMapping("5", MappingTypes.Direct, AttributeDataTypes.String, "lastName", "lastName", true, "John Doe"),
+                new InboundAttributeMapping("6", MappingTypes.Direct, AttributeDataTypes.String, "email", "userPrincipalName", true, "true"),
+                new InboundAttributeMapping("7", MappingTypes.Direct, AttributeDataTypes.String, "firstName", "mailNickName", true, "D100"),
+                new InboundAttributeMapping("8", MappingTypes.Direct, AttributeDataTypes.Boolean, "active", "isActive", true, "true"),
+                new InboundAttributeMapping("9", MappingTypes.Direct, AttributeDataTypes.String, "departmentId", "departmentId", false, ""),
+                new InboundAttributeMapping("10", MappingTypes.Direct, AttributeDataTypes.String, "email", "email", false, ""),
+                new InboundAttributeMapping("11", MappingTypes.Direct, AttributeDataTypes.DateTime, "startingDate", "startingDate", false, ""),
+                new InboundAttributeMapping("12", MappingTypes.Direct, AttributeDataTypes.Number, "sequenceNumber", "empSequenceNumber", false, "")
             }
         );
 
@@ -178,7 +178,7 @@ public class InboundMappingConfigTests
     {
         // Arrange
         // Change the data type of the first mapping config to boolean
-        List<InboundAttributeMapping> inboundAttributeMappings = _mappingConfig.InboundAttributeMappings.Select(x => x.Id == "1" ? new InboundAttributeMapping(x.Id, x.MappingType, JsonDataTypes.Object, x.ValuePath, x.EntraIdAttribute, x.IsRequired, x.DefaultValue) : x).ToList();
+        List<InboundAttributeMapping> inboundAttributeMappings = _mappingConfig.InboundAttributeMappings.Select(x => x.Id == "1" ? new InboundAttributeMapping(x.Id, x.MappingType, AttributeDataTypes.Object, x.ValuePath, x.EntraIdAttribute, x.IsRequired, x.DefaultValue) : x).ToList();
         InboundMappingConfig mappingConfig = new InboundMappingConfig(_mappingConfig.InboundAttMappingUsersPath, inboundAttributeMappings);
 
         // Act
@@ -186,7 +186,7 @@ public class InboundMappingConfigTests
 
         // Assert
         Assert.False(result.Item1);
-        Assert.Contains($"The data type for the mapping configuration field externalId is invalid: {JsonDataTypes.Object}", result.Item2);
+        Assert.Contains($"The data type for the mapping configuration field externalId is invalid: {AttributeDataTypes.Object}", result.Item2);
     }
 
     [Fact]
@@ -251,7 +251,7 @@ public class InboundMappingConfigTests
         // Arrange
         // Remove the externalId from the first user
         _usersPayload!["users"]![0]!["userId"]!.Parent!.Remove();
-        _mappingConfig.InboundAttributeMappings[0] = new InboundAttributeMapping("1", MappingTypes.Direct, JsonDataTypes.String, "userId", "externalId", true, "");
+        _mappingConfig.InboundAttributeMappings[0] = new InboundAttributeMapping("1", MappingTypes.Direct, AttributeDataTypes.String, "userId", "externalId", true, "");
 
         // Act
         // Assert
@@ -264,7 +264,7 @@ public class InboundMappingConfigTests
         // Arrange
         // Remove the externalId from the first user
         _usersPayload!["users"]![0]!["userId"] = null;
-        _mappingConfig.InboundAttributeMappings[0] = new InboundAttributeMapping("1", MappingTypes.Direct, JsonDataTypes.String, "userId", "externalId", true, "");
+        _mappingConfig.InboundAttributeMappings[0] = new InboundAttributeMapping("1", MappingTypes.Direct, AttributeDataTypes.String, "userId", "externalId", true, "");
 
         // Act
         // Assert
@@ -277,7 +277,7 @@ public class InboundMappingConfigTests
         // Arrange
         // Remove the externalId from the first user
         _usersPayload!["users"]![0]!["userId"]!.Parent!.Remove();
-        _mappingConfig.InboundAttributeMappings[0] = new InboundAttributeMapping("1", MappingTypes.Direct, JsonDataTypes.String, "userId", "externalId", true, "1");
+        _mappingConfig.InboundAttributeMappings[0] = new InboundAttributeMapping("1", MappingTypes.Direct, AttributeDataTypes.String, "userId", "externalId", true, "1");
 
         // Act
         var result = await _inboundMapper.MapAsync(_mappingConfig, _usersPayload, "correlationId");

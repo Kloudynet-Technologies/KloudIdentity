@@ -21,12 +21,12 @@ public static class InboundConstants
 
     public const string BULKREQUEST_SCHEMA = "urn:ietf:params:scim:api:messages:2.0:BulkRequest";
 
-    public static readonly IList<JsonDataTypes> VALID_DATA_TYPES = new List<JsonDataTypes>
+    public static readonly IList<AttributeDataTypes> VALID_DATA_TYPES = new List<AttributeDataTypes>
     {
-        JsonDataTypes.String,
-        JsonDataTypes.Boolean,
-        JsonDataTypes.Number,
-        JsonDataTypes.DateTime
+        AttributeDataTypes.String,
+        AttributeDataTypes.Boolean,
+        AttributeDataTypes.Number,
+        AttributeDataTypes.DateTime
     };
 
     public static readonly IList<MappingTypes> VALID_MAPPING_TYPES = new List<MappingTypes>
