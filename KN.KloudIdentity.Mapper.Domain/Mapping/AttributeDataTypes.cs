@@ -1,5 +1,8 @@
 ﻿namespace KN.KloudIdentity.Mapper.Domain.Mapping;
 
+/// <summary>
+/// SQL Data Type - Image,Binary,VarBinary not supported for SCIM 
+/// </summary>
 public enum AttributeDataTypes
 {
     // JSON Data Types
