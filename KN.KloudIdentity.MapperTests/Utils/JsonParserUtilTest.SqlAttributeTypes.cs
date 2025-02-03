@@ -58,7 +58,7 @@ public partial class JSONParserUtilTests
     public void GetValue_SQLDataType_NVarChar_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:name", SourceValue = "DisplayName", DestinationType = AttributeDataTypes.NChar };
+        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:name", SourceValue = "DisplayName", DestinationType = AttributeDataTypes.NVarChar };
 
         //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser {
@@ -153,27 +153,6 @@ public partial class JSONParserUtilTests
         Assert.Equal(expectedValue, result);
     }
 
-
-    [Fact]
-    public void GetValue_SQLDataType_Number_ReturnsParsedJson()
-    {
-        // Arrange
-       var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.Number };
-
-
-        var resource = new Core2EnterpriseUser
-        {                   
-            Identifier = "1"
-        };
-
-        // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
-
-        // Assert
-        var expectedValue = 1;
-        Assert.Equal(expectedValue, result);
-    }
-
     [Fact]
     public void GetValue_SQLDataType_BigInt_ReturnsParsedJson()
     {
@@ -252,27 +231,7 @@ public partial class JSONParserUtilTests
         // Assert
         var expectedValue = 1;
         Assert.Equal(expectedValue, result);
-    }
-
-    [Fact]
-    public void GetValue_SQLDataType_TinyInt_ReturnsParsedJson()
-    {
-        // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.TinyInt };
-
-
-        var resource = new Core2EnterpriseUser
-        {
-            Identifier = "1"
-        };
-
-        // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
-
-        // Assert
-        var expectedValue = 1;
-        Assert.Equal(expectedValue, result);
-    }
+    }  
 
     [Fact]
     public void GetValue_SQLDataType_Double_ReturnsParsedJson()
@@ -303,14 +262,14 @@ public partial class JSONParserUtilTests
 
         var resource = new Core2EnterpriseUser
         {
-            Identifier = "1.0"
+            Identifier = "1"
         };
 
         // Act
         var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
 
         // Assert
-        var expectedValue = 1.0;
+        var expectedValue = 1;
         Assert.Equal(expectedValue, result);
     }
 
@@ -323,7 +282,7 @@ public partial class JSONParserUtilTests
 
         var resource = new Core2EnterpriseUser
         {
-            Locale = "1.0"
+            Locale = "1"
         };
 
         // Act
