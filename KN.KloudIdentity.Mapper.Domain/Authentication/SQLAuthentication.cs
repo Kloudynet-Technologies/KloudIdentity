@@ -1,6 +1,6 @@
 ﻿namespace KN.KloudIdentity.Mapper.Domain.Authentication;
 
-public record ODBCAuthentication
+public record SQLAuthentication
 {
     /// <summary>
     /// ODBC Driver
@@ -20,10 +20,10 @@ public record ODBCAuthentication
     /// <summary>
     /// Username
     /// </summary>
-    public string Username { get; init; }
+    public string UID { get; init; }
 
     /// <summary>
     /// Password
     /// </summary>
-    public string Password { get; init; }
+    public string PWD { get; init; }
 }
