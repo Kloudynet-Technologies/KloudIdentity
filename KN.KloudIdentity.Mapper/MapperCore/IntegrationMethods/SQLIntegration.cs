@@ -152,7 +152,7 @@ public class SQLIntegration : IIntegrationBase
 
 
         var integrationDetails = JsonConvert.DeserializeObject<SQLIntegrationDetails>(appConfig.IntegrationDetails?.ToString())
-                       ?? throw new ArgumentException("Invalid authentication details.");
+            ?? throw new ArgumentException("Invalid authentication details.");
 
         var storedProcedureName = integrationDetails.PatchSpName
             ?? throw new ArgumentException("Provisioning details are missing.");
@@ -173,7 +173,7 @@ public class SQLIntegration : IIntegrationBase
             throw new ArgumentNullException("Identifier is null or Invalid");
 
         var integrationDetails = JsonConvert.DeserializeObject<SQLIntegrationDetails>(appConfig.IntegrationDetails?.ToString())
-                      ?? throw new ArgumentException("Invalid authentication details.");
+            ? throw new ArgumentException("Invalid authentication details.");
 
         var storedProcedureName = integrationDetails.DeleteSpName
             ?? throw new ArgumentException("Provisioning details are missing.");

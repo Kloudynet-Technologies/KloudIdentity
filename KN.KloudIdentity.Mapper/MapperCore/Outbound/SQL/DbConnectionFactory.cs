@@ -11,13 +11,9 @@ public class DbConnectionFactory
         string driverName = connection.Driver.ToUpper();
 
         // Extend this switch case to support multiple database connections if needed
-        //@ToDo
         return driverName switch
         {
-            "MSODBCSQL17.DLL" => new GenericDbConnection(connection),
-            "SQLSRV32.DLL" => new GenericDbConnection(connection),
-            "SQLNCLIRDA11.DLL" => new GenericDbConnection(connection),
-            "MYODBC8W.DLL" => new GenericDbConnection(connection),
+            "MSODBCSQL17.DLL" or "SQLSRV32.DLL" or "SQLNCLIRDA11.DLL" or "MYODBC8W.DLL" => new GenericDbConnection(connection),
             _ => throw new NotSupportedException($"ODBC Driver '{driverName}' is not supported.")
         };
     }
