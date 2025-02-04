@@ -258,7 +258,7 @@ public partial class SQLIntegrationTest
 
         // Act & Assert
         #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-        await Assert.ThrowsAsync<HttpRequestException>(async () =>
+        await Assert.ThrowsAsync<ArgumentNullException>(async () =>
         await _odbcIntegration.MapAndPreparePayloadAsync(schema, null));
         #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
     }

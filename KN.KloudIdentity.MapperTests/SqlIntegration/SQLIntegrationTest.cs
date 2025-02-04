@@ -39,7 +39,7 @@ public partial class SQLIntegrationTest
             UserURIs = null,
             UserAttributeSchemas = null,
             IntegrationMethodOutbound = null,
-            AuthenticationDetails = JsonConvert.SerializeObject(odbcAuth)
+            AuthenticationDetails = odbcAuth
         };
         #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 
@@ -74,7 +74,7 @@ public partial class SQLIntegrationTest
         async Task Act() => await _odbcIntegration.GetAuthenticationAsync(config, SCIMDirections.Outbound, CancellationToken.None);
 
         // Assert
-        await Assert.ThrowsAsync<HttpRequestException>(Act);
+        await Assert.ThrowsAsync<ArgumentNullException>(Act);
     }
 
     [Fact]
@@ -95,6 +95,6 @@ public partial class SQLIntegrationTest
         async Task Act() => await _odbcIntegration.GetAuthenticationAsync(config, SCIMDirections.Outbound, CancellationToken.None);
 
         // Assert
-        await Assert.ThrowsAsync<HttpRequestException>(Act);
+        await Assert.ThrowsAsync<ArgumentNullException>(Act);
     }
 }

@@ -14,6 +14,8 @@ public partial class SQLIntegrationTest
 
         var integrationDetails = JsonConvert.SerializeObject(new SQLIntegrationDetails
         {
+            Id = Guid.NewGuid(),
+            AppId = "TestApp",
             PostSpName = "SP_CreateUser",
             GetSpName = "SP_GetUser",
             PatchSpName = "SP_UpdateUser",
@@ -34,7 +36,7 @@ public partial class SQLIntegrationTest
         var correlationId = Guid.NewGuid().ToString();
 
         // Act & Assert
-        await Assert.ThrowsAsync<HttpRequestException>(() =>
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
             _odbcIntegration.GetAsync(identifier, appConfig, correlationId));
     }
 
@@ -53,7 +55,10 @@ public partial class SQLIntegrationTest
             new AttributeSchema { DestinationField = "FirstName", SourceValue = "Name:GivenName" }
         };
 
-        var integrationDetails = JsonConvert.SerializeObject(new SQLIntegrationDetails{
+        var integrationDetails = JsonConvert.SerializeObject(new SQLIntegrationDetails
+        {
+            Id = Guid.NewGuid(),
+            AppId = "TestApp",
             PostSpName = "SP_CreateUser",
             GetSpName = null,
             PatchSpName = "SP_UpdateUser",
@@ -72,7 +77,7 @@ public partial class SQLIntegrationTest
         var correlationId = Guid.NewGuid().ToString();
 
         // Act & Assert
-        await Assert.ThrowsAsync<HttpRequestException>(() =>
+        await Assert.ThrowsAsync<ArgumentException>(() =>
             _odbcIntegration.GetAsync(identifier, appConfig, correlationId));
     }
 
@@ -93,6 +98,8 @@ public partial class SQLIntegrationTest
 
         var integrationDetails = JsonConvert.SerializeObject(new SQLIntegrationDetails
         {
+            Id = Guid.NewGuid(),
+            AppId = "TestApp",
             PostSpName = "SP_CreateUser",
             GetSpName = "SP_GetUser",
             PatchSpName = "SP_UpdateUser",
@@ -111,7 +118,7 @@ public partial class SQLIntegrationTest
         var correlationId = Guid.NewGuid().ToString();
 
         // Act & Assert
-        await Assert.ThrowsAsync<HttpRequestException>(() =>
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
             _odbcIntegration.GetAsync(identifier, appConfig, correlationId));
     }
 
@@ -131,6 +138,8 @@ public partial class SQLIntegrationTest
 
         var integrationDetails = JsonConvert.SerializeObject(new SQLIntegrationDetails
         {
+            Id = Guid.NewGuid(),
+            AppId = "TestApp",
             PostSpName = "SP_CreateUser",
             GetSpName = "SP_GetUser",
             PatchSpName = "SP_UpdateUser",
@@ -149,7 +158,7 @@ public partial class SQLIntegrationTest
         var correlationId = Guid.NewGuid().ToString();
 
         // Act & Assert
-        await Assert.ThrowsAsync<HttpRequestException>(() =>
+        await Assert.ThrowsAsync<ArgumentException>(() =>
             _odbcIntegration.GetAsync(identifier, appConfig, correlationId));
     }    
 }
