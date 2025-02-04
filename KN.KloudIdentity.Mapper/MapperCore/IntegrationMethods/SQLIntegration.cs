@@ -150,7 +150,6 @@ public class SQLIntegration : IIntegrationBase
         if (!parameters.Any())
             throw new ArgumentNullException("No valid SqlParameter found in the provided parameters.");
 
-
         var integrationDetails = JsonConvert.DeserializeObject<SQLIntegrationDetails>(appConfig.IntegrationDetails?.ToString())
             ?? throw new ArgumentException("Invalid authentication details.");
 
@@ -173,7 +172,7 @@ public class SQLIntegration : IIntegrationBase
             throw new ArgumentNullException("Identifier is null or Invalid");
 
         var integrationDetails = JsonConvert.DeserializeObject<SQLIntegrationDetails>(appConfig.IntegrationDetails?.ToString())
-            ? throw new ArgumentException("Invalid authentication details.");
+            ?? throw new ArgumentException("Invalid authentication details.");
 
         var storedProcedureName = integrationDetails.DeleteSpName
             ?? throw new ArgumentException("Provisioning details are missing.");
@@ -202,9 +201,7 @@ public class SQLIntegration : IIntegrationBase
             throw new ArgumentNullException("Identifier is null or Invalid");
 
         if (appConfig.IntegrationDetails == null)
-        {
-            throw new ArgumentNullException("Authentication details are missing.");
-        }
+            throw new ArgumentNullException("Authentication details are missing.");        
 
         var integrationDetails = JsonConvert.DeserializeObject<SQLIntegrationDetails>(appConfig.IntegrationDetails?.ToString())
             ?? throw new ArgumentException("Invalid IntegrationDetails details.");
