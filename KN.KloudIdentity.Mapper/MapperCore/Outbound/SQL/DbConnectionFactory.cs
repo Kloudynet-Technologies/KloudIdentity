@@ -13,7 +13,16 @@ public class DbConnectionFactory
         // Extend this switch case to support multiple database connections if needed
         return driverName switch
         {
-            "MSODBCSQL17.DLL" or "SQLSRV32.DLL" or "SQLNCLIRDA11.DLL" or "MYODBC8W.DLL" => new GenericDbConnection(connection),
+            "MSODBCSQL17.DLL" or 
+            "SQLSRV32.DLL" or 
+            "SQLNCLIRDA11.DLL" or 
+            "MYODBC8W.DLL" or 
+            "LIBMSODBCSQL.17.DYLIB" or
+            "LIBMYODBC8W.DYLIB" or
+            "LIBMYODBC8W.SO" or
+            "LIBMYODBC8A.SO" or
+            "LIBMSODBCSQL.17.SO" => new GenericDbConnection(connection),
+
             _ => throw new NotSupportedException($"ODBC Driver '{driverName}' is not supported.")
         };
     }

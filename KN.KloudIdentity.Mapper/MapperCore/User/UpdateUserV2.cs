@@ -68,6 +68,7 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         switch (integrationMethodOutbound)
         {
             case IntegrationMethods.REST:
+            case IntegrationMethods.SQL:
                 return userAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PATCH).ToList();
             default:
             case IntegrationMethods.Linux:

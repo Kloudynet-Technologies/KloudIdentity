@@ -1,11 +1,9 @@
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
-using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Domain.SQL;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.SQL;
 using Microsoft.Extensions.Options;
-using Microsoft.Identity.Client;
 using Microsoft.SCIM;
 using Newtonsoft.Json;
 using System.Data.Common;
@@ -18,7 +16,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore;
 public class SQLIntegration : IIntegrationBase
 {
     public IntegrationMethods IntegrationMethod { get; init; }
-    private readonly IOptions<AppSettings> _appSettings; 
+    private readonly IOptions<AppSettings> _appSettings;
+    string urnPrefix = "urn:kn:ki:schema:";
 
     public SQLIntegration(IOptions<AppSettings> appSettings)
     {
@@ -71,7 +70,7 @@ public class SQLIntegration : IIntegrationBase
                 value = attribute.SourceValue != null ? attribute.SourceValue : DBNull.Value;
             }           
 
-            var parameter = CreateOdbcParameter(attribute.DestinationField, attribute.DestinationType.ToOdbcType(), attribute.DestinationTypeLength, value);
+            var parameter = CreateOdbcParameter(attribute.DestinationField.Replace(urnPrefix, string.Empty), attribute.DestinationType.ToOdbcType(), attribute.DestinationTypeLength, value);
             parameters.Add(parameter);
         }       
 
@@ -81,6 +80,7 @@ public class SQLIntegration : IIntegrationBase
 
     private OdbcParameter CreateOdbcParameter(string destinationField, OdbcType destinationType, int? destinationTypeLength, dynamic? value)
     {
+
         var parameter = new OdbcParameter(destinationField, destinationType)
         {
             Value = value ?? DBNull.Value // Handle null values
@@ -181,7 +181,7 @@ public class SQLIntegration : IIntegrationBase
             ?? throw new ArgumentException("Matching attribute not found for 'identifier'.");
 
         var parameters = new List<OdbcParameter>();
-        var parameter = CreateOdbcParameter(attribute.DestinationField, attribute.DestinationType.ToOdbcType(), attribute.DestinationTypeLength, identifier);
+        var parameter = CreateOdbcParameter(attribute.DestinationField.Replace(urnPrefix, string.Empty), attribute.DestinationType.ToOdbcType(), attribute.DestinationTypeLength, identifier);
         parameters.Add(parameter);
 
         // Get the database connection using GetAuthenticationAsync
@@ -214,7 +214,7 @@ public class SQLIntegration : IIntegrationBase
             ?? throw new ArgumentException("Matching attribute not found for 'identifier'.");
 
         var parameters = new List<OdbcParameter>();
-        var parameter = CreateOdbcParameter(attribute.DestinationField, attribute.DestinationType.ToOdbcType(), attribute.DestinationTypeLength, identifier);
+        var parameter = CreateOdbcParameter(attribute.DestinationField.Replace(urnPrefix, string.Empty), attribute.DestinationType.ToOdbcType(), attribute.DestinationTypeLength, identifier);
         parameters.Add(parameter);
 
         // Get the database connection using GetAuthenticationAsync
@@ -253,9 +253,9 @@ public class SQLIntegration : IIntegrationBase
         var reqAttribute = appConfig.UserAttributeSchemas.FirstOrDefault(a => a.SourceValue == attribute)
            ?? throw new HttpRequestException("Matching attribute not found for 'identifier'.");
 
-        var columnIndex = reader.GetOrdinal(Regex.Replace(reqAttribute.DestinationField, @"[^a-zA-Z0-9]", ""));
+        var columnIndex = reader.GetOrdinal(Regex.Replace(reqAttribute.DestinationField.Replace(urnPrefix, string.Empty), @"[^a-zA-Z0-9]", ""));
         if (columnIndex < 0)
-            throw new HttpRequestException($"Expected column '{reqAttribute.DestinationField}' not found in the result set.");
+            throw new HttpRequestException($"Expected column '{reqAttribute.DestinationField.Replace(urnPrefix, string.Empty)}' not found in the result set.");
 
         // Handle null or DBNull values gracefully
         return !reader.IsDBNull(columnIndex)? reader.GetString(columnIndex): string.Empty;       
