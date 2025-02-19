@@ -1,15 +1,16 @@
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Domain.SQL;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.SQL;
+using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Options;
 using Microsoft.SCIM;
 using Newtonsoft.Json;
 using System.Data.Common;
 using System.Data.Odbc;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Web.Http;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
@@ -39,9 +40,11 @@ public class SQLIntegration : IIntegrationBase
             throw new ArgumentNullException("Invalid authentication details.");
         }
         else
-        { 
-            string connectionString = $"Driver={config.AuthenticationDetails?.Driver};Server={config.AuthenticationDetails?.Server};" +
-                $"Database={config.AuthenticationDetails?.Database};Uid={config.AuthenticationDetails?.UID};Pwd={config.AuthenticationDetails?.PWD};";
+        {
+            var authenticationDetails = JsonConvert.DeserializeObject<SQLAuthentication>(config.AuthenticationDetails?.ToString())
+                ?? throw new ArgumentException("Invalid authentication details.");
+
+            string connectionString = DatabaseConnectionUtil.GetConnectionString(authenticationDetails);
 
             var connection = new OdbcConnection(connectionString);
             return await Task.FromResult(connection);

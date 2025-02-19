@@ -2,28 +2,12 @@
 
 public record SQLAuthentication
 {
-    /// <summary>
-    /// ODBC Driver
-    /// </summary>
-    public string Driver { get; init; }
-
-    /// <summary>
-    /// Server Name
-    /// </summary>
-    public string Server { get; init; }
-
-    /// <summary>
-    /// Database
-    /// </summary>
-    public string Database { get; init; }
-
-    /// <summary>
-    /// Username
-    /// </summary>
-    public string UID { get; init; }
-
-    /// <summary>
-    /// Password
-    /// </summary>
-    public string PWD { get; init; }
+    public required Guid Id { get; init; }
+    public required string AppId { get; init; }
+    public required string Driver { get; init; }
+    public required string Server { get; init; }
+    public required string Database { get; init; }
+    public required string UID { get; init; }
+    public required string PWD { get; init; }
+    public Dictionary<string, string>? AdditionalProperties { get; init; }
 }

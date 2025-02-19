@@ -25,7 +25,7 @@ public class GenericDbConnection : IDbConnection, IDisposable
                       };
 
         command.Parameters.AddRange(odbcParameters.ToArray());
-
+        
         return command;
     }
 
