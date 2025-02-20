@@ -1,4 +1,5 @@
 ﻿using KN.KloudIdentity.Mapper.Domain.Authentication;
+using KN.KloudIdentity.Mapper.Domain.SQL.Constants;
 using System;
 using System.Collections.Generic;
 namespace KN.KloudIdentity.Mapper.Utils;
@@ -14,14 +15,17 @@ public  class DatabaseConnectionUtil
 
         return authMethod.Driver switch
         {
-            var driver when driver.Contains("SQL Server", StringComparison.OrdinalIgnoreCase) =>
+            var driver when driver.Contains(SQLGlobalConstants.DB_NAME_SQLSERVER, StringComparison.OrdinalIgnoreCase) =>
                 GetSqlServerConnectionString(authMethod),
 
-            var driver when driver.Contains("IBM DB2", StringComparison.OrdinalIgnoreCase) =>
+            var driver when driver.Contains(SQLGlobalConstants.DB_NAME_DB2, StringComparison.OrdinalIgnoreCase) =>
                 GetDb2ConnectionString(authMethod),
 
-            var driver when driver.Contains("MySQL", StringComparison.OrdinalIgnoreCase) =>
+            var driver when driver.Contains(SQLGlobalConstants.DB_NAME_MYSQL, StringComparison.OrdinalIgnoreCase) =>
                 GetMySqlConnectionString(authMethod),
+
+            var driver when driver.Contains(SQLGlobalConstants.DB_NAME_POSTGRESQL, StringComparison.OrdinalIgnoreCase) =>
+                GetPostgreSqlConnectionString(authMethod),
 
             _ => throw new NotSupportedException($"Unsupported database driver: {authMethod.Driver}")
 
@@ -54,6 +58,20 @@ public  class DatabaseConnectionUtil
 
         return $"Driver={authMethod.Driver};Hostname={authMethod.Server};" +
                    $"Port={port};Protocol={protocol};Database={authMethod.Database};" +
+                   $"Uid={authMethod.UID};Pwd={authMethod.PWD};";
+    }
+
+    private static string GetPostgreSqlConnectionString(SQLAuthentication authMethod)
+    {
+        if (authMethod.AdditionalProperties == null)
+            throw new ArgumentException("AdditionalProperties cannot be null for DB2 connection.");
+
+        if (!authMethod.AdditionalProperties.TryGetValue("port", out string? port) || string.IsNullOrWhiteSpace(port))
+            throw new ArgumentException("Port must be specified in AdditionalProperties.");       
+
+
+        return $"Driver={authMethod.Driver};Hostname={authMethod.Server};" +
+                   $"Port={port};Database={authMethod.Database};" +
                    $"Uid={authMethod.UID};Pwd={authMethod.PWD};";
     }
 }

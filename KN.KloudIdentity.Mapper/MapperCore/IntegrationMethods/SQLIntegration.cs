@@ -226,7 +226,7 @@ public class SQLIntegration : IIntegrationBase
         await connection.OpenAsync(cancellationToken);
 
         var dbConn = DbConnectionFactory.Create(connection);
-        var command = dbConn.CreateCommand(storedProcedureName, parameters); 
+        var command = dbConn.CreateCommand(storedProcedureName, parameters, HttpRequestTypes.GET); 
         var reader =  await command.ExecuteReaderAsync(cancellationToken);
 
         // If no rows are returned, throw an exception
