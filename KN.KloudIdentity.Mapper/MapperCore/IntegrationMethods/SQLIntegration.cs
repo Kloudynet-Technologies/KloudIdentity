@@ -142,7 +142,7 @@ public class SQLIntegration : IIntegrationBase
 
     public Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
     {
-        throw new NotImplementedException();
+        throw new NotSupportedException();
     }
 
     public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)

@@ -38,7 +38,7 @@ public static class SQLGlobalConstants
         "LIBDB2O.DYLIB"
     };
 
-    // DB2 ODBC Drivers
+    // PostgreSQL ODBC Drivers
     public static readonly List<string> PostgreSqlDrivers = new List<string>
     {
         "PSQLODBC35W.DLL",

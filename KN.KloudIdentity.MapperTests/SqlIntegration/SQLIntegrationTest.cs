@@ -6,6 +6,8 @@ using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
 using Newtonsoft.Json;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
+using System.Dynamic;
+using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.MapperTests;
 
@@ -24,22 +26,27 @@ public partial class SQLIntegrationTest
     [Fact]
     public async Task GetAuthenticationAsync_ShouldReturnOdbcConnection_WhenAuthenticationDetailsAreValid()
     {
-        // Arrange
         var odbcAuth = new SQLAuthentication
         {
+            Id = Guid.NewGuid(),
+            AppId = "TestAppId",
             Driver = "ODBC Driver 17 for SQL Server",
             Server = "localhost",
             Database = "TestDb",
             UID = "TestUser",
-            PWD = "TestPassword"
+            PWD = "TestPassword",
+            AdditionalProperties = new Dictionary<string, string>()
         };
-        #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+
+        var authDetails = JObject.FromObject(odbcAuth);
+
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
         var config = new AppConfig
         {
             UserURIs = null,
             UserAttributeSchemas = null,
             IntegrationMethodOutbound = null,
-            AuthenticationDetails = odbcAuth
+            AuthenticationDetails = authDetails
         };
         #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 

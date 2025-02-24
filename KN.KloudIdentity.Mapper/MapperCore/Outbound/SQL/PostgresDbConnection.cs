@@ -56,6 +56,6 @@ public class PostgresDbConnection : IDbConnection, IDisposable
 
     public void Dispose()
     {
-        throw new NotImplementedException();
+        _connection?.Dispose();
     }
 }
