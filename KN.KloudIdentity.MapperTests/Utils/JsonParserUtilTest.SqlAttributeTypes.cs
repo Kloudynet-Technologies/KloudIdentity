@@ -1,14 +1,8 @@
 ﻿using KN.KloudIdentity.Mapper;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
-using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace KN.KloudIdentity.MapperTests;
 
@@ -19,117 +13,174 @@ public partial class JSONParserUtilTests
     public void GetValue_SQLDataType_VarChar_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:name", SourceValue = "DisplayName", DestinationType = AttributeDataTypes.NChar };
+        var AttributeSchema = new List<AttributeSchema> 
+        { 
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:name", SourceValue = "DisplayName", DestinationType = AttributeDataTypes.VarChar },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.VarChar }
+        };
 
         //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            DisplayName = "John David"
+            DisplayName = "John David",
+            UserName = "john.d@mail.com"
         };       
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = "John David";
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""name"": ""John David"",
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
     [Fact]
     public void GetValue_SQLDataType_Char_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:usertype", SourceValue = "UserType" , DestinationType = AttributeDataTypes.Char};
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:name", SourceValue = "DisplayName", DestinationType = AttributeDataTypes.Char },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.Char }
+        };
 
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            UserType = "Admin"
+            DisplayName = "John David",
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = "Admin";
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""name"": ""John David"",
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
     [Fact]
     public void GetValue_SQLDataType_NVarChar_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:name", SourceValue = "DisplayName", DestinationType = AttributeDataTypes.NVarChar };
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:name", SourceValue = "DisplayName", DestinationType = AttributeDataTypes.NVarChar },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.NVarChar }
+        };
 
         //NVarChar can store Unicode characters.
-        var resource = new Core2EnterpriseUser {
-            DisplayName = "你好 你好"
+        var resource = new Core2EnterpriseUser
+        {
+            DisplayName = "你好 你好",
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = "你好 你好";
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""name"": ""你好 你好"",
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
     [Fact]
     public void GetValue_SQLDataType_NChar_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:name", SourceValue = "DisplayName" , DestinationType = AttributeDataTypes.NChar};
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:name", SourceValue = "DisplayName", DestinationType = AttributeDataTypes.NChar },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.NChar }
+        };
 
-        //NChar can store Unicode characters.
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            DisplayName = "中华人民共和国"
+            DisplayName = "中华人民共和国",
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = "中华人民共和国";
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""name"": ""中华人民共和国"",
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
     [Fact]
     public void GetValue_SQLDataType_NText_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:name", SourceValue = "DisplayName" , DestinationType = AttributeDataTypes.NText};
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:name", SourceValue = "DisplayName", DestinationType = AttributeDataTypes.NText },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.NText }
+        };
 
-        //NText can store Unicode characters.
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            DisplayName = "你好 你好"
+            DisplayName = "你好 你好",
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = "你好 你好";
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""name"": ""你好 你好"",
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);        
     }
 
     [Fact]
     public void GetValue_SQLDataType_Text_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:name", SourceValue = "DisplayName" , DestinationType = AttributeDataTypes.Text};
- 
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:name", SourceValue = "DisplayName", DestinationType = AttributeDataTypes.Text },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.Text }
+        };
+
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            DisplayName = "John David"
+            DisplayName = "John David",
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = "John David";
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""name"": ""John David"",
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
 
@@ -137,160 +188,230 @@ public partial class JSONParserUtilTests
     public void GetValue_SQLDataType_Bit_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:active", SourceValue = "Active", DestinationType = AttributeDataTypes.Bit };
-        
-      
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:active", SourceValue = "Active", DestinationType = AttributeDataTypes.Bit }
+           
+        };
+
+
         var resource = new Core2EnterpriseUser
         {
             Active = true
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = true;
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""active"": true
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
     [Fact]
     public void GetValue_SQLDataType_BigInt_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.BigInt };
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.BigInt },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.Text }
+        };
 
-
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            Identifier = "1"
+            Identifier = "1",
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = 1;
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""id"": 1,
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
     [Fact]
     public void GetValue_SQLDataType_Numeric_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.Numeric };
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.Numeric },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.Text }
+        };
 
-
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            Identifier = "1"
+            Identifier = "1",
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = 1;
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""id"": 1,
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
     [Fact]
     public void GetValue_SQLDataType_Int_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.Int };
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.Int },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.Text }
+        };
 
-
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            Identifier = "1"
+            Identifier = "1",
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = 1;
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""id"": 1,
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
     [Fact]
     public void GetValue_SQLDataType_SmallInt_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.SmallInt };
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.SmallInt },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.Text }
+        };
 
-
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            Identifier = "1"
+            Identifier = "1",
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = 1;
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""id"": 1,
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }  
 
     [Fact]
     public void GetValue_SQLDataType_Double_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.Double };
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.Double },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.Text }
+        };
 
-
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            Identifier = "1.0"
+            Identifier = "1.0",
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = 1.0;
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""id"": 1.0,
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
     [Fact]
     public void GetValue_SQLDataType_Real_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.Real };
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.Real },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.Text }
+        };
 
-
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            Identifier = "1.0"
+            Identifier = "1.5",
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = 1;
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""id"": 1.5,
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
     [Fact]
     public void GetValue_SQLDataType_Decimal_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:locale", SourceValue = "Locale", DestinationType = AttributeDataTypes.Decimal };
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:id", SourceValue = "Identifier", DestinationType = AttributeDataTypes.Decimal },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.Text }
+        };
 
-
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            Locale = "1.0"
+            Identifier = "1.8",
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = 1.0;
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""id"": 1.8,
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
 
@@ -298,60 +419,87 @@ public partial class JSONParserUtilTests
     public void GetValue_SQLDataType_DateTime_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:locale", SourceValue = "Locale", DestinationType = AttributeDataTypes.DateTime };
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:locale", SourceValue = "Locale", DestinationType = AttributeDataTypes.DateTime },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.Text }
+        };
 
-
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            Locale = new DateTime(2025, 1, 22, 14, 33, 12).ToString()
+            Locale = new DateTime(2025, 1, 22, 14, 33, 12).ToString(),
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema);
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = new DateTime(2025, 1, 22, 14, 33, 12); 
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""locale"": '2025-01-22T14:33:12.0000000',
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
     [Fact]
     public void GetValue_SQLDataType_Time_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:locale", SourceValue = "Locale", DestinationType = AttributeDataTypes.Time };
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:locale", SourceValue = "Locale", DestinationType = AttributeDataTypes.Time },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.Text }
+        };
 
-
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            Locale = new Time(3, 1, 22).ToString()
+            Locale = new Time(3, 1, 22).ToString(),
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema)?.ToString("hh:mm:ss");
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = new Time(3, 1, 22).ToString();
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""locale"": '03:01:22.0000000',
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
 
     [Fact]
     public void GetValue_SQLDataType_Date_ReturnsParsedJson()
     {
         // Arrange
-        var AttributeSchema = new AttributeSchema { DestinationField = "urn:kn:ki:schema:locale", SourceValue = "Locale", DestinationType = AttributeDataTypes.Date };
+        var AttributeSchema = new List<AttributeSchema>
+        {
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:locale", SourceValue = "Locale", DestinationType = AttributeDataTypes.Date },
+            new AttributeSchema { DestinationField = "urn:kn:ki:schema:email", SourceValue = "UserName", DestinationType = AttributeDataTypes.Text }
+        };
 
-
+        //NVarChar can store Unicode characters.
         var resource = new Core2EnterpriseUser
         {
-            Locale = new Date(2025, 1, 22).ToString()
+            Locale = new Date(2025, 1, 22).ToString(),
+            UserName = "john.d@mail.com"
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema)?.ToString("yyyy-MM-dd");
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.Parse(AttributeSchema, resource);
 
         // Assert
-        var expectedValue = new Date(2025, 1, 22).ToString();
-        Assert.Equal(expectedValue, result);
+        var expectedJson = JObject.Parse(@"{
+            ""locale"": '2025-01-22',
+            ""email"": ""john.d@mail.com""
+        }");
+
+        Assert.Equal(expectedJson, result);
     }
     
     [Fact]
@@ -374,4 +522,3 @@ public partial class JSONParserUtilTests
             JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, schemaAttribute));
     }
 }
-
