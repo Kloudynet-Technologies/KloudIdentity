@@ -66,16 +66,16 @@ public class InboundMapper : IInboundMapper
                     {
                         switch (mapping.DataType)
                         {
-                            case JsonDataTypes.String:
+                            case AttributeDataTypes.String:
                                 scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = value.ToString();
                                 break;
-                            case JsonDataTypes.Boolean:
+                            case AttributeDataTypes.Boolean:
                                 scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = bool.Parse(value.ToString());
                                 break;
-                            case JsonDataTypes.Number:
+                            case AttributeDataTypes.Number:
                                 scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = int.Parse(value.ToString());
                                 break;
-                            case JsonDataTypes.DateTime:
+                            case AttributeDataTypes.DateTime:
                                 scimUser["data"]![InboundConstants.SCIM_USER_EXTENSION_SCHEMA]![mapping.EntraIdAttribute] = DateTime.Parse(value.ToString());
                                 break;
                             default:

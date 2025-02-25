@@ -77,14 +77,50 @@ public class JSONParserUtilV2<T> where T : Resource
     {
         return schemaAttribute.DestinationType switch
         {
-            JsonDataTypes.String => _isSamplePayload ? GetSampleValue<string>(schemaAttribute) :
+            AttributeDataTypes.String or 
+            AttributeDataTypes.NVarChar or 
+            AttributeDataTypes.Char or
+            AttributeDataTypes.NText or 
+            AttributeDataTypes.NChar or 
+            AttributeDataTypes.Text or
+            AttributeDataTypes.VarChar => _isSamplePayload ? GetSampleValue<string>(schemaAttribute) :
                                     GetValue<string>(resource, schemaAttribute),
-            JsonDataTypes.Boolean => _isSamplePayload ? GetSampleValue<bool>(schemaAttribute) :
+
+            AttributeDataTypes.Boolean or 
+            AttributeDataTypes.Bit => _isSamplePayload ? GetSampleValue<bool>(schemaAttribute) :
                                     GetValue<bool>(resource, schemaAttribute),
-            JsonDataTypes.Number => _isSamplePayload ? GetSampleValue<long>(schemaAttribute) :
+
+            AttributeDataTypes.Number or 
+            AttributeDataTypes.BigInt or 
+            AttributeDataTypes.Int or 
+            AttributeDataTypes.Numeric or
+            AttributeDataTypes.SmallInt or  
+            AttributeDataTypes.TinyInt => _isSamplePayload ? GetSampleValue<long>(schemaAttribute) :
                                     GetValue<long>(resource, schemaAttribute),
-            JsonDataTypes.Object => MakeJsonObject(resource, schemaAttribute),
-            JsonDataTypes.Array => MakeJsonArray(resource, schemaAttribute),
+
+            AttributeDataTypes.Decimal or
+            AttributeDataTypes.Double or
+            AttributeDataTypes.Real => _isSamplePayload ? GetSampleValue<double>(schemaAttribute) :
+                                    GetValue<double>(resource, schemaAttribute),
+
+            AttributeDataTypes.DateTime or
+            AttributeDataTypes.SmallDateTime or
+            AttributeDataTypes.Date or
+            AttributeDataTypes.Time => _isSamplePayload ? GetSampleValue<DateTime>(schemaAttribute) :
+                                    GetValue<DateTime>(resource, schemaAttribute),            
+
+            AttributeDataTypes.UniqueIdentifier => _isSamplePayload ? GetSampleValue<Guid>(schemaAttribute) :
+                                    GetValue<Guid>(resource, schemaAttribute),      
+
+            AttributeDataTypes.Object => MakeJsonObject(resource, schemaAttribute),
+
+            AttributeDataTypes.Array => MakeJsonArray(resource, schemaAttribute),
+
+            AttributeDataTypes.Binary or
+            AttributeDataTypes.VarBinary or
+            AttributeDataTypes.Image or
+            AttributeDataTypes.Timestamp => throw new NotSupportedException($"{schemaAttribute.DestinationType}: is not supported to SCIM"),
+
             _ => default,
         };
     }
@@ -106,12 +142,40 @@ public class JSONParserUtilV2<T> where T : Resource
         {
             switch (schemaAttribute.DestinationType)
             {
-                case JsonDataTypes.String:
+                case AttributeDataTypes.String:
+                case AttributeDataTypes.NVarChar:
+                case AttributeDataTypes.Char:
+                case AttributeDataTypes.NText:
+                case AttributeDataTypes.NChar:
+                case AttributeDataTypes.Text:
+                case AttributeDataTypes.VarChar:              
                     return (T2)Convert.ChangeType("string", typeof(T2));
-                case JsonDataTypes.Boolean:
+                case AttributeDataTypes.Boolean:
+                case AttributeDataTypes.Bit:
                     return (T2)Convert.ChangeType(false, typeof(T2));
-                case JsonDataTypes.Number:
+                case AttributeDataTypes.Number:
+                case AttributeDataTypes.BigInt:
+                case AttributeDataTypes.Int:
+                case AttributeDataTypes.Numeric:
+                case AttributeDataTypes.SmallInt:
+                case AttributeDataTypes.TinyInt:
                     return (T2)Convert.ChangeType(0, typeof(T2));
+                case AttributeDataTypes.Double:
+                case AttributeDataTypes.Decimal:
+                case AttributeDataTypes.Real:
+                    return (T2)Convert.ChangeType(0.0, typeof(T2));
+                case AttributeDataTypes.DateTime:
+                case AttributeDataTypes.SmallDateTime:
+                case AttributeDataTypes.Date:
+                case AttributeDataTypes.Time:
+                    return (T2)Convert.ChangeType(DateTime.Now, typeof(T2));
+                case AttributeDataTypes.Binary:
+                case AttributeDataTypes.VarBinary:
+                    return (T2)Convert.ChangeType(new byte[0], typeof(T2));
+                case AttributeDataTypes.UniqueIdentifier:
+                    return (T2)Convert.ChangeType(Guid.Empty, typeof(T2));
+                case AttributeDataTypes.Timestamp:
+                    return (T2)Convert.ChangeType(new byte[0], typeof(T2));
                 default:
                     return default;
             }
@@ -236,7 +300,7 @@ public class JSONParserUtilV2<T> where T : Resource
     {
         var newArray = new JArray();
 
-        if (schemaAttribute.ArrayDataType == JsonDataTypes.Object)
+        if (schemaAttribute.ArrayDataType == AttributeDataTypes.Object)
         {
             var objVal = MakeJsonObject(resource, schemaAttribute);
             newArray.Add(objVal);
@@ -246,7 +310,7 @@ public class JSONParserUtilV2<T> where T : Resource
 
         var data = ReadProperty(resource, schemaAttribute.SourceValue);
 
-        if (data is not IEnumerable<object> && schemaAttribute.ArrayDataType != JsonDataTypes.Object)
+        if (data is not IEnumerable<object> && schemaAttribute.ArrayDataType != AttributeDataTypes.Object)
         {
             if (schemaAttribute.IsRequired && string.IsNullOrEmpty(data?.ToString()))
                 return new JArray(ParseValue(schemaAttribute.DefaultValue, schemaAttribute.ArrayDataType));
@@ -287,20 +351,20 @@ public class JSONParserUtilV2<T> where T : Resource
         return newArray;
     }
 
-    private static bool IsSimpleDataType(JsonDataTypes dataType)
+    private static bool IsSimpleDataType(AttributeDataTypes dataType)
     {
-        return dataType == JsonDataTypes.String ||
-               dataType == JsonDataTypes.Number ||
-               dataType == JsonDataTypes.Boolean;
+        return dataType == AttributeDataTypes.String ||
+               dataType == AttributeDataTypes.Number ||
+               dataType == AttributeDataTypes.Boolean;
     }
 
-    private static dynamic ParseValue(string? value, JsonDataTypes dataType)
+    private static dynamic ParseValue(string? value, AttributeDataTypes dataType)
     {
         return dataType switch
         {
-            JsonDataTypes.String => value ?? "",
-            JsonDataTypes.Number => int.TryParse(value, out var intValue) ? intValue : default(int?),
-            JsonDataTypes.Boolean => bool.TryParse(value, out var boolValue) ? boolValue : default(bool?),
+            AttributeDataTypes.String => value ?? "",
+            AttributeDataTypes.Number => int.TryParse(value, out var intValue) ? intValue : default(int?),
+            AttributeDataTypes.Boolean => bool.TryParse(value, out var boolValue) ? boolValue : default(bool?),
             _ => throw new NotSupportedException($"Unsupported array data type: {dataType}")
         };
     }
@@ -338,7 +402,7 @@ public class JSONParserUtilV2<T> where T : Resource
             string attrUrn = childSchema.DestinationField.Remove(0, urnPrefix.Length);
             var attrArray = attrUrn.Split(':');
 
-            if (childSchema.DestinationType == JsonDataTypes.Array)
+            if (childSchema.DestinationType == AttributeDataTypes.Array)
             {
                 var childValue = ReadProperty(resource, childSchema.SourceValue);
                 ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], MakeJsonArray(resource, childSchema));
@@ -346,7 +410,7 @@ public class JSONParserUtilV2<T> where T : Resource
             }
             else
             {
-                if (childSchema.DestinationType == JsonDataTypes.Object)
+                if (childSchema.DestinationType == AttributeDataTypes.Object)
                 {
                     var childValue = ReadProperty(resource, childSchema.SourceValue);
                     ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], MakeJsonObject(resource, childSchema));
@@ -365,13 +429,13 @@ public class JSONParserUtilV2<T> where T : Resource
                     {
                         switch (childSchema.DestinationType)
                         {
-                            case JsonDataTypes.String:
+                            case AttributeDataTypes.String:
                                 childValue = GetValue<string>(resource, childSchema);
                                 break;
-                            case JsonDataTypes.Boolean:
+                            case AttributeDataTypes.Boolean:
                                 childValue = GetValue<bool>(resource, childSchema);
                                 break;
-                            case JsonDataTypes.Number:
+                            case AttributeDataTypes.Number:
                                 childValue = GetValue<long>(resource, childSchema);
                                 break;
                             default:

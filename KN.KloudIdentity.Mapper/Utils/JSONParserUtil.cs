@@ -71,11 +71,11 @@ namespace KN.KloudIdentity.Mapper.Utils
 
             return schemaAttribute.DestinationType switch
             {
-                JsonDataTypes.String => value?.ToString(),
-                JsonDataTypes.Boolean => Boolean.TryParse(value?.ToString(), out bool boolValue) ? boolValue : default(bool?),
-                JsonDataTypes.Number => Int32.TryParse(value?.ToString(), out int intValue) ? intValue : default(int?),
-                JsonDataTypes.Object => MakeJsonObject(resource, schemaAttribute),
-                JsonDataTypes.Array => MakeJsonArray(resource, value, schemaAttribute),
+                AttributeDataTypes.String => value?.ToString(),
+                AttributeDataTypes.Boolean => Boolean.TryParse(value?.ToString(), out bool boolValue) ? boolValue : default(bool?),
+                AttributeDataTypes.Number => Int32.TryParse(value?.ToString(), out int intValue) ? intValue : default(int?),
+                AttributeDataTypes.Object => MakeJsonObject(resource, schemaAttribute),
+                AttributeDataTypes.Array => MakeJsonArray(resource, value, schemaAttribute),
                 _ => default,
             };
         }
@@ -155,9 +155,9 @@ namespace KN.KloudIdentity.Mapper.Utils
             var newArray = new JArray();
 
             // Check if the array element type is a simple data type (String, Integer, Boolean)
-            if (schemaAttribute.ArrayDataType == JsonDataTypes.String ||
-                schemaAttribute.ArrayDataType == JsonDataTypes.Number ||
-                schemaAttribute.ArrayDataType == JsonDataTypes.Boolean)
+            if (schemaAttribute.ArrayDataType == AttributeDataTypes.String ||
+                schemaAttribute.ArrayDataType == AttributeDataTypes.Number ||
+                schemaAttribute.ArrayDataType == AttributeDataTypes.Boolean)
             {
                 // Iterate through each object in the array
                 foreach (var obj in data)
@@ -172,15 +172,15 @@ namespace KN.KloudIdentity.Mapper.Utils
                     {
                         switch (schemaAttribute.ArrayDataType)
                         {
-                            case JsonDataTypes.String:
+                            case AttributeDataTypes.String:
                                 newArray.Add(propertyValue.ToString());
                                 break;
 
-                            case JsonDataTypes.Number:
+                            case AttributeDataTypes.Number:
                                 newArray.Add(Int32.TryParse(propertyValue?.ToString(), out int intValue) ? intValue : default(int?));
                                 break;
 
-                            case JsonDataTypes.Boolean:
+                            case AttributeDataTypes.Boolean:
                                 newArray.Add(Boolean.TryParse(propertyValue?.ToString(), out bool boolValue) ? boolValue : default(bool?));
                                 break;
                         }
@@ -201,7 +201,7 @@ namespace KN.KloudIdentity.Mapper.Utils
                         string attrUrn = childSchema.DestinationField.Remove(0, urnPrefix.Length);
                         var attrArray = attrUrn.Split(':');
 
-                        if (childSchema.DestinationType == JsonDataTypes.Array)
+                        if (childSchema.DestinationType == AttributeDataTypes.Array)
                         {
                             var childValue = GetPropertyValue(obj, childSchema.SourceValue);
                             ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], MakeJsonArray(resource, childValue, childSchema));
@@ -260,7 +260,7 @@ namespace KN.KloudIdentity.Mapper.Utils
                 string attrUrn = childSchema.DestinationField.Remove(0, urnPrefix.Length);
                 var attrArray = attrUrn.Split(':');
 
-                if (childSchema.DestinationType == JsonDataTypes.Array)
+                if (childSchema.DestinationType == AttributeDataTypes.Array)
                 {
                     var childValue = ReadProperty(resource, childSchema.SourceValue);
                     ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], MakeJsonArray(resource, childValue, childSchema));
@@ -268,7 +268,7 @@ namespace KN.KloudIdentity.Mapper.Utils
                 }
                 else
                 {
-                    if (childSchema.DestinationType == JsonDataTypes.Object)
+                    if (childSchema.DestinationType == AttributeDataTypes.Object)
                     {
                         var childValue = ReadProperty(resource, childSchema.SourceValue);
                         ((IDictionary<string, object>)childObject).Add(attrArray[attrArray.Length - 1], MakeJsonObject(resource, childSchema));

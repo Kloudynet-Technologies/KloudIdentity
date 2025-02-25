@@ -77,6 +77,7 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
         switch (integrationMethodOutbound)
         {
             case IntegrationMethods.REST:
+            case IntegrationMethods.SQL:
                 return userAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
             default:
                 return userAttributeSchemas.ToList();
