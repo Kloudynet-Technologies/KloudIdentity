@@ -142,7 +142,7 @@ public class SQLIntegration : IIntegrationBase
 
     public Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
     {
-        throw new NotSupportedException();
+        throw new NotSupportedException("Replace operation not supported for SQL Integration");
     }
 
     public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
