@@ -262,7 +262,7 @@ public partial class JSONParserUtilTests
 
         var resource = new Core2EnterpriseUser
         {
-            Identifier = "1"
+            Identifier = "1.0"
         };
 
         // Act
@@ -282,7 +282,7 @@ public partial class JSONParserUtilTests
 
         var resource = new Core2EnterpriseUser
         {
-            Locale = "1"
+            Locale = "1.0"
         };
 
         // Act
@@ -327,7 +327,7 @@ public partial class JSONParserUtilTests
         };
 
         // Act
-        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema)?.ToString("hh:MM:ss");
+        var result = JSONParserUtilV2<Core2EnterpriseUser>.GetValue(resource, AttributeSchema)?.ToString("hh:mm:ss");
 
         // Assert
         var expectedValue = new Time(3, 1, 22).ToString();
