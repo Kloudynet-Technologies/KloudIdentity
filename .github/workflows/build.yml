@@ -2,9 +2,9 @@ name: Project Build
 
 on:
   push:
-    branches: ["main", "dev","ci-cd-pipeline"]     
+    branches: ["main", "dev","ci-cd-pipeline-modifications"]     
   pull_request:
-    branches: ["main", "dev","ci-cd-pipeline"]
+    branches: ["main", "dev","ci-cd-pipeline-modifications"]
 
 jobs:
   build-dotnet:
@@ -28,5 +28,9 @@ jobs:
     - name: Build
       run: dotnet build -c Release --no-restore
 
+ - name: Run Tests
+        working-directory: ./KN.KloudIdentity.MapperTests/
+        run: dotnet test KN.KloudIdentity.MapperTests.csproj --logger "console;verbosity=minimal"
+        
     - name: Test
       run: dotnet test --no-restore --verbosity normal   
