@@ -2,9 +2,9 @@ name: Project Build
 
 on:
   push:
-    branches: ["main", "dev","ci-cd-pipeline-modifications"]     
+    branches: ["main", "dev"]     
   pull_request:
-    branches: ["main", "dev","ci-cd-pipeline-modifications"]
+    branches: ["main", "dev"]
 
 jobs:
   build-dotnet:
