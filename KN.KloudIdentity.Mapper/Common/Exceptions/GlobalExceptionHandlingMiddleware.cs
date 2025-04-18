@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KI.LogAggregator.Library;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.Common.Exceptions
 {
@@ -127,6 +128,14 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
 
             var exceptionType = exception.GetType().Name;
             var eventInfo = $@"path: [{context?.Request.Method}]{context?.Request.Path} - {exceptionType}";
+            
+            Log.Error(
+                "{EventInfo} - {ExceptionMessage} | AppId: {AppId}, TraceId: {TraceId}", 
+                eventInfo, 
+                exception.Message, 
+                appId ?? "UnknownAppId", 
+                context?.TraceIdentifier ?? "UnknownTraceId"
+            );
 
             await _logger.CreateLogAsync(new CreateLogEntity(
                 appId ?? Guid.NewGuid().ToString(),

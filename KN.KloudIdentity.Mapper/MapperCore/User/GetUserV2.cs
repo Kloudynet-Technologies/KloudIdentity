@@ -7,6 +7,7 @@ using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
@@ -35,19 +36,28 @@ public class GetUserV2 : ProvisioningBase, IGetResourceV2
     /// <exception cref="NotSupportedException">When integration method is not supported</exception>
     public async Task<Core2EnterpriseUser> GetAsync(string identifier, string appId, string correlationID)
     {
+        Log.Information(
+            "Execution started for user retrieval. Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
+            identifier, appId, correlationID);
+
         // Step 1: Get app config
         var appConfig = await GetAppConfigAsync(appId);
-
+        
         // Resolve integration method operations
-        var integrationOp = _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??
-                                throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
+        var integrationOp =
+            _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??
+            throw new NotSupportedException(
+                $"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
 
         // Step 2: Retrieve user
         var user = await integrationOp.GetAsync(identifier, appConfig, correlationID);
+        Log.Information(
+            "User retrieved successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
+            identifier, appId, correlationID);
 
         // Log the operation.
         _ = CreateLogAsync(appConfig.AppId, identifier, correlationID);
-
+        
         return user;
     }
 
