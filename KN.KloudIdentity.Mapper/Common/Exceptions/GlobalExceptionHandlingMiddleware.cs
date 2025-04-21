@@ -119,7 +119,6 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
             var errorJson = JsonConvert.SerializeObject(exModel, settings);
 
             await context.Response.WriteAsync(errorJson);
-
         }
 
         private async Task CreateLogAsync(HttpContext context, Exception exception)
@@ -128,13 +127,14 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
 
             var exceptionType = exception.GetType().Name;
             var eventInfo = $@"path: [{context?.Request.Method}]{context?.Request.Path} - {exceptionType}";
-            
-            Log.Error(
-                "{EventInfo} - {ExceptionMessage} | AppId: {AppId}, TraceId: {TraceId}", 
-                eventInfo, 
-                exception.Message, 
-                appId ?? "UnknownAppId", 
-                context?.TraceIdentifier ?? "UnknownTraceId"
+
+          Log.Error(
+                "{EventInfo} - {ExceptionMessage} | AppId: {AppId}, TraceId: {TraceId}, StackTrace: {StackTrace}",
+                eventInfo,
+                exception.Message,
+                appId ?? "UnknownAppId",
+                context?.TraceIdentifier ?? "UnknownTraceId",
+                exception?.StackTrace ?? "UnknownStackTrace"
             );
 
             await _logger.CreateLogAsync(new CreateLogEntity(
@@ -153,8 +153,8 @@ namespace KN.KloudIdentity.Mapper.Common.Exceptions
                     exception?.StackTrace ?? string.Empty,
                     exception?.InnerException?.Message,
                     exception?.InnerException?.StackTrace
-                    )
-                ));
+                )
+            ));
         }
     }
 }
