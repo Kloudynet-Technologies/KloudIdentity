@@ -6,6 +6,7 @@ using KN.KloudIdentity.Mapper.Domain.ExternalEndpoint;
 using KN.KloudIdentity.Mapper.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
 {
@@ -20,9 +21,10 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
             _logger = logger;
         }
 
-        public async Task<dynamic> ProcessAsync(dynamic payload, ExternalEndpointInfo endpointInfo, string correlationID, CancellationToken cancellationToken)
+        public async Task<dynamic> ProcessAsync(dynamic payload, ExternalEndpointInfo endpointInfo,
+            string correlationID, CancellationToken cancellationToken)
         {
-            Validate(endpointInfo);
+            Validate(endpointInfo, correlationID);
 
             var httpClient = _httpClientFactory.CreateClient();
 
@@ -30,18 +32,24 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
             httpClient.DefaultRequestHeaders.Add("X-Correlation-ID", correlationID);
             httpClient.Timeout = TimeSpan.FromSeconds(5);
 
-            using (var response = await httpClient.PostAsJsonAsync(endpointInfo.EndpointUrl, payload as JObject, cancellationToken))
+            using (var response =
+                   await httpClient.PostAsJsonAsync(endpointInfo.EndpointUrl, payload as JObject, cancellationToken))
             {
                 if (!response.IsSuccessStatusCode)
                 {
-                    throw new HttpRequestException($"Error ocurred in custom logic execution: {response.StatusCode} - {response.ReasonPhrase}");
+                    Log.Error(
+                        "Error occurred while executing custom logic. CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, ReasonPhrase: {ReasonPhrase}",
+                        correlationID, response.StatusCode, response.ReasonPhrase);
+                    throw new HttpRequestException(
+                        $"Error occurred in custom logic execution: {response.StatusCode} - {response.ReasonPhrase}");
                 }
 
-                var responseContent = await response.Content.ReadAsStringAsync();
+                var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
                 var deserializedResponse = JsonConvert.DeserializeObject<dynamic>(responseContent!);
 
                 if (deserializedResponse == null)
                 {
+                    Log.Error("External API response is null. CorrelationID: {CorrelationID}", correlationID);
                     throw new ArgumentNullException("External API response is null.");
                 }
 
@@ -56,11 +64,13 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
             switch (endpointInfo.AuthenticationMethod)
             {
                 case AuthenticationMethods.APIKey:
-                    httpClient.DefaultRequestHeaders.Add(endpointInfo.APIKeyAuth!.AuthHeaderName, endpointInfo.APIKeyAuth!.APIKey);
+                    httpClient.DefaultRequestHeaders.Add(endpointInfo.APIKeyAuth!.AuthHeaderName,
+                        endpointInfo.APIKeyAuth!.APIKey);
                     break;
 
                 case AuthenticationMethods.Bearer:
-                    httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {endpointInfo.BearerAuth!.BearerToken}");
+                    httpClient.DefaultRequestHeaders.Add("Authorization",
+                        $"Bearer {endpointInfo.BearerAuth!.BearerToken}");
                     break;
 
                 case AuthenticationMethods.None:
@@ -68,58 +78,77 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
             }
         }
 
-        private void Validate(ExternalEndpointInfo endpointInfo)
+        private void Validate(ExternalEndpointInfo endpointInfo, string correlationId)
         {
             if (string.IsNullOrEmpty(endpointInfo.EndpointUrl))
             {
+                Log.Error(
+                    "EndpointUrl is required but was null or empty. CorrelationID: {CorrelationID}, AppId: {AppId}",
+                    correlationId, endpointInfo.AppId);
                 throw new ArgumentNullException("EndpointUrl is required.", nameof(endpointInfo.EndpointUrl));
             }
 
             switch (endpointInfo.AuthenticationMethod)
             {
                 case AuthenticationMethods.APIKey:
-                    ValidateApiKeyAuth(endpointInfo.APIKeyAuth);
+                    ValidateApiKeyAuth(endpointInfo.APIKeyAuth, correlationId, endpointInfo.AppId);
                     break;
 
                 case AuthenticationMethods.Bearer:
-                    ValidateBearerAuth(endpointInfo.BearerAuth);
+                    ValidateBearerAuth(endpointInfo.BearerAuth, correlationId, endpointInfo.AppId);
                     break;
 
                 case AuthenticationMethods.None:
                     break;
 
                 default:
-                    throw new NotSupportedException($"Invalid or unsupported authentication method: {endpointInfo.AuthenticationMethod}");
+                    throw new NotSupportedException(
+                        $"Invalid or unsupported authentication method: {endpointInfo.AuthenticationMethod}");
             }
         }
 
-        private void ValidateApiKeyAuth(ExternalAPIKeyAuth? apiKeyAuth)
+        private void ValidateApiKeyAuth(ExternalAPIKeyAuth? apiKeyAuth, string correlationId, string appId)
         {
             if (apiKeyAuth == null)
             {
+                Log.Error(
+                    "APIKeyAuth is required for APIKey authentication method. CorrelationID: {CorrelationID}, AppId: {AppId}",
+                    correlationId, appId);
                 throw new ArgumentNullException("APIKeyAuth is required for APIKey authentication method.");
             }
 
             if (string.IsNullOrEmpty(apiKeyAuth.AuthHeaderName))
             {
+                Log.Error(
+                    "AuthHeaderName is required for APIKey authentication method. CorrelationID: {CorrelationID}, AppId: {AppId}",
+                    correlationId, appId);
                 throw new ArgumentNullException("AuthHeaderName is required for APIKey authentication method.");
             }
 
             if (string.IsNullOrEmpty(apiKeyAuth.APIKey))
             {
+                Log.Error(
+                    "APIKey is required for APIKey authentication method. CorrelationID: {CorrelationID}, AppId: {AppId}",
+                    correlationId, appId);
                 throw new ArgumentNullException("APIKey is required for APIKey authentication method.");
             }
         }
 
-        private void ValidateBearerAuth(ExternalBearerAuth? bearerAuth)
+        private void ValidateBearerAuth(ExternalBearerAuth? bearerAuth, string correlationId, string appId)
         {
             if (bearerAuth == null)
             {
+                Log.Error(
+                    "BearerAuth is required for Bearer authentication method. CorrelationID: {CorrelationID}, AppId: {AppId}",
+                    correlationId, appId);
                 throw new ArgumentNullException("BearerAuth is required for Bearer authentication method.");
             }
 
             if (string.IsNullOrEmpty(bearerAuth.BearerToken))
             {
+                Log.Error(
+                    "BearerToken is required for Bearer authentication method. CorrelationID: {CorrelationID}, AppId: {AppId}",
+                    correlationId, appId);
                 throw new ArgumentNullException("BearerToken is required for Bearer authentication method.");
             }
         }
