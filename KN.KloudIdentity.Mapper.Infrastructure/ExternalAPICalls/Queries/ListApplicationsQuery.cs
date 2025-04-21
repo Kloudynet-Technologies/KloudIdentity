@@ -1,49 +1,58 @@
-﻿using KN.KloudIdentity.Mapper.Domain;
+﻿using KN.KI.RabbitMQ.MessageContracts;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Messaging;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
-using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
-using RabbitMQ.Client;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
+using MassTransit;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 
 namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 
 public class ListApplicationsQuery : IListApplicationsQuery
 {
-    private readonly MessageBroker _rabbitMQPublisher;
-    public ListApplicationsQuery(MessageBroker rabbitMQPublisher, RabbitMQUtil rabbitMQUtil)
+    private readonly IRequestClient<IMgtPortalServiceRequestMsg> _requestClient;
+    public ListApplicationsQuery(
+        IServiceScopeFactory serviceScopeFactory
+        )
     {
-        _rabbitMQPublisher = rabbitMQPublisher;
+        using var serviceScope = serviceScopeFactory.CreateScope();
+        _requestClient = serviceScope.ServiceProvider.GetRequiredService<IRequestClient<IMgtPortalServiceRequestMsg>>();
     }
     public async Task<IList<Application>> ListAsync(CancellationToken cancellationToken = default)
     {
-       
-        var correlationId = Guid.NewGuid().ToString();
-        var intSvcRequest = new InterserviceMessage(string.Empty, correlationId, Action: MessageType.ListInboundApplications.ToString());
+        return await SendMessageAndProcessResponse();
+    }
 
+    private async Task<IList<Application>> SendMessageAndProcessResponse()
+    {
+        var message = new MgtPortalServiceRequestMsg(
+                       string.Empty,
+                       ActionType.ListInboundApplications.ToString(),
+                       Guid.NewGuid().ToString(),
+                       null
+                    );
 
-        // Consume the response from the message broker
-        IList<Application> applications = null;
-        void HandleResponse(InterserviceMessage? response)
+        try
         {
-            if (response != null)
-            {
-                if (!response.IsError)
-                {
-                    applications = JsonSerializer.Deserialize<IList<Application>>(response.Message, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    _rabbitMQPublisher.Close();
-                }
-            }
+            var response = await _requestClient.GetResponse<IInterserviceResponseMsg>(message);
+
+            return ProcessResponse(response.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(ex.Message);
+        }
+    }
+
+    private static IList<Application> ProcessResponse(IInterserviceResponseMsg? response)
+    {
+        if (response == null || response.IsError == true)
+        {
+            throw new InvalidOperationException($"{response?.ErrorMessage ?? "Unknown error"}", response?.ExceptionDetails);
         }
 
-        var response = _rabbitMQPublisher.Publish(intSvcRequest, GlobalConstants.MGTPORTAL_IN, GlobalConstants.MGTPORTAL_OUT);
-        HandleResponse(response);
+        var applications = JsonConvert.DeserializeObject<IList<Application>>(response.Message);
 
-        return applications;
+        return applications ?? throw new KeyNotFoundException("Applications not found");
     }
 }

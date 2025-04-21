@@ -19,6 +19,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
     /// <summary>
     /// Class responsible for replacing a user in the identity management system.
     /// </summary>
+    [Obsolete("This class is deprecated, use ReplaceUserV2 instead.")]
     public class ReplaceUser
         : OperationsBase<Core2EnterpriseUser>,
             IReplaceResource<Core2EnterpriseUser>
@@ -50,6 +51,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <param name="appId">Application ID.</param>
         /// <param name="correlationID">Correlation ID for tracking.</param>
         /// <returns>The replaced Core2EnterpriseUser object.</returns>
+        [Obsolete("This method is deprecated, use ReplaceUserV2.ReplaceAsync instead.")]
         public async Task<Core2EnterpriseUser> ReplaceAsync(
             Core2EnterpriseUser resource,
             string appId,
@@ -58,8 +60,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         {
             _appConfig = await GetAppConfigAsync(appId);
 
-            var attributes = _appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PUT &&
-            x.SCIMDirection == SCIMDirections.Outbound).ToList();
+            var attributes = _appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PUT).ToList();
 
             var payload = await MapAndPreparePayloadAsync(attributes, resource);
 
@@ -82,7 +83,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             var httpClient = _httpClientFactory.CreateClient();
 
             // Set headers based on authentication method.
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token);
 
             using (var response = await ProcessRequestAsync(_appConfig, httpClient, payload, resource))
             {
@@ -107,7 +108,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// </returns>
         private async Task<HttpResponseMessage?> ProcessRequestAsync(AppConfig appConfig, HttpClient httpClient, JObject payload, Core2EnterpriseUser resource)
         {
-            var userURIs = _appConfig.UserURIs.Where(x => x.SCIMDirection == SCIMDirections.Outbound).FirstOrDefault();
+            var userURIs = _appConfig.UserURIs.FirstOrDefault();
             if (userURIs.Put != null)
             {
                 var apiPath = DynamicApiUrlUtil.GetFullUrl(userURIs.Put!.ToString(), resource.Identifier);

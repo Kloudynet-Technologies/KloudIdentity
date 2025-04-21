@@ -13,6 +13,7 @@ using Microsoft.SCIM;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User
 {
+    [Obsolete("This class is deprecated. Use DeleteUserV2 instead.")]
     public class DeleteUser : OperationsBase<Core2EnterpriseUser>, IDeleteResource<Core2EnterpriseUser>
     {
         private AppConfig _appConfig;
@@ -41,6 +42,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <param name="appId">The application ID associated with the operation.</param>
         /// <param name="correlationID">The correlation ID associated with the operation.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
+        [Obsolete("This method is deprecated. Use DeleteUserV2.DeleteAsync(IResourceIdentifier, string, string) instead.")]
         public async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string appId, string correlationID)
         {
             // Retrieve application configuration asynchronously.
@@ -65,13 +67,13 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <exception cref="HttpRequestException">Thrown when the HTTP request fails.</exception>
         private async Task DeleteUserAsync(string identifier)
         {
-            var userURIs = _appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+            var userURIs = _appConfig.UserURIs.FirstOrDefault();
 
             var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Outbound);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token, SCIMDirections.Outbound);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token);
 
             var apiUrl = DynamicApiUrlUtil.GetFullUrl(userURIs.Delete!.ToString(), identifier);
 
@@ -94,7 +96,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         /// <exception cref="ArgumentNullException">Thrown when the identifier or DELETEAPIForUsers is null or empty.</exception>
         private void ValidatedRequest(string identifier, AppConfig appConfig)
         {
-            var userURIs = _appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+            var userURIs = _appConfig.UserURIs.FirstOrDefault();
 
             if (string.IsNullOrWhiteSpace(identifier))
             {

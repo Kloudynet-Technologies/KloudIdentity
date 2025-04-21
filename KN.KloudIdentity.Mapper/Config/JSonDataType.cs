@@ -10,5 +10,6 @@ public enum JSonDataType
     Integer,
     Boolean,
     Array,
-    Object
+    Object,
+    DateTime
 }

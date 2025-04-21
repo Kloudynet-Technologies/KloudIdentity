@@ -20,7 +20,7 @@ public record SchemaBase
     /// <summary>
     /// Destination field type.
     /// </summary>
-    public JsonDataTypes DestinationType { get; init; }
+    public AttributeDataTypes DestinationType { get; init; }
 
     /// <summary>
     /// Indicates if the destination field is required.
@@ -50,7 +50,7 @@ public record SchemaBase
     /// <summary>
     /// If the destination type is an array, this property will contain the type of the array elements.
     /// </summary>
-    public JsonDataTypes ArrayDataType { get; init; }
+    public AttributeDataTypes ArrayDataType { get; init; }
 
     /// <summary>
     /// If the destination type is an array, this property will contain the name of the field that contains the array elements.
@@ -61,8 +61,4 @@ public record SchemaBase
     /// Http Request Method
     /// </summary>  
     public HttpRequestTypes HttpRequestType { get; init; }
-    /// <summary>
-    /// SCIM Inbound or Outbound
-    /// </summary>
-    public SCIMDirections SCIMDirection { get; init; }
 }

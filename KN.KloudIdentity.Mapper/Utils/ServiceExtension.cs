@@ -5,19 +5,19 @@
 using KN.KloudIdentity.Mapper.BackgroundJobs;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Config.Db;
-using KN.KloudIdentity.Mapper.Consumers;
-using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Commands;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
-using KN.KloudIdentity.Mapper.Infrastructure.Messaging;
 using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.MapperCore.Group;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound.User;
+using KN.KloudIdentity.Mapper.MapperCore.Inbound.Utils;
+using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.MapperCore.User;
-using MassTransit;
+using KN.KloudIdentity.Mapper.Masstransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SCIM;
@@ -36,6 +36,7 @@ public static class ServiceExtension
     /// <param name="services">The collection of services to add the mapper services to.</param>
     public static void ConfigureMapperServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddHttpClient();
         services.AddScoped<Context>();
 
         services.AddScoped<AutoMapperConfig>();
@@ -44,11 +45,22 @@ public static class ServiceExtension
         services.AddScoped<IAuthStrategy, BasicAuthStrategy>();
         services.AddScoped<IAuthStrategy, OAuth2Strategy>();
         services.AddScoped<IConfigReader, ConfigReaderSQL>();
-        services.AddScoped<ICreateResource<Core2EnterpriseUser>, CreateUser>();
-        services.AddScoped<IGetResource<Core2EnterpriseUser>, GetUser>();
-        services.AddScoped<IDeleteResource<Core2EnterpriseUser>, DeleteUser>();
-        services.AddScoped<IReplaceResource<Core2EnterpriseUser>, ReplaceUser>();
-        services.AddScoped<IUpdateResource<Core2EnterpriseUser>, UpdateUser>();
+
+        services.AddScoped<IList<IIntegrationBase>>(provider =>
+        {
+            return provider.GetServices<IIntegrationBase>().ToList();
+        });
+        services.AddScoped<ICreateResourceV2, CreateUserV2>();
+        services.AddScoped<IIntegrationBase, RESTIntegration>();
+        services.AddScoped<IIntegrationBase, LinuxIntegration>();
+        services.AddScoped<IIntegrationBase, AS400Integration>();
+        services.AddScoped<IIntegrationBase, SQLIntegration>();
+        services.AddScoped<IReqStagQueuePublisher, ReqStagQueuePublisherV1>();
+        services.AddScoped<IGetResourceV2, GetUserV2>();
+        services.AddScoped<IReplaceResourceV2, ReplaceUserV2>();
+        services.AddScoped<IUpdateResourceV2, UpdateUserV2>();
+        services.AddScoped<IDeleteResourceV2, DeleteUserV2>();
+
         services.AddScoped<ICreateResource<Core2Group>, CreateGroup>();
         services.AddScoped<IDeleteResource<Core2Group>, DeleteGroup>();
         services.AddScoped<IReplaceResource<Core2Group>, ReplaceGroup>();
@@ -59,34 +71,19 @@ public static class ServiceExtension
         services.AddScoped<IGetResource<Core2Group>, GetGroup>();
 
         services.AddScoped<IGetFullAppConfigQuery, GetFullAppConfigQuery>();
-        services.AddSingleton<RabbitMQUtil>();
         services.AddScoped<IGetVerifiedAttributeMapping, GetVerifiedAttributeMapping>();
-        services.AddScoped<IFetchInboundResources<JObject>, ListUserInbound>();
+        services.AddScoped<IFetchInboundResources, ListUserInbound>();
         services.AddScoped<IGraphClientUtil, GraphClientUtil>();
-        services.AddScoped<ICreateResourceInbound<JObject>, CreateUserInbound>();
+        services.AddScoped<ICreateResourceInbound, CreateUserInbound>();
         services.AddScoped<IGetApplicationSettingQuery, GetApplicationSettingQuery>();
         services.AddScoped<IListApplicationsQuery, ListApplicationsQuery>();
-        services.AddScoped<IJobExecutor, JobExecutor>();
+        services.AddScoped<MessageProcessingFactory>();
+        services.AddScoped<IJobManagementService, JobManagementService>();
+        services.AddScoped<IInboundJobExecutor, InboundJobExecutorService>();
+        services.AddScoped<IGetInboundAppConfigQuery, GetInboundAppConfigQuery>();
+        services.AddScoped<IInboundMapper, InboundMapper>();
+        services.AddScoped<IOutboundPayloadProcessor, OutboundPayloadProcessor>();
 
-        // services.AddScoped<ICreateResourceInbound<JObject>, CreateUserInbound>();
-
-        // services.AddMassTransit(x =>
-        // {
-        //     x.UsingRabbitMq((context, config) =>
-        //     {
-        //         config.Host(new Uri(configuration["RabbitMQ:Hostname"]!), h =>
-        //         {
-        //             h.Username(configuration["RabbitMQ:UserName"]!);
-        //             h.Password(configuration["RabbitMQ:Password"]!);
-        //         });
-
-        //         config.ReceiveEndpoint("verify_mapping_requests", e =>
-        //         {
-        //             e.Consumer<MappingVerificationConsumer>(context);
-        //         });
-
-        //         x.AddRequestClient<AppConfig>(new Uri("exchange:app-config"));
-        //     });
-        // });
+        services.AddScoped<IListAs400GroupsQuery, ListAs400GroupsQuery>();
     }
 }

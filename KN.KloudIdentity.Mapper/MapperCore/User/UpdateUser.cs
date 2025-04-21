@@ -16,6 +16,7 @@ using System.Text;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User
 {
+    [Obsolete("This class is deprecated. Use UpdateUserV2 instead.")]
     public class UpdateUser
         : OperationsBase<Core2EnterpriseUser>,
             IUpdateResource<Core2EnterpriseUser>
@@ -39,6 +40,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
             _logger = logger;
         }
 
+        [Obsolete("This method is deprecated. Use UpdateUserV2.UpdateAsync(IPatch, string, string) instead.")]
         public async Task UpdateAsync(IPatch patch, string appId, string correlationID)
         {
             PatchRequest2 patchRequest = patch.PatchRequest as PatchRequest2;
@@ -49,8 +51,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
 
             _appConfig = await GetAppConfigAsync(appId);
 
-            var attributes = _appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PATCH &&
-            x.SCIMDirection == SCIMDirections.Outbound).ToList();
+            var attributes = _appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PATCH).ToList();
 
             var payload = await MapAndPreparePayloadAsync(attributes, user);
 
@@ -71,13 +72,13 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User
         {
             var authConfig = _appConfig.AuthenticationDetails;
 
-            var userURIs = _appConfig.UserURIs.FirstOrDefault(x => x.SCIMDirection == SCIMDirections.Outbound);
+            var userURIs = _appConfig.UserURIs.FirstOrDefault();
 
             var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Outbound);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token, SCIMDirections.Outbound);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token);
 
             var apiPath = DynamicApiUrlUtil.GetFullUrl(userURIs.Patch!.ToString(), resource.Identifier);
 
