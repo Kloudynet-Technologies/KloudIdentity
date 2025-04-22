@@ -48,6 +48,10 @@ public class DeleteUserV2 : ProvisioningBase, IDeleteResourceV2
         
         // Log the operation.
         await CreateLogAsync(appConfig.AppId, resourceIdentifier.Identifier, correlationID);
+        
+        Log.Information(
+            "User deleted successfully for the id {Identifier}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+            resourceIdentifier.Identifier, appConfig.AppId, correlationID);
     }
 
     /// <summary>

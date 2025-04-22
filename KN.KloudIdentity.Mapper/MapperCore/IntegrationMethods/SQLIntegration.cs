@@ -128,6 +128,8 @@ public class SQLIntegration : IIntegrationBase
     public async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId,
         CancellationToken cancellationToken = default)
     {
+        Log.Information("Provisioning started for user creation. AppId: {AppId}, CorrelationID: {CorrelationID}",
+            appConfig.AppId, correlationId);
         // Ensure parameters are extracted from payload
         var parameters = payload as List<OdbcParameter> ??
                          throw new ArgumentNullException("No valid SqlParameter found in the provided payload.");
@@ -152,12 +154,17 @@ public class SQLIntegration : IIntegrationBase
             (await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, cancellationToken) as OdbcConnection)!;
         // Open the connection here
         await connection.OpenAsync(cancellationToken);
+        Log.Warning("DB Connection opened successfully. AppId: {AppId}, CorrelationId: {CorrelationId}",
+            appConfig.AppId,
+            correlationId);
 
         var dbConn = DbConnectionFactory.Create(connection);
         var command = dbConn.CreateCommand(storedProcedureName, parameters);
         await command.ExecuteNonQueryAsync(cancellationToken);
 
         await connection.CloseAsync();
+        Log.Information("DB Connection Closed. AppId: {AppId}, CorrelationId: {CorrelationId}", appConfig.AppId,
+            correlationId);
     }
 
     public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, AppConfig appConfig, string correlationId,
@@ -198,7 +205,6 @@ public class SQLIntegration : IIntegrationBase
         var connection = (await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound) as OdbcConnection)!;
         // Open the connection here
         await connection.OpenAsync();
-
         Log.Warning("DB Connection opened successfully. AppId: {AppId}, CorrelationId: {CorrelationId}",
             appConfig.AppId,
             correlationId);
@@ -207,8 +213,7 @@ public class SQLIntegration : IIntegrationBase
         var command = dbConn.CreateCommand(storedProcedureName, parameters);
         await command.ExecuteNonQueryAsync();
         await connection.CloseAsync();
-        Log.Information(
-            "Update command executed successfully. AppId: {AppId}, CorrelationId: {CorrelationId}", appConfig.AppId,
+        Log.Information("DB Connection Closed. AppId: {AppId}, CorrelationId: {CorrelationId}", appConfig.AppId,
             correlationId);
     }
 
@@ -249,10 +254,6 @@ public class SQLIntegration : IIntegrationBase
         var dbConn = DbConnectionFactory.Create(connection);
         var command = dbConn.CreateCommand(storedProcedureName, parameters);
         await command.ExecuteNonQueryAsync();
-
-        Log.Information(
-            "Delete command executed successfully. Identifier: {Identifier}, AppId: {AppId}, CorrelationId: {CorrelationId}",
-            identifier, appConfig.AppId, correlationId);
     }
 
     public async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationId,
@@ -297,6 +298,9 @@ public class SQLIntegration : IIntegrationBase
             (await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, cancellationToken) as OdbcConnection)!;
         // Open the connection here
         await connection.OpenAsync(cancellationToken);
+        Log.Warning("DB Connection opened successfully. AppId: {AppId}, CorrelationId: {CorrelationId}",
+            appConfig.AppId,
+            correlationId);
 
         var dbConn = DbConnectionFactory.Create(connection);
         var command = dbConn.CreateCommand(storedProcedureName, parameters, HttpRequestTypes.GET);
@@ -310,7 +314,7 @@ public class SQLIntegration : IIntegrationBase
                 appConfig.AppId, identifier, correlationId);
             throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
         }
-        
+
         return new Core2EnterpriseUser
         {
             Identifier = GetUserInfoFromReader(reader, appConfig, "Identifier"),
@@ -327,7 +331,10 @@ public class SQLIntegration : IIntegrationBase
         }
 
         if (schema.Any(x => string.IsNullOrEmpty(x.SourceValue) || string.IsNullOrEmpty(x.DestinationField)))
+        {
+            Log.Error("Source value or destination field is empty in the attribute schema.");
             throw new HttpRequestException("Source value or destination field is empty.");
+        }
     }
 
     private string GetUserInfoFromReader(DbDataReader reader, AppConfig appConfig, string attribute)
@@ -339,8 +346,12 @@ public class SQLIntegration : IIntegrationBase
             reader.GetOrdinal(Regex.Replace(reqAttribute.DestinationField.Replace(urnPrefix, string.Empty),
                 @"[^a-zA-Z0-9]", ""));
         if (columnIndex < 0)
+        {
+            Log.Error("Expected column '{Column}' not found in the result set. AppId: {AppId}",
+                reqAttribute.DestinationField.Replace(urnPrefix, string.Empty), appConfig.AppId);
             throw new HttpRequestException(
                 $"Expected column '{reqAttribute.DestinationField.Replace(urnPrefix, string.Empty)}' not found in the result set.");
+        }
 
         // Handle null or DBNull values gracefully
         return !reader.IsDBNull(columnIndex) ? reader.GetString(columnIndex) : string.Empty;

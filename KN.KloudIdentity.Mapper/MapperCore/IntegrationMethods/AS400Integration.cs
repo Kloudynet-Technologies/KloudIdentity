@@ -45,10 +45,6 @@ public class AS400Integration(
                 appConfig.AppId, correlationId, identifier, responseMessage?.ErrorMessage);
             throw new HttpRequestException($"Error occurred while deleting the user: {responseMessage?.ErrorMessage}");
         }
-
-        Log.Information(
-            "User deleted successfully. AppId: {AppId}, CorrelationId: {CorrelationId}, Identifier: {Identifier}",
-            appConfig.AppId, correlationId, identifier);
     }
 
     public async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationId,
@@ -74,10 +70,6 @@ public class AS400Integration(
 
             throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
         }
-
-        Log.Information(
-            "User retrieved successfully for the id {Identifier}. AppId: {AppId}, CorrelationID: {CorrelationID}",
-            identifier, appConfig.AppId, correlationId);
 
         return new Core2EnterpriseUser
         {

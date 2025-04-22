@@ -2,6 +2,7 @@
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper;
 
@@ -229,7 +230,8 @@ public class JSONParserUtilV2<T> where T : Resource
         }
         else
         {
-            throw new ArgumentException($"Property {propertyName} not found on type {typeof(T).Name}");
+            Log.Error("Property '{PropertyName}' not found on type '{TypeName}'", propertyName, scimType.Name);
+            throw new ArgumentException($"Property '{propertyName}' not found on type '{typeof(T).Name}'");
         }
     }
 

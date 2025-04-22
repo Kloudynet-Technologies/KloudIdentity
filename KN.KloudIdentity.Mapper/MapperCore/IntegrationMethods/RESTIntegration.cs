@@ -186,10 +186,6 @@ public class RESTIntegration : IIntegrationBase
                 core2EntUsr.Identifier = GetValueCaseInsensitive(user, idField);
                 core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
 
-                Log.Information(
-                    "User retrieved successfully for the id {Identifier}. AppId: {AppId}, CorrelationID: {CorrelationID}",
-                    identifier, appConfig.AppId, correlationID);
-
                 // Create log for the operation.
                 _ = CreateLogAsync(appConfig.AppId,
                     "Get User",
@@ -427,10 +423,7 @@ public class RESTIntegration : IIntegrationBase
                     $"HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}"
                 );
             }
-
-            Log.Information(
-                "User deleted successfully for the id {Identifier}. AppId: {AppId}, CorrelationID: {CorrelationID}",
-                identifier, appConfig.AppId, correlationID);
+            
             // Log the operation.
             _ = CreateLogAsync(appConfig.AppId,
                 "Delete User",
