@@ -5,6 +5,7 @@ using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using Microsoft.SCIM;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Outbound;
 
@@ -17,7 +18,8 @@ public class ProvisioningBase : IProvisioningBase
     private readonly IGetFullAppConfigQuery _getFullAppConfigQuery;
     private readonly IOutboundPayloadProcessor _outboundPayloadProcessor;
 
-    public ProvisioningBase(IGetFullAppConfigQuery getFullAppConfigQuery, IOutboundPayloadProcessor outboundPayloadProcessor)
+    public ProvisioningBase(IGetFullAppConfigQuery getFullAppConfigQuery,
+        IOutboundPayloadProcessor outboundPayloadProcessor)
     {
         _getFullAppConfigQuery = getFullAppConfigQuery;
         _outboundPayloadProcessor = outboundPayloadProcessor;
@@ -30,9 +32,10 @@ public class ProvisioningBase : IProvisioningBase
     /// <param name="appConfig">App configuration</param>
     /// <param name="correlationID">Correlation ID</param>
     /// <returns></returns>
-    public virtual async Task<dynamic> ExecuteCustomLogicAsync(dynamic payload, AppConfig appConfig, string correlationID)
+    public virtual async Task<dynamic> ExecuteCustomLogicAsync(dynamic payload, AppConfig appConfig,
+        string correlationID)
     {
-        if(appConfig is { IsExternalAPIEnabled: false or null })
+        if (appConfig is { IsExternalAPIEnabled: false or null })
         {
             return payload;
         }
@@ -56,6 +59,12 @@ public class ProvisioningBase : IProvisioningBase
     {
         var config = await _getFullAppConfigQuery.GetAsync(appId);
 
-        return config ?? throw new NotFoundException($"App configuration not found for app ID {appId}.");
+        if (config == null)
+        {
+            Log.Error("App configuration not found for app ID {AppId}", appId);
+            throw new NotFoundException($"App configuration not found for app ID {appId}.");
+        }
+
+        return config;
     }
 }

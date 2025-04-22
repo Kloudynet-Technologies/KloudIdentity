@@ -53,6 +53,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
                     throw new ArgumentNullException("External API response is null.");
                 }
 
+                Log.Information("Custom logic executed successfully. CorrelationID: {CorrelationID}", correlationID);
                 _ = CreateLogAsync(endpointInfo, correlationID, "Custom logic executed successfully");
 
                 return deserializedResponse;

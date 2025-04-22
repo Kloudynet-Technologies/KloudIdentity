@@ -8,6 +8,7 @@ using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KI.LogAggregator.Library;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
 
@@ -29,8 +30,11 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources
         _logger = logger;
     }
 
-    public async Task<JObject?> FetchInboundResourcesAsync(InboundConfig inboundConfig, string correlationId, CancellationToken cancellationToken = default)
+    public async Task<JObject?> FetchInboundResourcesAsync(InboundConfig inboundConfig, string correlationId,
+        CancellationToken cancellationToken = default)
     {
+        Log.Information("Fetching ListUserInbound resources. AppId: {AppId}, CorrelationID: {CorrelationID}",
+            inboundConfig.AppId, correlationId);
         _ = CreateLogAsync(inboundConfig.AppId, LogSeverities.Information, "ListUserInbound started", correlationId);
 
         var restConfig = GetInboundRESTIntegrationConfig(inboundConfig);
@@ -38,15 +42,20 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources
         var token = await GetAuthenticationAsync(inboundConfig, SCIMDirections.Inbound);
 
         var client = _httpClientFactory.CreateClient();
-        Mapper.Utils.HttpClientExtensions.SetAuthenticationHeaders(client, inboundConfig.AuthenticationMethodInbound, inboundConfig.AuthenticationDetails, token);
+        Mapper.Utils.HttpClientExtensions.SetAuthenticationHeaders(client, inboundConfig.AuthenticationMethodInbound,
+            inboundConfig.AuthenticationDetails, token);
 
-        var response = await client.GetAsync(restConfig.UsersEndpoint);
+        var response = await client.GetAsync(restConfig.UsersEndpoint, cancellationToken);
 
         if (response.IsSuccessStatusCode)
         {
-            _ = CreateLogAsync(inboundConfig.AppId, LogSeverities.Information, "ListUserInbound fetched users", correlationId);
+            Log.Information(
+                "ListUserInbound fetched users successfully. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                inboundConfig.AppId, correlationId);
+            _ = CreateLogAsync(inboundConfig.AppId, LogSeverities.Information, "ListUserInbound fetched users",
+                correlationId);
 
-            var content = await response.Content.ReadAsStringAsync();
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
             // Parse the content to a JToken
             var jsonToken = JToken.Parse(content);
@@ -70,6 +79,11 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources
             }
             else
             {
+                Log.Error(
+                    "ListUserInbound: Unexpected JSON format. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                    inboundConfig.AppId,
+                    correlationId
+                );
                 _ = CreateLogAsync(inboundConfig.AppId, LogSeverities.Error, "Unexpected JSON format", correlationId);
 
                 throw new InvalidOperationException("Unexpected JSON format.");
@@ -77,8 +91,13 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources
         }
         else
         {
-            var errorContent = await response.Content.ReadAsStringAsync();
-            _ = CreateLogAsync(inboundConfig.AppId, LogSeverities.Error, $"Error fetching users: {response.StatusCode}, {errorContent}", correlationId);
+            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            Log.Error(
+                "Error fetching users. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Error: {Error}",
+                inboundConfig.AppId, correlationId, response.StatusCode, errorContent
+            );
+            _ = CreateLogAsync(inboundConfig.AppId, LogSeverities.Error,
+                $"Error fetching users: {response.StatusCode}, {errorContent}", correlationId);
 
             throw new HttpResponseException(response.StatusCode);
         }
@@ -86,7 +105,8 @@ public class ListUserInbound : OperationsBaseInbound, IFetchInboundResources
 
     private InboundRESTIntegrationConfig GetInboundRESTIntegrationConfig(InboundConfig config)
     {
-        var restConfig = JsonConvert.DeserializeObject<InboundRESTIntegrationConfig>(config.IntegrationDetails.ToString());
+        var restConfig =
+            JsonConvert.DeserializeObject<InboundRESTIntegrationConfig>(config.IntegrationDetails.ToString());
 
         return restConfig!;
     }
