@@ -196,6 +196,7 @@ public class SQLIntegration : IIntegrationBase
         var dbConn = DbConnectionFactory.Create(connection);
         var command = dbConn.CreateCommand(storedProcedureName, parameters);
         await command.ExecuteNonQueryAsync();
+        await connection.CloseAsync();
     }
 
     public async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
@@ -234,6 +235,8 @@ public class SQLIntegration : IIntegrationBase
         {
             throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
         }
+
+        await connection.CloseAsync();
 
         return new Core2EnterpriseUser
         {
