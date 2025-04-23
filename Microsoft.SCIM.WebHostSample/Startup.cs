@@ -53,9 +53,9 @@ namespace Microsoft.SCIM.WebHostSample
             this.ProviderBehavior = new InMemoryProvider();
         }
 
-        private void ConfigureSerilog(IConfiguration configuration)
+        private void ConfigureSerilog(IConfiguration config)
         {
-            var logLevel = configuration.GetValue<string>("Logging:LogLevel:Default") ?? "Information";
+            var logLevel = config.GetValue<string>("Logging:LogLevel:Default") ?? "Information";
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Is(Enum.Parse<Serilog.Events.LogEventLevel>(logLevel, true))
                 .WriteTo.Console()
@@ -125,7 +125,7 @@ namespace Microsoft.SCIM.WebHostSample
             }
             services.AddOptions<AppSettings>().Bind(configuration.GetSection("KI"));
 
-          //  services.AddApplicationInsightsTelemetry();
+            services.AddApplicationInsightsTelemetry();
 
             services.AddAuthentication(ConfigureAuthenticationOptions).AddJwtBearer(ConfigureJwtBearerOptons);
             services.AddControllers().AddNewtonsoftJson(ConfigureMvcNewtonsoftJsonOptions);

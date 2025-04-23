@@ -48,7 +48,9 @@ public class GetApplicationSettingQuery : IGetApplicationSettingQuery
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "An error occurred while processing the request. Error Message: {ErrorMessage}", ex.Message);
+            Log.Error(ex,
+                "An error occurred while processing the request for App ID: {AppId}. Error Message: {ErrorMessage}",
+                appId, ex.Message);
             throw new InvalidOperationException(ex.Message);
         }
     }
