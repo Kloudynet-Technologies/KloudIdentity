@@ -234,15 +234,17 @@ public class SQLIntegration : IIntegrationBase
         if (!reader.HasRows)
         {
             throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
-        }
+        }        
 
-        await connection.CloseAsync();
-
-        return new Core2EnterpriseUser
+        var results = new Core2EnterpriseUser
         {
             Identifier = GetUserInfoFromReader(reader, appConfig, "Identifier"),
             UserName = GetUserInfoFromReader(reader, appConfig, "UserName"),
         };
+
+        await connection.CloseAsync();
+
+        return results;
     }
 
     private static void ValidateAttributeSchema(IList<AttributeSchema> schema)
