@@ -10,6 +10,7 @@ using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper;
 
@@ -45,6 +46,7 @@ public abstract class OperationsBase<T> : IAPIMapperBase<T> where T : Resource
         var result = await _getFullAppConfigQuery.GetAsync(appId);
         if (result == null)
         {
+            Log.Error("App configuration not found for app ID {AppId}.", appId);
             throw new KeyNotFoundException($"App configuration not found for app ID {appId}.");
         }
 

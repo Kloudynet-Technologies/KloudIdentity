@@ -213,8 +213,6 @@ public class SQLIntegration : IIntegrationBase
         var command = dbConn.CreateCommand(storedProcedureName, parameters);
         await command.ExecuteNonQueryAsync();
         await connection.CloseAsync();
-        Log.Information("DB Connection Closed. AppId: {AppId}, CorrelationId: {CorrelationId}", appConfig.AppId,
-            correlationId);
     }
 
     public async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationId)
@@ -254,6 +252,7 @@ public class SQLIntegration : IIntegrationBase
         var dbConn = DbConnectionFactory.Create(connection);
         var command = dbConn.CreateCommand(storedProcedureName, parameters);
         await command.ExecuteNonQueryAsync();
+        await connection.CloseAsync();
     }
 
     public async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationId,
@@ -314,7 +313,7 @@ public class SQLIntegration : IIntegrationBase
                 appConfig.AppId, identifier, correlationId);
             throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
         }
-
+        
         return new Core2EnterpriseUser
         {
             Identifier = GetUserInfoFromReader(reader, appConfig, "Identifier"),

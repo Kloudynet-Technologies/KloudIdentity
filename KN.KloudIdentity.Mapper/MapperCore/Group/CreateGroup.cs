@@ -11,6 +11,7 @@ using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Group
 {
@@ -33,7 +34,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             IHttpClientFactory httpClientFactory,
             IGetFullAppConfigQuery getFullAppConfigQuery,
             IKloudIdentityLogger logger
-            )
+        )
             : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
@@ -49,15 +50,20 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>The created group resource.</returns>
         public async Task<Core2Group> ExecuteAsync(Core2Group resource, string appId, string correlationID)
         {
+            Log.Information("Executing CreateGroup. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                appId, correlationID);
             _appConfig = await GetAppConfigAsync(appId);
 
-            var attributes = _appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
+            var attributes = _appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == HttpRequestTypes.POST)
+                .ToList();
 
             var payload = await MapAndPreparePayloadAsync(attributes, resource);
 
-            await CreateGroupAsync(payload);
+            await CreateGroupAsync(payload, appId, correlationID);
 
-            await CreateLogAsync(_appConfig, correlationID);
+            Log.Information("Group created successfully. AppId: {AppId}, CorrelationID: {CorrelationID}", appId,
+                correlationID);
+            _ = CreateLogAsync(_appConfig, correlationID);
 
             return resource;
         }
@@ -70,7 +76,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <exception cref="HttpRequestException">
         /// HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}
         /// </exception>
-        private async Task CreateGroupAsync(JObject payload)
+        private async Task CreateGroupAsync(JObject payload, string appId, string correlationId)
         {
             var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault();
 
@@ -78,15 +84,19 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound,
+                _appConfig.AuthenticationDetails, token);
 
             using (var response = await httpClient.PostAsJsonAsync(
-                 groupURIs!.Post!.ToString(),
-                 payload
-             ))
+                       groupURIs!.Post!.ToString(),
+                       payload
+                   ))
             {
                 if (!response.IsSuccessStatusCode)
                 {
+                    Log.Error(
+                        "Error creating group. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, ReasonPhrase: {ReasonPhrase}",
+                        appId, correlationId, response.StatusCode, response.ReasonPhrase);
                     throw new HttpRequestException(
                         $"Error creating group: {response.StatusCode} - {response.ReasonPhrase}"
                     );

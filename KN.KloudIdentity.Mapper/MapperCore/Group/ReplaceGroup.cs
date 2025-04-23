@@ -12,6 +12,7 @@ using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
 using System.Text;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Group
 {
@@ -53,18 +54,30 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             string correlationID
         )
         {
+            Log.Information(
+                "Executing ReplaceGroup. AppId: {AppId}, CorrelationID: {CorrelationID}, Identifier: {Identifier}",
+                appId, correlationID, resource.Identifier);
             _appConfig = await GetAppConfigAsync(appId);
 
             var attributes = _appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == HttpRequestTypes.PUT);
 
             var payload = await MapAndPreparePayloadAsync(
-               attributes!.ToList(),
+                attributes!.ToList(),
                 resource
             );
 
-            await ReplaceGroupAsync(payload, resource);
+            Log.Information(
+                "Payload for ReplaceGroup: {Payload}, Identifier: {Identifier}, AppId: {AppId}, CorrelationId: {CorrelationId}",
+                payload.ToString(), resource.Identifier, _appConfig.AppId, correlationID
+            );
 
-            await CreateLogAsync(_appConfig, resource.Identifier, correlationID);
+            await ReplaceGroupAsync(payload, resource, correlationID);
+
+            _ = CreateLogAsync(_appConfig, resource.Identifier, correlationID);
+            
+            Log.Information(
+                "ReplaceGroup operation completed successfully. Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
+                resource.Identifier, appId, correlationID);
 
             return resource;
         }
@@ -72,7 +85,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <summary>
         /// Private asynchronous method for handling authentication and sending the user replacement request.
         /// </summary>
-        private async Task ReplaceGroupAsync(JObject payload, Core2Group resource)
+        private async Task ReplaceGroupAsync(JObject payload, Core2Group resource, string correlationId)
         {
             var authConfig = _appConfig.AuthenticationDetails;
 
@@ -80,12 +93,17 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound,
+                authConfig, token);
 
-            using (var response = await ProcessRequestAsync(_appConfig, httpClient, resource, payload))
+            using (var response = await ProcessRequestAsync(_appConfig, httpClient, resource, payload, correlationId))
             {
                 if (response != null && !response.IsSuccessStatusCode)
                 {
+                    Log.Error(
+                        "Error updating group. AppId: {AppId}, CorrelationID: {CorrelationID}, Identifier: {Identifier}, StatusCode: {StatusCode}, ReasonPhrase: {ReasonPhrase}",
+                        _appConfig.AppId, correlationId, resource.Identifier, response.StatusCode,
+                        response.ReasonPhrase);
                     throw new HttpRequestException(
                         $"Error updating group: {response.StatusCode} - {response.ReasonPhrase}"
                     );
@@ -98,11 +116,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// </summary>
         /// <param name="appConfig">The mapper configuration containing API details.</param>
         /// <param name="httpClient">The HTTP client used for making API requests.</param>
+       /// <param name="resource">The group resource to be replaced.</param>
+        /// <param name="payload">The payload containing the updated group details.</param>
+        /// <param name="correlationId">The correlation ID for tracking the request.</param>
         /// <returns>
         /// A task representing the asynchronous operation. 
         /// The task result is an <see cref="HttpResponseMessage"/> if an HTTP request is made, or null if no request is made.
         /// </returns>
-        private async Task<HttpResponseMessage?> ProcessRequestAsync(AppConfig appConfig, HttpClient httpClient, Core2Group resource, JObject payload)
+        private async Task<HttpResponseMessage?> ProcessRequestAsync(AppConfig appConfig, HttpClient httpClient,
+            Core2Group resource, JObject payload, string correlationId)
         {
             var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault();
 
@@ -122,6 +144,9 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             }
             else
             {
+                Log.Error(
+                    "No PUTAPIForGroups or PATCHAPIForGroups provided for {ResourceIdentifier}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                    resource.Identifier, appConfig.AppId, correlationId);
                 throw new ArgumentNullException("PUTAPIForGroups and PATCHAPIForGroups cannot both be null or empty");
             }
         }
