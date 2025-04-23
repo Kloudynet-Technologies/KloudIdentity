@@ -75,7 +75,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             var authConfig = _appConfig.AuthenticationDetails;
 
             // Get authentication token
-            var token = await GetAuthenticationAsync(authConfig, SCIMDirections.Outbound);
+            var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Outbound);
 
             // Use IHttpClientFactory to create an HttpClient instance
             var httpClient = _httpClientFactory.CreateClient();

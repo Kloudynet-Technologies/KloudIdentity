@@ -73,7 +73,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             var groupURIs = _appConfig.GroupURIs?.FirstOrDefault();
 
-            var token = await GetAuthenticationAsync(authConfig, SCIMDirections.Outbound);
+            var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Outbound);
 
             var httpClient = _httpClientFactory.CreateClient();
 
