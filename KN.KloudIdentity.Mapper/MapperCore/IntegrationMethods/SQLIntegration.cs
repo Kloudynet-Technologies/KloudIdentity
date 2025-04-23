@@ -313,12 +313,16 @@ public class SQLIntegration : IIntegrationBase
                 appConfig.AppId, identifier, correlationId);
             throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
         }
-        
-        return new Core2EnterpriseUser
+
+        var result = new Core2EnterpriseUser
         {
             Identifier = GetUserInfoFromReader(reader, appConfig, "Identifier"),
             UserName = GetUserInfoFromReader(reader, appConfig, "UserName"),
         };
+
+        await connection.CloseAsync();
+
+        return result;
     }
 
     private static void ValidateAttributeSchema(IList<AttributeSchema> schema)
