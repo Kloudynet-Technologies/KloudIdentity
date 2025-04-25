@@ -6,6 +6,7 @@ using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Group
 {
@@ -43,11 +44,16 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>Task representing the asynchronous operation.</returns>
         public async Task RemoveAsync(string groupId, string appId, string correlationID)
         {
+            Log.Information(
+                $"Removing all group members for {groupId}. AppId: {appId}, CorrelationID: {correlationID}");
             _appConfig = await GetAppConfigAsync(appId);
 
-            await RemoveAllGroupMembersAsync(groupId);
+            await RemoveAllGroupMembersAsync(groupId, correlationID);
 
-            await CreateLogAsync(_appConfig, groupId, correlationID);
+            _ = CreateLogAsync(_appConfig, groupId, correlationID);
+
+            Log.Information(
+                $"Removed all group members for {groupId}. AppId: {appId}, CorrelationID: {correlationID}");
         }
 
         /// <summary>
@@ -56,7 +62,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <param name="groupId">The ID of the group from which members will be removed.</param>
         /// <returns>Task representing the asynchronous operation.</returns>
         /// <exception cref="Exception">Thrown if the removal operation fails.</exception>
-        private async Task RemoveAllGroupMembersAsync(string groupId)
+        private async Task RemoveAllGroupMembersAsync(string groupId, string correlationID)
         {
             var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault();
 
@@ -66,7 +72,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound,
+                authConfig, token);
 
             var apiPath = DynamicApiUrlUtil.GetFullUrl(groupURIs!.Patch!.ToString(), groupId);
 
@@ -74,6 +81,10 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             {
                 if (!response.IsSuccessStatusCode)
                 {
+                    Log.Error(
+                        "Error removing all members from group. AppId: {AppId}, CorrelationID: {CorrelationID}, Identifier: {Identifier}, StatusCode: {StatusCode}, ReasonPhrase: {ReasonPhrase}",
+                        _appConfig.AppId, correlationID, groupId, response.StatusCode,
+                        response.ReasonPhrase);
                     throw new Exception($"Failed to remove all members from group {groupId}.");
                 }
             }
@@ -101,5 +112,4 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             await _logger.CreateLogAsync(logEntity);
         }
     }
-
 }

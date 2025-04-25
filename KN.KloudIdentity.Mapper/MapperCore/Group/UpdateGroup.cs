@@ -7,6 +7,7 @@ using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using Microsoft.SCIM;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Group
 {
@@ -19,10 +20,10 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         private readonly IAddGroupMembers _addGroupMembers;
         private readonly IRemoveGroupMembers _removeGroupMembers;
         private readonly IRemoveAllGroupMembers _removeAllGroupMembers;
+
         /// <summary>
         /// Initializes a new instance of the UpdateGroup class.
         /// </summary>
-        /// <param name="configReader">An implementation of IConfigReader for reading configuration settings.</param>
         /// <param name="authContext">An implementation of IAuthContext for handling authentication.</param>
         /// <param name="addGroupMembers">An implementation of IAddGroupMembers for adding members to a group.</param>
         /// <param name="removeGroupMembers">An implementation of IRemoveGroupMembers for removing specific members from a group.</param>
@@ -49,6 +50,10 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>Task representing the asynchronous operation.</returns>
         public async Task UpdateAsync(IPatch patch, string appId, string correlationID)
         {
+            Log.Information(
+                "Executing UpdateGroup. AppId: {AppId}, CorrelationID: {CorrelationID}, Identifier: {Identifier}",
+                appId, correlationID, patch.ResourceIdentifier.Identifier);
+            
             PatchRequest2 patchRequest = patch.PatchRequest as PatchRequest2;
 
             var addMembers = new List<string>();
