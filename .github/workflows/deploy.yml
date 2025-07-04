@@ -4,10 +4,8 @@
 name: Project Deployment
 
 on:
-  push:
-    branches: ["main", "dev","ci-cd-pipeline"]
-  pull_request:
-    branches: ["main", "dev","ci-cd-pipeline"]
+  release:
+    types: [published]
 
 jobs:
   deploy:
@@ -26,22 +24,16 @@ jobs:
       - name: Login to ACR
         run: docker login crkloudidentity.azurecr.io -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
 
-      # Get short SHA
-      - name: Set Short SHA
-        id: vars
-        run: echo "short_sha=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
-
-      # Sanitized Ref Name
-      - name: Sanitized Ref Name
-        id: refname
-        run: echo "sanitized_ref_name=$(echo $GITHUB_REF_NAME | sed 's|/|-|g')" >> $GITHUB_ENV
+      # Extract version tag
+      - name: Extract version tag
+        id: version
+        run: echo "version=${{github.event.release.tag_name}}" >> $GITHUB_ENV
 
       # Build the .NET backend Docker image
       - name: Build Docker Image
-        run: docker build --progress=plain -t crkloudidentity.azurecr.io/scimconnector-api:latest -f ./dockerfile .
+        run: docker build --progress=plain -t crkloudidentity.azurecr.io/scimconnector-api:${{ env.version }} -f ./dockerfile .
 
       # Push the Docker image to ACR
       - name: Push Docker Image
         run: | 
-          docker push crkloudidentity.azurecr.io/scimconnector-api:latest
-    
+          docker push crkloudidentity.azurecr.io/scimconnector-api:${{ env.version }}
