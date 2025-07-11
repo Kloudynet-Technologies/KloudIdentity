@@ -9,6 +9,8 @@ using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
+using Newtonsoft.Json;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
@@ -44,6 +46,8 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
     /// <exception cref="PayloadValidationException">When payload validation fails</exception>
     public async Task<Core2EnterpriseUser> ExecuteAsync(Core2EnterpriseUser resource, string appId, string correlationID)
     {
+        Log.Information("Execution started for user creation. AppId: {AppId}, CorrelationID: {CorrelationID}", appId, correlationID);
+
         // Step 1: Get app config
         var appConfig = await GetAppConfigAsync(appId);
 
@@ -54,12 +58,18 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
         // Step 2: Attribute mapping
         var userAttributes = GetUserAttributes(appConfig.UserAttributeSchemas, appConfig.IntegrationMethodOutbound);
         var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource);
-
+        Log.Information(
+            "Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Payload: {Payload}",
+            appId, correlationID, JsonConvert.SerializeObject(payload));
+        
         // Step 3: Payload validation
-        var payloadValidationResult = await integrationOp.ValidatePayloadAsync(payload, correlationID);
+        var payloadValidationResult = await integrationOp.ValidatePayloadAsync(payload, appConfig, correlationID);
         if (!payloadValidationResult.Item1)
+        {
+            Log.Error("Payload validation failed. AppId: {AppId}, CorrelationID: {CorrelationID}, Error: {Error}", appId, correlationID, payloadValidationResult.Item2);
             throw new PayloadValidationException(appId, payloadValidationResult.Item2);
-
+        }
+        
         // Step 4: Execute custom logic
         payload = await ExecuteCustomLogicAsync(payload, appConfig, correlationID);
 
@@ -69,6 +79,8 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
         // Step 6: Logging
         await CreateLogAsync(appId, correlationID);
 
+       Log.Information("User provisioned successfully. AppId: {AppId}, CorrelationID: {CorrelationID}, Identifier: {Identifier}", appId, correlationID, resource.Identifier);
+
         return resource;
     }
 
@@ -77,6 +89,7 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
         switch (integrationMethodOutbound)
         {
             case IntegrationMethods.REST:
+            case IntegrationMethods.SQL:
                 return userAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
             default:
                 return userAttributeSchemas.ToList();

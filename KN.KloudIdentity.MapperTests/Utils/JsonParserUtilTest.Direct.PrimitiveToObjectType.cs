@@ -20,7 +20,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:id",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Number,
+                    DestinationType = AttributeDataTypes.Number,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                 },
                 new AttributeSchema
@@ -30,7 +30,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:person",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Object,
+                    DestinationType = AttributeDataTypes.Object,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always },
                     ChildSchemas = new List<AttributeSchema>
                     {
@@ -41,7 +41,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "N/A",
                             DestinationField = "urn:kn:ki:schema:displayName",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -51,7 +51,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "N/A",
                             DestinationField = "urn:kn:ki:schema:title",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -61,7 +61,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "N/A",
                             DestinationField = "urn:kn:ki:schema:nickname",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                     }
@@ -106,7 +106,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:id",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Number,
+                    DestinationType = AttributeDataTypes.Number,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                 },
                 new AttributeSchema
@@ -116,7 +116,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:person",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Object,
+                    DestinationType = AttributeDataTypes.Object,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always },
                     ChildSchemas = new List<AttributeSchema>
                     {
@@ -127,7 +127,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "N/A",
                             DestinationField = "urn:kn:ki:schema:id",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.Number,
+                            DestinationType = AttributeDataTypes.Number,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -137,7 +137,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "N/A",
                             DestinationField = "urn:kn:ki:schema:displayName",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -147,7 +147,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "N/A",
                             DestinationField = "urn:kn:ki:schema:isActive",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.Boolean,
+                            DestinationType = AttributeDataTypes.Boolean,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                     }
@@ -191,7 +191,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "1",
                     DestinationField = "urn:kn:ki:schema:id",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Number,
+                    DestinationType = AttributeDataTypes.Number,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                 },
                 new AttributeSchema
@@ -201,7 +201,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:person",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Object,
+                    DestinationType = AttributeDataTypes.Object,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always },
                     ChildSchemas = new List<AttributeSchema>
                     {
@@ -212,7 +212,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "0",
                             DestinationField = "urn:kn:ki:schema:id",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.Number,
+                            DestinationType = AttributeDataTypes.Number,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -222,7 +222,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "N/A",
                             DestinationField = "urn:kn:ki:schema:displayName",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -232,7 +232,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "false",
                             DestinationField = "urn:kn:ki:schema:isActive",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.Boolean,
+                            DestinationType = AttributeDataTypes.Boolean,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                     }
@@ -275,7 +275,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "1",
                     DestinationField = "urn:kn:ki:schema:id",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Number,
+                    DestinationType = AttributeDataTypes.Number,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                 },
                 new AttributeSchema
@@ -285,7 +285,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:person",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Object,
+                    DestinationType = AttributeDataTypes.Object,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always },
                     ChildSchemas = new List<AttributeSchema>
                     {
@@ -296,7 +296,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "",
                             DestinationField = "urn:kn:ki:schema:id",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.Number,
+                            DestinationType = AttributeDataTypes.Number,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -306,7 +306,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "",
                             DestinationField = "urn:kn:ki:schema:displayName",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -316,7 +316,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "",
                             DestinationField = "urn:kn:ki:schema:isActive",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.Boolean,
+                            DestinationType = AttributeDataTypes.Boolean,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                     }
@@ -359,7 +359,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "1",
                     DestinationField = "urn:kn:ki:schema:id",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Number,
+                    DestinationType = AttributeDataTypes.Number,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                 },
                 new AttributeSchema
@@ -369,7 +369,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:data",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Object,
+                    DestinationType = AttributeDataTypes.Object,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always },
                     ChildSchemas = new List<AttributeSchema>
                     {
@@ -380,7 +380,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "",
                             DestinationField = "urn:kn:ki:schema:givenName",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -390,7 +390,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "",
                             DestinationField = "urn:kn:ki:schema:version",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.Number,
+                            DestinationType = AttributeDataTypes.Number,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         }
                     }
@@ -436,7 +436,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "1",
                     DestinationField = "urn:kn:ki:schema:id",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Number,
+                    DestinationType = AttributeDataTypes.Number,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                 },
                 new AttributeSchema
@@ -446,7 +446,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:data",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Object,
+                    DestinationType = AttributeDataTypes.Object,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always },
                     ChildSchemas = new List<AttributeSchema>
                     {
@@ -457,7 +457,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "No Name",
                             DestinationField = "urn:kn:ki:schema:givenName",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -467,7 +467,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "999",
                             DestinationField = "urn:kn:ki:schema:version",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.Number,
+                            DestinationType = AttributeDataTypes.Number,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         }
                     }
@@ -513,7 +513,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "1",
                     DestinationField = "urn:kn:ki:schema:id",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Number,
+                    DestinationType = AttributeDataTypes.Number,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                 },
                 new AttributeSchema
@@ -523,7 +523,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:data",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Object,
+                    DestinationType = AttributeDataTypes.Object,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always },
                     ChildSchemas = new List<AttributeSchema>
                     {
@@ -534,7 +534,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "No Name",
                             DestinationField = "urn:kn:ki:schema:givenName",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -544,7 +544,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "999",
                             DestinationField = "urn:kn:ki:schema:version",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.Number,
+                            DestinationType = AttributeDataTypes.Number,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         }
                     }
@@ -590,7 +590,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "1",
                     DestinationField = "urn:kn:ki:schema:id",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Number,
+                    DestinationType = AttributeDataTypes.Number,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                 },
                 new AttributeSchema
@@ -600,7 +600,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:data",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Object,
+                    DestinationType = AttributeDataTypes.Object,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always },
                     ChildSchemas = new List<AttributeSchema>
                     {
@@ -611,7 +611,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "000",
                             DestinationField = "urn:kn:ki:schema:phone",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.Number,
+                            DestinationType = AttributeDataTypes.Number,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -621,7 +621,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "N/A",
                             DestinationField = "urn:kn:ki:schema:type",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -631,7 +631,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "false",
                             DestinationField = "urn:kn:ki:schema:primary",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.Boolean,
+                            DestinationType = AttributeDataTypes.Boolean,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         }
                     }
@@ -679,7 +679,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "1",
                     DestinationField = "urn:kn:ki:schema:id",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Number,
+                    DestinationType = AttributeDataTypes.Number,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                 },
                 new AttributeSchema
@@ -689,7 +689,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:data",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Object,
+                    DestinationType = AttributeDataTypes.Object,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always },
                     ChildSchemas = new List<AttributeSchema>
                     {
@@ -700,7 +700,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "000",
                             DestinationField = "urn:kn:ki:schema:phone",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.Number,
+                            DestinationType = AttributeDataTypes.Number,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -710,7 +710,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "N/A",
                             DestinationField = "urn:kn:ki:schema:type",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -720,7 +720,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "false",
                             DestinationField = "urn:kn:ki:schema:primary",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.Boolean,
+                            DestinationType = AttributeDataTypes.Boolean,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         }
                     }
@@ -769,7 +769,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "1",
                     DestinationField = "urn:kn:ki:schema:id",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Number,
+                    DestinationType = AttributeDataTypes.Number,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                 },
                 new AttributeSchema
@@ -779,7 +779,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:data",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Object,
+                    DestinationType = AttributeDataTypes.Object,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always },
                     ChildSchemas = new List<AttributeSchema>
                     {
@@ -790,7 +790,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "000",
                             DestinationField = "urn:kn:ki:schema:phone",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.Number,
+                            DestinationType = AttributeDataTypes.Number,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -800,7 +800,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "N/A",
                             DestinationField = "urn:kn:ki:schema:type",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -810,7 +810,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "false",
                             DestinationField = "urn:kn:ki:schema:primary",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.Boolean,
+                            DestinationType = AttributeDataTypes.Boolean,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         }
                     }
@@ -859,7 +859,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "1",
                     DestinationField = "urn:kn:ki:schema:id",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Number,
+                    DestinationType = AttributeDataTypes.Number,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                 },
                 new AttributeSchema
@@ -869,7 +869,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:data",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Object,
+                    DestinationType = AttributeDataTypes.Object,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always },
                     ChildSchemas = new List<AttributeSchema>
                     {
@@ -880,7 +880,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "000",
                             DestinationField = "urn:kn:ki:schema:phone",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.Number,
+                            DestinationType = AttributeDataTypes.Number,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -890,7 +890,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "N/A",
                             DestinationField = "urn:kn:ki:schema:type",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -900,7 +900,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "false",
                             DestinationField = "urn:kn:ki:schema:primary",
                             IsRequired = false,
-                            DestinationType = JsonDataTypes.Boolean,
+                            DestinationType = AttributeDataTypes.Boolean,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         }
                     }
@@ -949,7 +949,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "1",
                     DestinationField = "urn:kn:ki:schema:id",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Number,
+                    DestinationType = AttributeDataTypes.Number,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                 },
                 new AttributeSchema
@@ -959,7 +959,7 @@ public partial class JSONParserUtilTests
                     DefaultValue = "N/A",
                     DestinationField = "urn:kn:ki:schema:data",
                     IsRequired = true,
-                    DestinationType = JsonDataTypes.Object,
+                    DestinationType = AttributeDataTypes.Object,
                     MappingCondition = new MappingCondition { Condition = MappingConditions.Always },
                     ChildSchemas = new List<AttributeSchema>
                     {
@@ -970,7 +970,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "000",
                             DestinationField = "urn:kn:ki:schema:phone",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.Number,
+                            DestinationType = AttributeDataTypes.Number,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -980,7 +980,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "N/A",
                             DestinationField = "urn:kn:ki:schema:type",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         },
                         new AttributeSchema
@@ -990,7 +990,7 @@ public partial class JSONParserUtilTests
                             DefaultValue = "false",
                             DestinationField = "urn:kn:ki:schema:primary",
                             IsRequired = true,
-                            DestinationType = JsonDataTypes.Boolean,
+                            DestinationType = AttributeDataTypes.Boolean,
                             MappingCondition = new MappingCondition { Condition = MappingConditions.Always }
                         }
                     }

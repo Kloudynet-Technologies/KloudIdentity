@@ -11,6 +11,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using KN.KloudIdentity.Mapper.Domain;
 using System.Web.Http;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
@@ -46,11 +47,15 @@ public class LinuxIntegration : IIntegrationBase
 
         if (response == null || response?.IsError == true)
         {
+            Log.Error(
+                "Error occurred while disabling the user. AppId: {AppId}, Identifier: {Identifier}, CorrelationID: {CorrelationID}, Error: {ErrorMessage}",
+                appConfig.AppId, identifier, correlationID, response?.ErrorMessage);
             throw new ApplicationException($"Error occurred while disabling the user: {response?.ErrorMessage}");
         }
     }
 
-    public async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default)
+    public async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationID,
+        CancellationToken cancellationToken = default)
     {
         string command = $"sudo getent passwd";
 
@@ -65,11 +70,15 @@ public class LinuxIntegration : IIntegrationBase
 
         if (response == null || response?.IsError == true)
         {
+            Log.Error(
+                "Error occurred while fetching the user. AppId: {AppId}, Identifier: {Identifier}, CorrelationID: {CorrelationID}, Error: {ErrorMessage}",
+                appConfig.AppId, identifier, correlationID, response?.ErrorMessage);
             throw new ApplicationException($"Error occurred while fetching the user: {response?.ErrorMessage}");
         }
         else
         {
-            LinuxUserResponse? userList = JsonConvert.DeserializeObject<LinuxUserResponse>(response!.Message.ToString());
+            LinuxUserResponse? userList =
+                JsonConvert.DeserializeObject<LinuxUserResponse>(response!.Message.ToString());
 
             var userFields = userList.Total > 0 ? userList.Users.FirstOrDefault(p => p.Identifier == identifier) : null;
             if (userFields != null)
@@ -79,6 +88,10 @@ public class LinuxIntegration : IIntegrationBase
 
                 return user;
             }
+
+            Log.Error(
+                "User not found for the identifier {Identifier}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                identifier, appConfig.AppId, correlationID);
 
             throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
         }
@@ -93,17 +106,20 @@ public class LinuxIntegration : IIntegrationBase
         rsa.ImportFromPem(publicKey.ToCharArray());
         byte[] decryptedBytes = rsa.Decrypt(Convert.FromBase64String(message), RSAEncryptionPadding.Pkcs1);
 
-        var result = JsonConvert.DeserializeObject<StagingQueueResponseMessage>(Encoding.UTF8.GetString(decryptedBytes));
+        var result =
+            JsonConvert.DeserializeObject<StagingQueueResponseMessage>(Encoding.UTF8.GetString(decryptedBytes));
 
         return result!;
     }
 
-    public async Task<dynamic> GetAuthenticationAsync(AppConfig config, SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default)
+    public async Task<dynamic> GetAuthenticationAsync(AppConfig config,
+        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default)
     {
         return await Task.FromResult(config.AuthenticationDetails);
     }
 
-    public async Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource, CancellationToken cancellationToken = default)
+    public async Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource,
+        CancellationToken cancellationToken = default)
     {
         if (!ValidateAttributeSchema(schema))
         {
@@ -120,14 +136,18 @@ public class LinuxIntegration : IIntegrationBase
         return await Task.FromResult(valuesForCommand);
     }
 
-    private string GetValueFromResource(IList<AttributeSchema> schema, Core2EnterpriseUser resource, string destinationField, bool allowEmpty = false)
+    private string GetValueFromResource(IList<AttributeSchema> schema, Core2EnterpriseUser resource,
+        string destinationField, bool allowEmpty = false)
     {
-        var field = schema.FirstOrDefault(x => x.DestinationField.Replace(urnPrefix, string.Empty) == destinationField)?.SourceValue
-                    ?? throw new ArgumentNullException(destinationField, $"{destinationField} not configured in attribute mappings.");
+        var field = schema.FirstOrDefault(x => x.DestinationField.Replace(urnPrefix, string.Empty) == destinationField)
+                        ?.SourceValue
+                    ?? throw new ArgumentNullException(destinationField,
+                        $"{destinationField} not configured in attribute mappings.");
         var value = JSONParserUtilV2<Core2EnterpriseUser>.ReadProperty(resource, field)?.ToString();
 
         if (!allowEmpty && string.IsNullOrEmpty(value))
         {
+            Log.Error("{DestinationField} is empty.", destinationField);
             throw new ArgumentNullException(destinationField, $"{destinationField} is empty.");
         }
 
@@ -138,22 +158,29 @@ public class LinuxIntegration : IIntegrationBase
     {
         if (schema == null || schema.Count == 0)
         {
+            Log.Error("Attribute schema is null or empty.");
             throw new ArgumentNullException("Attribute schema is empty.");
         }
 
         if (schema.Any(x => string.IsNullOrEmpty(x.SourceValue) || string.IsNullOrEmpty(x.DestinationField)))
         {
+            Log.Error("Source value or destination field is null or empty in the attribute schema.");
             throw new ArgumentNullException("Source value or destination field is empty.");
         }
 
         return true;
     }
 
-    public async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default)
+    public async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationID,
+        CancellationToken cancellationToken = default)
     {
+        Log.Information("Provisioning started for user creation. AppId: {AppId}, CorrelationID: {CorrelationID}",
+            appConfig.AppId, correlationID);
+
         Dictionary<string, string> valuesForCommand = payload;
 
-        string command = $"sudo useradd -u {valuesForCommand["UID"]} -c \"{valuesForCommand["Identifier"]}\" {valuesForCommand["Username"]}";
+        string command =
+            $"sudo useradd -u {valuesForCommand["UID"]} -c \"{valuesForCommand["Identifier"]}\" {valuesForCommand["Username"]}";
 
         LinuxRequestMessage linuxRequestMessage = new LinuxRequestMessage(
             appConfig.IntegrationDetails,
@@ -161,15 +188,20 @@ public class LinuxIntegration : IIntegrationBase
             command
         );
 
-        var responseMessage = await SendMessage(correlationID, linuxRequestMessage, OperationTypes.Create, cancellationToken);
+        var responseMessage =
+            await SendMessage(correlationID, linuxRequestMessage, OperationTypes.Create, cancellationToken);
 
         if (responseMessage == null || responseMessage?.IsError == true)
         {
+            Log.Error(
+                "Error occurred while creating the user. AppId: {AppId}, CorrelationID: {CorrelationID}, Error: {ErrorMessage}",
+                appConfig.AppId, correlationID, responseMessage?.ErrorMessage);
             throw new ApplicationException($"Error occurred while creating the user: {responseMessage?.ErrorMessage}");
         }
     }
 
-    private async Task<StagingQueueResponseMessage> SendMessage(string correlationID, LinuxRequestMessage linuxRequestMessage, OperationTypes operationType, CancellationToken cancellationToken)
+    private async Task<StagingQueueResponseMessage> SendMessage(string correlationID,
+        LinuxRequestMessage linuxRequestMessage, OperationTypes operationType, CancellationToken cancellationToken)
     {
         StagingQueueRequestMessage request = new StagingQueueRequestMessage(
             correlationID,
@@ -180,7 +212,8 @@ public class LinuxIntegration : IIntegrationBase
 
         var encryptedMessage = EncryptWithPrivateKey(request);
 
-        var responseMessage = await _reqStagQueuePublisher.SendAsync(encryptedMessage, correlationID, operationType, cancellationToken);
+        var responseMessage =
+            await _reqStagQueuePublisher.SendAsync(encryptedMessage, correlationID, operationType, cancellationToken);
         // @ToDo: Decrypt the response message
         // var result = DecryptWithPublicKey(responseMessage);
 
@@ -208,7 +241,8 @@ public class LinuxIntegration : IIntegrationBase
         throw new NotImplementedException();
     }
 
-    public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
+    public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
+        string correlationID)
     {
         string command = $"sudo usermod -c \"{payload["Identifier"]}\" {resource.Identifier}";
 
@@ -222,11 +256,15 @@ public class LinuxIntegration : IIntegrationBase
 
         if (response == null || response?.IsError == true)
         {
+            Log.Error(
+                "Error occurred while updating the user. AppId: {AppId}, Identifier: {Identifier}, CorrelationID: {CorrelationID}, Error: {ErrorMessage}",
+                appConfig.AppId, resource.Identifier, correlationID, response?.ErrorMessage);
             throw new ApplicationException($"Error occurred while updating the user: {response?.ErrorMessage}");
         }
     }
 
-    public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, string correlationID, CancellationToken cancellationToken = default)
+    public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, AppConfig appConfig, string correlationID,
+        CancellationToken cancellationToken = default)
     {
         return Task.FromResult((true, Array.Empty<string>()));
     }

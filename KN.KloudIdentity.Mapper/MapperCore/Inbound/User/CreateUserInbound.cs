@@ -8,6 +8,7 @@ using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Inbound.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Inbound.User
 {
@@ -31,35 +32,52 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Inbound.User
 
         public async Task ExecuteAsync(string appId)
         {
+            Log.Information("Executing CreateUserInbound for AppId: {AppId}, CorrelationID: {CorrelationID}", appId,
+                CorrelationID);
             _ = CreateLogAsync(appId, LogSeverities.Information, "CreateUserInbound started", CorrelationID);
 
             var inboundConfig = await GetAppConfigAsync(appId);
 
             var integrationConfig = GetInboundRESTIntegrationConfig(inboundConfig);
 
-            var users = await _listUsersInbound.FetchInboundResourcesAsync(inboundConfig, CorrelationID) ??
-                        throw new ApplicationException("No users fetched from the LOB app to be provisioned to IGA. Exiting the process.");
+            var users = await _listUsersInbound.FetchInboundResourcesAsync(inboundConfig, CorrelationID);
+            if (users == null)
+            {
+                Log.Error(
+                    "No users fetched from the LOB app to be provisioned to IGA. Exiting the process. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                    appId, CorrelationID);
+                throw new ApplicationException(
+                    "No users fetched from the LOB app to be provisioned to IGA. Exiting the process.");
+            }
 
             InboundMappingConfig inboundMappingConfig = new(
-
                 inboundConfig.InboundAttMappingUsersPath,
                 inboundConfig.InboundAttributeMappings.ToList()
             );
 
             var mappedPayload = await MapAndPreparePayloadAsync(inboundMappingConfig, users, inboundConfig.AppId);
 
-            var graphClient = await _graphClientUtil.GetClientAsync(inboundConfig.TenantId, inboundConfig.ClientId, inboundConfig.ClientSecret);
+            var graphClient = await _graphClientUtil.GetClientAsync(inboundConfig.TenantId, inboundConfig.ClientId,
+                inboundConfig.ClientSecret);
 
             var requestContent = new StringContent(mappedPayload.ToString(), Encoding.UTF8, "application/scim+json");
 
             var response = await graphClient.PostAsync(integrationConfig.ProvisioningEndpoint, requestContent);
 
-            _ = CreateLogAsync(appId, LogSeverities.Information, "Inbound user provisioning payload posted", CorrelationID);
+            Log.Information(
+                "User provisioning payload posted to the LOB app. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                appId, CorrelationID);
+            _ = CreateLogAsync(appId, LogSeverities.Information, "Inbound user provisioning payload posted",
+                CorrelationID);
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _ = CreateLogAsync(appId, LogSeverities.Error, $"Error creating user: {response.StatusCode}, {errorContent}", CorrelationID);
+                Log.Error(
+                    "Error creating user in the LOB app. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, ErrorContent: {ErrorContent}",
+                    appId, CorrelationID, response.StatusCode, errorContent);
+                _ = CreateLogAsync(appId, LogSeverities.Error,
+                    $"Error creating user: {response.StatusCode}, {errorContent}", CorrelationID);
 
                 throw new ApplicationException($"Error creating user: {response.StatusCode}, {errorContent}");
             }
@@ -67,7 +85,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Inbound.User
 
         private InboundRESTIntegrationConfig GetInboundRESTIntegrationConfig(InboundConfig config)
         {
-            var restConfig = JsonConvert.DeserializeObject<InboundRESTIntegrationConfig>(config.IntegrationDetails.ToString());
+            var restConfig =
+                JsonConvert.DeserializeObject<InboundRESTIntegrationConfig>(config.IntegrationDetails.ToString());
 
             return restConfig!;
         }

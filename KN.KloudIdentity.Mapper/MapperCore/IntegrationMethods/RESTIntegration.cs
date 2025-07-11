@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.SCIM;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
@@ -29,9 +30,9 @@ public class RESTIntegration : IIntegrationBase
     public IntegrationMethods IntegrationMethod { get; init; }
 
     public RESTIntegration(IAuthContext authContext,
-                            IHttpClientFactory httpClientFactory,
-                            IConfiguration configuration,
-                            IKloudIdentityLogger logger)
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration,
+        IKloudIdentityLogger logger)
     {
         IntegrationMethod = IntegrationMethods.REST;
 
@@ -48,7 +49,8 @@ public class RESTIntegration : IIntegrationBase
     /// <param name="direction"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public virtual async Task<dynamic> GetAuthenticationAsync(AppConfig config, SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default)
+    public virtual async Task<dynamic> GetAuthenticationAsync(AppConfig config,
+        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default)
     {
         return await _authContext.GetTokenAsync(config, direction);
     }
@@ -60,7 +62,8 @@ public class RESTIntegration : IIntegrationBase
     /// <param name="resource"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public virtual async Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource, CancellationToken cancellationToken = default)
+    public virtual async Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema,
+        Core2EnterpriseUser resource, CancellationToken cancellationToken = default)
     {
         var payload = JSONParserUtilV2<Resource>.Parse(schema, resource);
 
@@ -76,15 +79,20 @@ public class RESTIntegration : IIntegrationBase
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="HttpRequestException">When an error occurred during provisioning</exception>
-    public virtual async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default)
+    public virtual async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationID,
+        CancellationToken cancellationToken = default)
     {
+        Log.Information("Provisioning started for user creation. AppId: {AppId}, CorrelationID: {CorrelationID}",
+            appConfig.AppId, correlationID);
+
         var userURIs = appConfig.UserURIs.FirstOrDefault();
 
         var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
 
         var httpClient = _httpClientFactory.CreateClient();
 
-        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token);
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound,
+            appConfig.AuthenticationDetails, token);
 
         using var response = await httpClient.PostAsJsonAsync(
             userURIs?.Post,
@@ -93,6 +101,9 @@ public class RESTIntegration : IIntegrationBase
 
         if (!response.IsSuccessStatusCode)
         {
+            Log.Error(
+                "Provisioning failed for user creation. AppId: {AppId}, CorrelationID: {CorrelationID}, Error: {Error}",
+                appConfig.AppId, correlationID, response.ReasonPhrase);
             throw new HttpRequestException(
                 $"Error creating user: {response.StatusCode} - {response.ReasonPhrase}"
             );
@@ -104,12 +115,16 @@ public class RESTIntegration : IIntegrationBase
             var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
             string? idVal = payload[idField].ToString();
 
+            Log.Information(
+                "User created successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}", idVal,
+                appConfig.AppId, correlationID);
+
             _ = CreateLogAsync(appConfig.AppId,
-                              "Create User",
-                              $"User created successfully for the id {idVal}",
-                              LogType.Provision,
-                              LogSeverities.Information,
-                              correlationID);
+                "Create User",
+                $"User created successfully for the id {idVal}",
+                LogType.Provision,
+                LogSeverities.Information,
+                correlationID);
         });
     }
 
@@ -120,7 +135,8 @@ public class RESTIntegration : IIntegrationBase
     /// <param name="correlationID"></param>
     /// <param name="cancellationToken"></param>
     /// <returns>Validation status and error messages</returns>
-    public virtual Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, string correlationID, CancellationToken cancellationToken = default)
+    public virtual Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, AppConfig appConfig,
+        string correlationID, CancellationToken cancellationToken = default)
     {
         // No payload validation required for REST integration. Always return true.
         return Task.FromResult((true, Array.Empty<string>()));
@@ -137,7 +153,8 @@ public class RESTIntegration : IIntegrationBase
     /// <exception cref="NotFoundException">When user not found in the LOB app</exception>
     /// <exception cref="HttpResponseException">When user not found in the LOB app</exception>
     /// <exception cref="ApplicationException">When GET API is notCore2EnterpriseUser resource, string appId,</exception>
-    public async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationID, CancellationToken cancellationToken = default)
+    public async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationID,
+        CancellationToken cancellationToken = default)
     {
         var userURIs = appConfig.UserURIs.FirstOrDefault();
 
@@ -146,7 +163,8 @@ public class RESTIntegration : IIntegrationBase
             var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
 
             var client = _httpClientFactory.CreateClient();
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, appConfig.AuthenticationMethodOutbound,
+                appConfig.AuthenticationDetails, token);
             var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(userURIs.Get.ToString(), identifier));
 
             if (response.IsSuccessStatusCode)
@@ -170,21 +188,26 @@ public class RESTIntegration : IIntegrationBase
 
                 // Create log for the operation.
                 _ = CreateLogAsync(appConfig.AppId,
-                                    "Get User",
-                                    $"User retrieved successfully for the id {identifier}",
-                                    LogType.Read,
-                                    LogSeverities.Information,
-                                    correlationID);
+                    "Get User",
+                    $"User retrieved successfully for the id {identifier}",
+                    LogType.Read,
+                    LogSeverities.Information,
+                    correlationID);
 
                 return core2EntUsr;
             }
             else
             {
+                Log.Error(
+                    "GET API for users failed. Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}, Error: {Error}",
+                    identifier, appConfig.AppId, correlationID, response.ReasonPhrase);
                 throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
             }
         }
         else
         {
+            Log.Error("GET API for users is not configured. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                appConfig.AppId, correlationID);
             throw new ApplicationException("GET API for users is not configured.");
         }
     }
@@ -198,6 +221,8 @@ public class RESTIntegration : IIntegrationBase
         }
         else
         {
+            Log.Error("Field not found in the user schema. FieldName: {FieldName}, AppId: {AppId}", fieldName,
+                appConfig.AppId);
             throw new NotFoundException(fieldName + " field not found in the user schema.");
         }
     }
@@ -220,7 +245,8 @@ public class RESTIntegration : IIntegrationBase
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="HttpRequestException"></exception>
-    public async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
+    public async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
+        string correlationID)
     {
         // Obtain authentication token.
         var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
@@ -228,7 +254,8 @@ public class RESTIntegration : IIntegrationBase
         var httpClient = _httpClientFactory.CreateClient();
 
         // Set headers based on authentication method.
-        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token);
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound,
+            appConfig.AuthenticationDetails, token);
 
         var userURIs = appConfig.UserURIs.FirstOrDefault();
 
@@ -246,12 +273,16 @@ public class RESTIntegration : IIntegrationBase
                 var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
                 string? idVal = payload[idField]!.ToString();
 
+                Log.Information(
+                    "User replaced successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                    idVal, appConfig.AppId, correlationID);
+
                 _ = CreateLogAsync(appConfig.AppId,
-                                  "Replace User",
-                                  $"User replaced successfully for the id {idVal}",
-                                  LogType.Provision,
-                                  LogSeverities.Information,
-                                  correlationID);
+                    "Replace User",
+                    $"User replaced successfully for the id {idVal}",
+                    LogType.Provision,
+                    LogSeverities.Information,
+                    correlationID);
             });
         }
         else if (userURIs.Patch != null)
@@ -268,22 +299,32 @@ public class RESTIntegration : IIntegrationBase
                 var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
                 string? idVal = payload[idField].ToString();
 
+                Log.Information(
+                    "User replaced successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                    idVal, appConfig.AppId, correlationID);
+
                 _ = CreateLogAsync(appConfig.AppId,
-                                  "Replace User",
-                                  $"User replaced successfully for the id {idVal}",
-                                  LogType.Provision,
-                                  LogSeverities.Information,
-                                  correlationID);
+                    "Replace User",
+                    $"User replaced successfully for the id {idVal}",
+                    LogType.Provision,
+                    LogSeverities.Information,
+                    correlationID);
             });
         }
         else
         {
+            Log.Error(
+                "PUTAPIForUsers and PATCHAPIForUsers cannot both be null or empty. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                appConfig.AppId, correlationID);
             throw new ArgumentNullException("PUTAPIForUsers and PATCHAPIForUsers cannot both be null or empty");
         }
 
         // Check if the request was successful; otherwise, throw an exception.
         if (response != null && !response.IsSuccessStatusCode)
         {
+            Log.Error(
+                "User replacement failed. AppId: {AppId}, CorrelationID: {CorrelationID}, Error: {Error}",
+                appConfig.AppId, correlationID, response.ReasonPhrase);
             throw new HttpRequestException(
                 $"Error updating user: {response.StatusCode} - {response.ReasonPhrase}"
             );
@@ -299,7 +340,8 @@ public class RESTIntegration : IIntegrationBase
     /// <param name="correlationID"></param>
     /// <returns></returns>
     /// <exception cref="HttpRequestException"></exception>
-    public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationID)
+    public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
+        string correlationID)
     {
         // Obtain authentication token.
         var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
@@ -308,7 +350,8 @@ public class RESTIntegration : IIntegrationBase
 
         var httpClient = _httpClientFactory.CreateClient();
 
-        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token);
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound,
+            appConfig.AuthenticationDetails, token);
 
         var apiPath = DynamicApiUrlUtil.GetFullUrl(userURIs!.Patch!.ToString(), resource.Identifier);
 
@@ -320,6 +363,9 @@ public class RESTIntegration : IIntegrationBase
         {
             if (!response.IsSuccessStatusCode)
             {
+                Log.Error(
+                    "User update failed. AppId: {AppId}, CorrelationID: {CorrelationID}, Identifier: {Identifier}, Error: {Error}",
+                    appConfig.AppId, correlationID, resource.Identifier, response.ReasonPhrase);
                 throw new HttpRequestException(
                     $"Error updating user: {response.StatusCode} - {response.ReasonPhrase}"
                 );
@@ -331,12 +377,16 @@ public class RESTIntegration : IIntegrationBase
                 var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
                 string? idVal = payload[idField]!.ToString();
 
+                Log.Information(
+                    "User updated successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                    idVal, appConfig.AppId, correlationID);
+                
                 _ = CreateLogAsync(appConfig.AppId,
-                                  "Update User",
-                                  $"User updated successfully for the id {idVal}",
-                                  LogType.Provision,
-                                  LogSeverities.Information,
-                                  correlationID);
+                    "Update User",
+                    $"User updated successfully for the id {idVal}",
+                    LogType.Provision,
+                    LogSeverities.Information,
+                    correlationID);
             });
         }
     }
@@ -357,7 +407,8 @@ public class RESTIntegration : IIntegrationBase
 
         var httpClient = _httpClientFactory.CreateClient();
 
-        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound, appConfig.AuthenticationDetails, token);
+        Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound,
+            appConfig.AuthenticationDetails, token);
 
         var apiUrl = DynamicApiUrlUtil.GetFullUrl(userURIs!.Delete!.ToString(), identifier);
 
@@ -365,22 +416,26 @@ public class RESTIntegration : IIntegrationBase
         {
             if (!response.IsSuccessStatusCode)
             {
+                Log.Error(
+                    "User deletion failed. AppId: {AppId}, CorrelationID: {CorrelationID}, Identifier: {Identifier}, Error: {Error}",
+                    appConfig.AppId, correlationID, identifier, response.ReasonPhrase);
                 throw new HttpRequestException(
                     $"HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}"
                 );
             }
-
+            
             // Log the operation.
             _ = CreateLogAsync(appConfig.AppId,
-                                  "Delete User",
-                                  $"User deleted successfully for the id {identifier}",
-                                  LogType.Provision,
-                                  LogSeverities.Information,
-                                  correlationID);
+                "Delete User",
+                $"User deleted successfully for the id {identifier}",
+                LogType.Provision,
+                LogSeverities.Information,
+                correlationID);
         }
     }
 
-    private async Task CreateLogAsync(string appId, string eventInfo, string logMessage, LogType logType, LogSeverities logSeverity, string correlationID)
+    private async Task CreateLogAsync(string appId, string eventInfo, string logMessage, LogType logType,
+        LogSeverities logSeverity, string correlationID)
     {
         var logEntity = new CreateLogEntity(
             appId,

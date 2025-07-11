@@ -9,6 +9,7 @@ using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
@@ -37,8 +38,13 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
     /// <exception cref="NotSupportedException">When integration method is not supported</exception>
     public async Task UpdateAsync(IPatch patch, string appId, string correlationID)
     {
+        Log.Information("Execution started for user update. AppId: {AppId}, CorrelationID: {CorrelationID}", appId,
+            correlationID);
         if (patch.PatchRequest is not PatchRequest2 patchRequest)
         {
+            Log.Error(
+                "Invalid patch request type. Expected PatchRequest2. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                appId, correlationID);
             throw new ArgumentNullException(nameof(patchRequest));
         }
 
@@ -49,25 +55,35 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         // Step 1: Get app config
         var appConfig = await GetAppConfigAsync(appId);
 
-        var integrationOp = _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??
-                            throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
+        var integrationOp =
+            _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??
+            throw new NotSupportedException(
+                $"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
 
         var attributes = GetUserAttributes(appConfig.UserAttributeSchemas, appConfig.IntegrationMethodOutbound);
 
         // Step 2: Map and prepare payload
         var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, user);
+        Log.Information(
+            "Payload mapped and prepared successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
+            user.Identifier, appId, correlationID);
 
         // Step 3: Update user
         await integrationOp.UpdateAsync(payload, user, appConfig, correlationID);
+        Log.Information(
+            "User updated successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
+            user.Identifier, appId, correlationID);
 
         _ = CreateLogAsync(appConfig.AppId, user.Identifier, correlationID);
     }
 
-    private IList<AttributeSchema> GetUserAttributes(ICollection<AttributeSchema> userAttributeSchemas, IntegrationMethods? integrationMethodOutbound)
+    private IList<AttributeSchema> GetUserAttributes(ICollection<AttributeSchema> userAttributeSchemas,
+        IntegrationMethods? integrationMethodOutbound)
     {
         switch (integrationMethodOutbound)
         {
             case IntegrationMethods.REST:
+            case IntegrationMethods.SQL:
                 return userAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PATCH).ToList();
             default:
             case IntegrationMethods.Linux:

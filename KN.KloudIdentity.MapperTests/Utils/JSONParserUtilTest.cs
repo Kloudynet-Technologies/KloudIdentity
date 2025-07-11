@@ -219,27 +219,27 @@ namespace KN.KloudIdentity.MapperTests
             {
                 new AttributeSchema
                 {
-                    DestinationType = JsonDataTypes.Array,
+                    DestinationType = AttributeDataTypes.Array,
                     DestinationField = "urn:kn:ki:schema:Emails",
                     SourceValue = "ElectronicMailAddresses",
-                    ArrayDataType = JsonDataTypes.Object,
+                    ArrayDataType = AttributeDataTypes.Object,
                     ChildSchemas = new List<AttributeSchema>
                     {
                         new AttributeSchema
                         {
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             DestinationField = "urn:kn:ki:schema:Emails:Value",
                             SourceValue = "Value"
                         },
                         new AttributeSchema
                         {
-                            DestinationType = JsonDataTypes.String,
+                            DestinationType = AttributeDataTypes.String,
                             DestinationField = "urn:kn:ki:schema:Emails:ItemType",
                             SourceValue = "ItemType"
                         },
                         new AttributeSchema
                         {
-                            DestinationType = JsonDataTypes.Boolean,
+                            DestinationType = AttributeDataTypes.Boolean,
                             DestinationField = "urn:kn:ki:schema:Emails:Primary",
                             SourceValue = "Primary"
                         }
@@ -308,7 +308,7 @@ namespace KN.KloudIdentity.MapperTests
                 new AttributeSchema { DestinationField = "urn:kn:ki:schema:UserName", SourceValue = "UserName" },
                 new AttributeSchema { DestinationField = "urn:kn:ki:schema:DisplayName", SourceValue = "DisplayName" },
                 new AttributeSchema {
-                 DestinationType = JsonDataTypes.Object,
+                 DestinationType = AttributeDataTypes.Object,
                  DestinationField = "urn:kn:ki:schema:NameDetail",
                  SourceValue = "Name",
                  ChildSchemas = new List<AttributeSchema>
@@ -322,7 +322,7 @@ namespace KN.KloudIdentity.MapperTests
 
                 new AttributeSchema
                 {
-                 DestinationType = JsonDataTypes.Object,
+                 DestinationType = AttributeDataTypes.Object,
                  DestinationField = "urn:kn:ki:schema:ExtraInfo",
                  SourceValue = "EnterpriseExtension",
                  ChildSchemas = new List<AttributeSchema>
@@ -330,7 +330,7 @@ namespace KN.KloudIdentity.MapperTests
                         new AttributeSchema { DestinationField = "urn:kn:ki:schema:ExtraInfo:Department", SourceValue = "EnterpriseExtension:Department" },
                         new AttributeSchema{ DestinationField = "urn:kn:ki:schema:ExtraInfo:Position", SourceValue = "Title" },
                         new AttributeSchema {
-                            DestinationType = JsonDataTypes.Object,
+                            DestinationType = AttributeDataTypes.Object,
                             DestinationField = "urn:kn:ki:schema:ExtraInfo:Manager",
                             SourceValue = "EnterpriseExtension:Manager",
 

@@ -5,6 +5,7 @@ using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries
 {
@@ -15,7 +16,8 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries
         public GetInboundAppConfigQuery(IServiceScopeFactory serviceScopeFactory)
         {
             using var serviceScope = serviceScopeFactory.CreateScope();
-            _requestClient = serviceScope.ServiceProvider.GetRequiredService<IRequestClient<IMgtPortalServiceRequestMsg>>();
+            _requestClient = serviceScope.ServiceProvider
+                .GetRequiredService<IRequestClient<IMgtPortalServiceRequestMsg>>();
         }
 
         public async Task<InboundConfig> GetAsync(string appId, CancellationToken cancellationToken = default)
@@ -45,6 +47,9 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries
             }
             catch (Exception ex)
             {
+                Log.Error(ex,
+                    "An error occurred while processing the request for App ID: {AppId}. Error Message: {ErrorMessage}",
+                    appId, ex.Message);
                 throw new InvalidOperationException(ex.Message);
             }
         }
@@ -53,7 +58,10 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries
         {
             if (response == null || response.IsError == true)
             {
-                throw new InvalidOperationException($"{response?.ErrorMessage ?? "Unknown error"}", response?.ExceptionDetails);
+                Log.Error("Error processing response: {ErrorMessage}. Exception Details: {ExceptionDetails}",
+                    response?.ErrorMessage ?? "Unknown error", response?.ExceptionDetails);
+                throw new InvalidOperationException($"{response?.ErrorMessage ?? "Unknown error"}",
+                    response?.ExceptionDetails);
             }
 
             var appConfig = JsonConvert.DeserializeObject<InboundConfig>(response.Message);

@@ -10,7 +10,7 @@ public record InboundMappingConfig(
 public record InboundAttributeMapping(
     string Id,
     MappingTypes MappingType,
-    JsonDataTypes DataType,
+    AttributeDataTypes DataType,
     string ValuePath,
     string EntraIdAttribute,
     bool IsRequired,

@@ -6,5 +6,5 @@ public record MappingCondition
 
     public string? SourceFieldName { get; init; }
 
-    public JsonDataTypes? SourceDataType { get; init; }
+    public AttributeDataTypes? SourceDataType { get; init; }
 }
