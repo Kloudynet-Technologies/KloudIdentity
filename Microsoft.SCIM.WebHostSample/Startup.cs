@@ -169,6 +169,7 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddHangfire(x => x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
 
             services.AddHangfireServer();
+            services.AddHealthChecks();
 
             services.AddScoped<NonSCIMGroupProvider>();
             services.AddScoped<NonSCIMUserProvider>();
@@ -207,6 +208,7 @@ namespace Microsoft.SCIM.WebHostSample
                 (IEndpointRouteBuilder endpoints) =>
                 {
                     endpoints.MapDefaultControllerRoute();
+                    endpoints.MapHealthChecks("/api/healthz");
                 });
         }
 
