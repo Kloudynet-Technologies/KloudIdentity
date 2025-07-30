@@ -5,6 +5,7 @@
 using KN.KloudIdentity.Mapper.BackgroundJobs;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Config.Db;
+using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Commands;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
@@ -20,6 +21,7 @@ using KN.KloudIdentity.Mapper.MapperCore.User;
 using KN.KloudIdentity.Mapper.Masstransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
 
@@ -50,7 +52,15 @@ public static class ServiceExtension
         {
             return provider.GetServices<IIntegrationBase>().ToList();
         });
-        services.AddScoped<ICreateResourceV2, CreateUserV2>();
+
+        services.AddSingleton<IAzureStorageManager>(provider =>
+        {
+            var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
+            var connectionString = appSettings.UserMigration.AzureStorageConnectionString;
+            return new AzureStorageManager(connectionString);
+        });
+
+        services.AddScoped<ICreateResourceV2, CreateUserV3>();
         services.AddScoped<IIntegrationBase, RESTIntegration>();
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
         services.AddScoped<IIntegrationBase, AS400Integration>();
