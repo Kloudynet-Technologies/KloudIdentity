@@ -57,7 +57,7 @@ public static class ServiceExtension
         {
             var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
             var connectionString = appSettings.UserMigration.AzureStorageConnectionString;
-            return new AzureStorageManager(connectionString);
+            return new AzureStorageManager(connectionString, appSettings);
         });
 
         services.AddScoped<ICreateResourceV2, CreateUserV3>();

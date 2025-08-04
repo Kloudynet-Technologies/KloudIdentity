@@ -1,5 +1,6 @@
 using System;
 using Azure.Data.Tables;
+using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 
@@ -7,13 +8,14 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 
 public class AzureStorageManager : IAzureStorageManager
 {
-    private readonly string _connectionString;
     private readonly TableServiceClient _tableServiceClient;
+    private readonly AppSettings _appSettings;
 
-    public AzureStorageManager(string connectionString)
+    public AzureStorageManager(string connectionString, AppSettings appSettings)
     {
-        _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
-        _tableServiceClient = new TableServiceClient(_connectionString);
+        var storageConnectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+        _tableServiceClient = new TableServiceClient(storageConnectionString);
+        _appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
     }
 
     public Task<bool> CreateUserMigrationDataAsync(UserMigrationData userMigrationData)
@@ -35,10 +37,14 @@ public class AzureStorageManager : IAzureStorageManager
         if (string.IsNullOrWhiteSpace(partitionKey)) throw new ArgumentNullException(nameof(partitionKey));
         if (string.IsNullOrWhiteSpace(correlationId)) throw new ArgumentNullException(nameof(correlationId));
 
-        var tableClient = _tableServiceClient.GetTableClient("UserMigrationData") ?? throw new InvalidOperationException("Table client is not initialized.");
-        await tableClient.CreateIfNotExistsAsync();
+        var tableName = _appSettings.UserMigration.AzureStorageTableName;
+        if (string.IsNullOrWhiteSpace(tableName))
+            throw new InvalidOperationException("Azure Storage table name is not configured.");
 
-        var queryResult = tableClient.QueryAsync<TableEntity>(entity =>
+        var tableClient = _tableServiceClient.GetTableClient(tableName) ??
+                          throw new InvalidOperationException("Table client is not initialized.");
+        await tableClient.CreateIfNotExistsAsync();
+                var queryResult = tableClient.QueryAsync<TableEntity>(entity =>
             entity.PartitionKey == partitionKey && entity.GetString("CorrelationId") == correlationId);
 
         await foreach (var entity in queryResult)

@@ -1,10 +1,8 @@
 using System;
-using System.Reflection;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
-using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Options;
@@ -59,7 +57,7 @@ public class CreateUserV3 : CreateUserV2, ICreateResourceV2
         var correlationPropertyValue = PropertyAccessorCacheUtil.GetPropertyValue(resource, correlationPropertyName);
         if (string.IsNullOrWhiteSpace(correlationPropertyValue))
         {
-            throw new HttpRequestException(
+            throw new ArgumentException(
                 $"Value for property '{correlationPropertyName}' cannot be null or empty. Parameter: {nameof(correlationPropertyValue)}"
             );
         }
@@ -103,7 +101,7 @@ public class CreateUserV3 : CreateUserV2, ICreateResourceV2
             return correlationPropertyName;
         }
 
-        throw new HttpRequestException(
+        throw new InvalidOperationException(
             $"UserMigration: No correlation property configured for AppId: {appId}. Parameter: {nameof(appId)}");
     }
 }
