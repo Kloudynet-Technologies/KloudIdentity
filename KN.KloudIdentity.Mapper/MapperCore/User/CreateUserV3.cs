@@ -28,7 +28,8 @@ public class CreateUserV3 : CreateUserV2, ICreateResourceV2
         IKloudIdentityLogger logger,
         IOptions<AppSettings> options,
         IReplaceResourceV2 replaceResourceV2,
-        IAzureStorageManager azureStorageManager) : base(getFullAppConfigQuery, integrations, outboundPayloadProcessor, logger)
+        IAzureStorageManager azureStorageManager) : base(getFullAppConfigQuery, integrations, outboundPayloadProcessor,
+        logger)
     {
         _integrations = integrations;
         _logger = logger;
@@ -38,40 +39,44 @@ public class CreateUserV3 : CreateUserV2, ICreateResourceV2
         _azureStorageManager = azureStorageManager;
     }
 
-    public override async Task<Core2EnterpriseUser> ExecuteAsync(Core2EnterpriseUser resource, string appId, string correlationID)
+    public override async Task<Core2EnterpriseUser> ExecuteAsync(Core2EnterpriseUser resource, string appId,
+        string correlationID)
     {
-        Log.Information("Execution started for user creation. AppId: {AppId}, CorrelationID: {CorrelationID}", appId, correlationID);
+        Log.Information("Execution started for user creation. AppId: {AppId}, CorrelationID: {CorrelationID}", appId,
+            correlationID);
 
         // Step 1: If user migration is not enabled, skip the migration logic.
-        if (!_options.Value.UserMigration.IsEnabled)
+        if (!IsUserMigrationEnabled(appId))
         {
             // If user migration is not enabled, skip the migration logic.
             return await base.ExecuteAsync(resource, appId, correlationID);
         }
 
         // Step 2: Extract the correlation property name and the value from the configuration.
-        var correlationPropertyName = _options.Value.UserMigration.CorrelationPropertyName;
-        if (string.IsNullOrWhiteSpace(correlationPropertyName))
-        {
-            throw new ArgumentNullException(nameof(correlationPropertyName), "Correlation property is not configured in AppSettings.");
-        }
+        var correlationPropertyName = GetCorrelationPropertyName(appId);
 
         // Use a cached compiled delegate for property access to improve performance
         var correlationPropertyValue = PropertyAccessorCacheUtil.GetPropertyValue(resource, correlationPropertyName);
         if (string.IsNullOrWhiteSpace(correlationPropertyValue))
         {
-            throw new ArgumentNullException(nameof(correlationPropertyValue), $"Value for property '{correlationPropertyName}' cannot be null or empty.");
+            throw new HttpRequestException(
+                $"Value for property '{correlationPropertyName}' cannot be null or empty. Parameter: {nameof(correlationPropertyValue)}"
+            );
         }
 
         // Step 3: Retrieve the user migration data from Azure Storage.
         var userMigrationData = await _azureStorageManager.GetUserMigrationDataAsync(appId, correlationPropertyValue);
         if (userMigrationData == null)
         {
-            Log.Information("No user migration data found for AppId: {AppId}, CorrelationID: {CorrelationID}. Proceeding with user creation.", appId, correlationID);
+            Log.Information(
+                "No user migration data found for AppId: {AppId}, CorrelationID: {CorrelationID}. Proceeding with user creation.",
+                appId, correlationID);
             return await base.ExecuteAsync(resource, appId, correlationID);
         }
 
-        Log.Information("User migration data found for AppId: {AppId}, CorrelationID: {CorrelationID}. Proceeding with user migration.", appId, correlationID);
+        Log.Information(
+            "User migration data found for AppId: {AppId}, CorrelationID: {CorrelationID}. Proceeding with user migration.",
+            appId, correlationID);
 
         // Step 4: Update the user resource with the existing user identifier.
         resource.Identifier = userMigrationData.RowKey;
@@ -81,5 +86,24 @@ public class CreateUserV3 : CreateUserV2, ICreateResourceV2
 
         // Step 6: Return the updated user.
         return resource;
+    }
+
+    private bool IsUserMigrationEnabled(string appId)
+    {
+        return _options.Value.UserMigration?.AppFeatureEnabledMap is { } map
+               && map.TryGetValue(appId, out var enabled)
+               && enabled;
+    }
+
+    private string GetCorrelationPropertyName(string appId)
+    {
+        if (_options.Value.UserMigration?.AppCorrelationPropertyMap is { } map
+            && map.TryGetValue(appId, out var correlationPropertyName))
+        {
+            return correlationPropertyName;
+        }
+
+        throw new HttpRequestException(
+            $"UserMigration: No correlation property configured for AppId: {appId}. Parameter: {nameof(appId)}");
     }
 }

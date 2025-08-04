@@ -31,7 +31,7 @@ public class HangfireOptions
 
 public class UserMigrationOptions
 {
-    public bool IsEnabled { get; set; } = false;
-    public string CorrelationPropertyName { get; set; } = string.Empty;
+    public Dictionary<string, bool>AppFeatureEnabledMap { get; set; } = new Dictionary<string, bool>();
+    public Dictionary<string, string> AppCorrelationPropertyMap { get; set; } = new Dictionary<string, string>();
     public string AzureStorageConnectionString { get; set; } = string.Empty;
 }
