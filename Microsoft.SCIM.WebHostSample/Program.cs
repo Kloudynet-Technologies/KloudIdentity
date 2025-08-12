@@ -26,12 +26,10 @@ namespace Microsoft.SCIM.WebHostSample
                     var settings = config.Build();
                     config.AddAzureAppConfiguration(options =>
                     {
-                     //   Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
+                        //   Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
                         options.Connect(settings["ConnectionStrings:AppConfig"])
                             .Select("KI:*",
-                                Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development"
-                                    ? "KloudIdentity-Dev"
-                                    : "KloudIdentity-Docker-Local")
+                                Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"))
                             .ConfigureKeyVault(kv => { kv.SetCredential(new DefaultAzureCredential()); })
                             .ConfigureRefresh(refresh =>
                             {
