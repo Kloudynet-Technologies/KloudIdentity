@@ -26,10 +26,9 @@ namespace Microsoft.SCIM.WebHostSample
                     var settings = config.Build();
                     config.AddAzureAppConfiguration(options =>
                     {
-                        //   Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
+                        var appConfigLabel = settings["AppConfigLabel"];
                         options.Connect(settings["ConnectionStrings:AppConfig"])
-                            .Select("KI:*",
-                                Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"))
+                            .Select("KI:*", appConfigLabel)
                             .ConfigureKeyVault(kv => { kv.SetCredential(new DefaultAzureCredential()); })
                             .ConfigureRefresh(refresh =>
                             {
