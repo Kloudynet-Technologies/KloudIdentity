@@ -22,7 +22,7 @@ jobs:
        
       # Login to Azure Container Registry
       - name: Login to ACR
-        run: docker login crkloudidentity.azurecr.io -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
+        run: docker login acrkidemo-gfazgkhnhdfeamft.azurecr.io -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
 
       # Extract version tag
       - name: Extract version tag
@@ -31,9 +31,9 @@ jobs:
 
       # Build the .NET backend Docker image
       - name: Build Docker Image
-        run: docker build --progress=plain -t crkloudidentity.azurecr.io/scimconnector-api:${{ env.version }} -f ./dockerfile .
+        run: docker build --progress=plain -t acrkidemo-gfazgkhnhdfeamft.azurecr.io/scimconnector-api:${{ env.version }} -f ./dockerfile .
 
       # Push the Docker image to ACR
       - name: Push Docker Image
         run: | 
-          docker push crkloudidentity.azurecr.io/scimconnector-api:${{ env.version }}
+          docker push acrkidemo-gfazgkhnhdfeamft.azurecr.io/scimconnector-api:${{ env.version }}
