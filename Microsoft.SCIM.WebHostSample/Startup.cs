@@ -2,6 +2,8 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //------------------------------------------------------------
 
+using Serilog;
+
 namespace Microsoft.SCIM.WebHostSample
 {
     using System.Text;
@@ -45,8 +47,21 @@ namespace Microsoft.SCIM.WebHostSample
             this.environment = env;
             this.configuration = configuration;
 
+            ConfigureSerilog(configuration);
+
             this.MonitoringBehavior = new ConsoleMonitor();
             this.ProviderBehavior = new InMemoryProvider();
+        }
+
+        private void ConfigureSerilog(IConfiguration config)
+        {
+            var logLevel = config.GetValue<string>("Logging:LogLevel:Default") ?? "Information";
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Is(Enum.Parse<Serilog.Events.LogEventLevel>(logLevel, true))
+                .WriteTo.Console()
+                .WriteTo.File("logs/log.txt", rollingInterval: RollingInterval.Day)
+                .Enrich.FromLogContext()
+                .CreateLogger();
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -170,6 +185,7 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddHangfire(x => x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
 
             services.AddHangfireServer();
+            services.AddHealthChecks();
 
             services.AddScoped<NonSCIMGroupProvider>();
             services.AddScoped<NonSCIMUserProvider>();
@@ -203,11 +219,12 @@ namespace Microsoft.SCIM.WebHostSample
             app.UseAuthorization();
             app.UseHangfireDashboard("/hangfire/jobs");
             app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
-          
+
             app.UseEndpoints(
                 (IEndpointRouteBuilder endpoints) =>
                 {
                     endpoints.MapDefaultControllerRoute();
+                    endpoints.MapHealthChecks("/api/healthz");
                 });
         }
 

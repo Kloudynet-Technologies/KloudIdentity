@@ -5,15 +5,17 @@ using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
 
 public class GetFullAppConfigQuery : IGetFullAppConfigQuery
 {
     private readonly IRequestClient<IMgtPortalServiceRequestMsg> _requestClient;
+
     public GetFullAppConfigQuery(
         IServiceScopeFactory serviceScopeFactory
-        )
+    )
     {
         using var serviceScope = serviceScopeFactory.CreateScope();
         _requestClient = serviceScope.ServiceProvider.GetRequiredService<IRequestClient<IMgtPortalServiceRequestMsg>>();
@@ -32,11 +34,11 @@ public class GetFullAppConfigQuery : IGetFullAppConfigQuery
     private async Task<AppConfig> SendMessageAndProcessResponse(string appId)
     {
         var message = new MgtPortalServiceRequestMsg(
-                       appId,
-                       ActionType.GetFullApplication.ToString(),
-                       Guid.NewGuid().ToString(),
-                       null
-                    );
+            appId,
+            ActionType.GetFullApplication.ToString(),
+            Guid.NewGuid().ToString(),
+            null
+        );
 
         try
         {
@@ -46,6 +48,9 @@ public class GetFullAppConfigQuery : IGetFullAppConfigQuery
         }
         catch (Exception ex)
         {
+            Log.Error(ex,
+                "An error occurred while processing the request for App ID: {AppId}. Error Message: {ErrorMessage}",
+                appId, ex.Message);
             throw new InvalidOperationException(ex.Message);
         }
     }
@@ -54,7 +59,10 @@ public class GetFullAppConfigQuery : IGetFullAppConfigQuery
     {
         if (response == null || response.IsError == true)
         {
-            throw new InvalidOperationException($"{response?.ErrorMessage ?? "Unknown error"}", response?.ExceptionDetails);
+            Log.Error("Error processing response: {ErrorMessage}. Exception Details: {ExceptionDetails}",
+                response?.ErrorMessage ?? "Unknown error", response?.ExceptionDetails);
+            throw new InvalidOperationException($"{response?.ErrorMessage ?? "Unknown error"}",
+                response?.ExceptionDetails);
         }
 
         var appConfig = JsonConvert.DeserializeObject<AppConfig>(response.Message);

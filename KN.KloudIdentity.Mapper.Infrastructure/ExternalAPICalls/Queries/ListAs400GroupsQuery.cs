@@ -5,6 +5,7 @@ using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 
@@ -46,6 +47,9 @@ public class ListAs400GroupsQuery : IListAs400GroupsQuery
         }
         catch (Exception ex)
         {
+            Log.Error(ex,
+                "An error occurred while processing the request for App ID: {AppId}. Error Message: {ErrorMessage}",
+                appId, ex.Message);
             throw new InvalidOperationException(ex.Message);
         }
     }
@@ -54,6 +58,8 @@ public class ListAs400GroupsQuery : IListAs400GroupsQuery
     {
         if (response == null || response.IsError == true)
         {
+            Log.Error("Error processing response: {ErrorMessage}. Exception Details: {ExceptionDetails}",
+                response?.ErrorMessage ?? "Unknown error", response?.ExceptionDetails);
             throw new InvalidOperationException($"{response?.ErrorMessage ?? "Unknown error"}", response?.ExceptionDetails);
         }
 

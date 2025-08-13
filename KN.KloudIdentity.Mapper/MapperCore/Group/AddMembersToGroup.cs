@@ -12,6 +12,7 @@ using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 using Newtonsoft.Json;
 using System.Text;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Group
 {
@@ -49,11 +50,14 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>Task representing the asynchronous operation.</returns>
         public async Task AddAsync(string groupId, List<string> members, string appId, string correlationID)
         {
+            Log.Information($"Adding group members for {groupId}. AppId: {appId}, CorrelationID: {correlationID}");
             _appConfig = await GetAppConfigAsync(appId);
 
-            await AddMembersToGroupAsync(groupId, members);
+            await AddMembersToGroupAsync(groupId, members, correlationID);
 
-            await CreateLogAsync(_appConfig, groupId, correlationID);
+            _ = CreateLogAsync(_appConfig, groupId, correlationID);
+            
+            Log.Information($"Added group members for {groupId}. AppId: {appId}, CorrelationID: {correlationID}");
         }
 
         /// <summary>
@@ -61,18 +65,20 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// </summary>
         /// <param name="groupId">ID of the group to which members should be added.</param>
         /// <param name="members">List of member IDs to be added.</param>
+        /// <param name="correlationId"></param>
         /// <returns>Task representing the asynchronous operation.</returns>
-        private async Task AddMembersToGroupAsync(string groupId, List<string> members)
+        private async Task AddMembersToGroupAsync(string groupId, List<string> members, string correlationId)
         {
             var authConfig = _appConfig.AuthenticationDetails;
 
             var groupURIs = _appConfig.GroupURIs?.FirstOrDefault();
 
-            var token = await GetAuthenticationAsync(authConfig, SCIMDirections.Outbound);
+            var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Outbound);
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound,
+                authConfig, token);
 
             // Construct the API path for adding members to the group
             var apiPath = DynamicApiUrlUtil.GetFullUrl(groupURIs!.Patch!.ToString(), groupId);
@@ -85,6 +91,10 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             {
                 if (!response.IsSuccessStatusCode)
                 {
+                    Log.Error(
+                        "Error adding members to group. AppId: {AppId}, CorrelationID: {CorrelationID}, Identifier: {Identifier}, StatusCode: {StatusCode}, ReasonPhrase: {ReasonPhrase}",
+                        _appConfig.AppId, correlationId, groupId, response.StatusCode,
+                        response.ReasonPhrase);
                     throw new HttpRequestException(
                         $"Error adding members to group: {response.StatusCode} - {response.ReasonPhrase}"
                     );
@@ -92,7 +102,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             }
         }
 
-        private async Task CreateLogAsync(AppConfig appConfig, string identifier, string correlationID)
+        private async Task CreateLogAsync(AppConfig appConfig, string identifier, string correlationId)
         {
             var eventInfo = $"Added Members from the #{appConfig.AppName}({appConfig.AppId})";
             var logMessage = $"Added members for the id {identifier}";
@@ -103,7 +113,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
                 LogSeverities.Information,
                 eventInfo,
                 logMessage,
-                correlationID,
+                correlationId,
                 AppConstant.LoggerName,
                 DateTime.UtcNow,
                 AppConstant.User,
@@ -114,5 +124,4 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             await _logger.CreateLogAsync(logEntity);
         }
     }
-
 }

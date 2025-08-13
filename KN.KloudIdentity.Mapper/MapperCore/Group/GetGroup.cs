@@ -15,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
 using System.Web.Http;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper;
 
@@ -39,6 +40,8 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
 
     public async Task<Core2Group> GetAsync(string identifier, string appId, string correlationID)
     {
+        Log.Information("Executing GetGroup for {Identifier}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+            identifier, appId, correlationID);
         _appConfig = await GetAppConfigAsync(appId);
 
         var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault();
@@ -48,7 +51,8 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
             var token = await GetAuthenticationAsync(_appConfig, SCIMDirections.Outbound);
 
             var client = _httpClientFactory.CreateClient();
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethodOutbound, _appConfig.AuthenticationDetails, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(client, _appConfig.AuthenticationMethodOutbound,
+                _appConfig.AuthenticationDetails, token);
             var response = await client.GetAsync(DynamicApiUrlUtil.GetFullUrl(groupURIs.Get.ToString(), identifier));
 
             if (response.IsSuccessStatusCode)
@@ -66,17 +70,26 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
                 core2Group.Identifier = GetValueCaseInsensitive(jObject, idField);
                 core2Group.DisplayName = GetValueCaseInsensitive(jObject, displayNameField);
 
-                await CreateLogAsync(_appConfig, identifier, correlationID);
+                _ = CreateLogAsync(_appConfig, identifier, correlationID);
+
+                Log.Information(
+                    "GetGroup operation completed successfully. Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
+                    identifier, appId, correlationID);
 
                 return core2Group;
             }
             else
             {
+                Log.Error(
+                    "GET API for groups failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}",
+                    appId, correlationID, response.StatusCode);
                 throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
             }
         }
         else
         {
+            Log.Error("GET API for groups is not configured. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                appId, correlationID);
             throw new ApplicationException("GET API for groups is not configured.");
         }
     }
@@ -90,6 +103,7 @@ public class GetGroup : OperationsBase<Core2Group>, IGetResource<Core2Group>
         }
         else
         {
+            Log.Error("Field {FieldName} not found in the user schema. AppId: {AppId}", fieldName, appConfig.AppId);
             throw new NotFoundException(fieldName + " field not found in the user schema.");
         }
     }

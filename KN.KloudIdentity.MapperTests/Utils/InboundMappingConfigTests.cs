@@ -313,8 +313,10 @@ public class InboundMappingConfigTests
         Assert.Equal("D100", result!["Operations"]![0]!["data"]!["urn:ietf:params:scim:schemas:extension:ki:1.0:User"]!["departmentId"]!.ToString());
         Assert.Equal("john.doe@example.com", result!["Operations"]![0]!["data"]!["urn:ietf:params:scim:schemas:extension:ki:1.0:User"]!["email"]!.ToString());
         Assert.Equal(1, result!["Operations"]![0]!["data"]!["urn:ietf:params:scim:schemas:extension:ki:1.0:User"]!["empSequenceNumber"]!.ToObject<int>());
-        Assert.Equal("1/1/2021 12:00:00 AM", result!["Operations"]![0]!["data"]!["urn:ietf:params:scim:schemas:extension:ki:1.0:User"]!["startingDate"]!.ToString());
-
+        Assert.Equal(
+            DateTime.Parse("1/1/2021 12:00:00 AM"),
+            DateTime.Parse(result!["Operations"]![0]!["data"]!["urn:ietf:params:scim:schemas:extension:ki:1.0:User"]!["startingDate"]!.ToString())
+        );
         Assert.Equal("U002", result!["Operations"]![1]!["data"]!["externalId"]!.ToString());
         Assert.Equal("en-US", result!["Operations"]![0]!["data"]!["preferredLanguage"]!.ToString());
         Assert.Equal("U002", result!["Operations"]![1]!["data"]!["urn:ietf:params:scim:schemas:extension:ki:1.0:User"]!["userId"]!.ToString());
@@ -326,6 +328,9 @@ public class InboundMappingConfigTests
         Assert.Equal("D101", result!["Operations"]![1]!["data"]!["urn:ietf:params:scim:schemas:extension:ki:1.0:User"]!["departmentId"]!.ToString());
         Assert.Equal("jane.smith@example.com", result!["Operations"]![1]!["data"]!["urn:ietf:params:scim:schemas:extension:ki:1.0:User"]!["email"]!.ToString());
         Assert.Equal(2, result!["Operations"]![1]!["data"]!["urn:ietf:params:scim:schemas:extension:ki:1.0:User"]!["empSequenceNumber"]!.ToObject<int>());
-        Assert.Equal("1/1/2023 12:00:00 AM", result!["Operations"]![1]!["data"]!["urn:ietf:params:scim:schemas:extension:ki:1.0:User"]!["startingDate"]!.ToString());
+        Assert.Equal(
+            DateTime.Parse("1/1/2023 12:00:00 AM"),
+            DateTime.Parse(result!["Operations"]![1]!["data"]!["urn:ietf:params:scim:schemas:extension:ki:1.0:User"]!["startingDate"]!.ToString())
+        );
     }
 }

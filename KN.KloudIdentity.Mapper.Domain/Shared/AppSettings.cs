@@ -6,6 +6,7 @@ public class AppSettings
     public HangfireOptions Hangfire { get; set; } = new HangfireOptions();
     public string ExternalQueueEncryptionKey { get; set; } = string.Empty;
     public string ExternalQueueUrl { get; set; } = string.Empty;
+    public UserMigrationOptions UserMigration { get; set; } = new UserMigrationOptions();
 }
 
 public class RabbitMQOptions
@@ -26,4 +27,12 @@ public class HangfireOptions
 {
     public string RecurringJobCronExpression { get; set; } = string.Empty;
     public string RemoveJobCronExpression { get; set; } = string.Empty;
+}
+
+public class UserMigrationOptions
+{
+    public string AzureStorageTableName { get; set; } = string.Empty;
+    public Dictionary<string, bool> AppFeatureEnabledMap { get; set; } = new Dictionary<string, bool>();
+    public Dictionary<string, string> AppCorrelationPropertyMap { get; set; } = new Dictionary<string, string>();
+    public string AzureStorageConnectionString { get; set; } = string.Empty;
 }

@@ -1,22 +1,27 @@
-# Use the official Microsoft .NET Core runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:7.0
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
 
-# Set the working directory in the image to /app
+COPY Microsoft.SCIM.WebHostSample/*.csproj Microsoft.SCIM.WebHostSample/
+RUN dotnet restore Microsoft.SCIM.WebHostSample/Microsoft.SCIM.WebHostSample.csproj
+
+COPY . .
+
+WORKDIR /src/Microsoft.SCIM.WebHostSample
+RUN dotnet publish Microsoft.SCIM.WebHostSample.csproj -c Release -o /app/publish
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
+COPY --from=build /app/publish .
 
-# Copy the build output from the outside to /app in the image
-COPY ./bin/Release/net7.0/publish/ .
-
-ARG CONNECTION_STRING_DB
+ARG CONNECTION_STRING_HANGFIRE_DB
 ARG CONNECTION_STRING_APPCONFIG
 
-# Set the environment variable for ASP.NET Core to listen on port 80
 ENV ASPNETCORE_URLS=http://+:80
-ENV ConnectionStrings:DefaultConnection=$CONNECTION_STRING_DB
-ENV ConnectionStrings:AppConfig=$CONNECTION_STRING_APPCONFIG
+ENV ConnectionStrings:HangfireConnection=${CONNECTION_STRING_HANGFIRE_DB}
+ENV ConnectionStrings:AppConfig=${CONNECTION_STRING_APPCONFIG}
 
-# Expose port 80
 EXPOSE 80
 
-# Run the application
 ENTRYPOINT ["dotnet", "Microsoft.SCIM.WebHostSample.dll"]

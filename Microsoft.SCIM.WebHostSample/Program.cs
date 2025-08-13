@@ -20,28 +20,24 @@ namespace Microsoft.SCIM.WebHostSample
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-            .ConfigureAppConfiguration((hostingContext, config) =>
+                .ConfigureAppConfiguration((hostingContext, config) =>
                 {
+                    config.AddUserSecrets<Program>();
                     var settings = config.Build();
                     config.AddAzureAppConfiguration(options =>
                     {
+                        var appConfigLabel = settings["AppConfigLabel"];
                         options.Connect(settings["ConnectionStrings:AppConfig"])
-                        .Select("KI:*", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development" ? "KloudIdentity-Dev" : "KloudIdentity-Demo")
-                        .ConfigureKeyVault(kv =>
-                        {
-                            kv.SetCredential(new DefaultAzureCredential());
-                        })
-                        .ConfigureRefresh(refresh =>
-                        {
-                            refresh.Register("KI:RefreshOption", refreshAll: true)
-                                .SetCacheExpiration(TimeSpan.FromSeconds(5));
-                        })
-                        .UseFeatureFlags();
+                            .Select("KI:*", appConfigLabel)
+                            .ConfigureKeyVault(kv => { kv.SetCredential(new DefaultAzureCredential()); })
+                            .ConfigureRefresh(refresh =>
+                            {
+                                refresh.Register("KI:RefreshOption", refreshAll: true)
+                                    .SetCacheExpiration(TimeSpan.FromSeconds(5));
+                            })
+                            .UseFeatureFlags();
                     });
                 })
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
+                .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
     }
 }

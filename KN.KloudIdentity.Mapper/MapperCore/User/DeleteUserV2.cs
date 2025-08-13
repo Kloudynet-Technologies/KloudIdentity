@@ -10,6 +10,7 @@ using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
@@ -30,21 +31,27 @@ public class DeleteUserV2 : ProvisioningBase, IDeleteResourceV2
 
     public async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string appId, string correlationID)
     {
+        Log.Information("Execution started for user deletion. Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}", resourceIdentifier.Identifier, appId, correlationID);
+       
         // Step 1: Get app config
         var appConfig = await GetAppConfigAsync(appId);
-
+        
         // Resolve integration method operations
         var integrationOp = _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??
                                 throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
-
+        
         // Validate the request.
         ValidatedRequest(resourceIdentifier.Identifier, appConfig);
-
+        
         // Step 2: Delete user
         await integrationOp.DeleteAsync(resourceIdentifier.Identifier, appConfig, correlationID);
-
+        
         // Log the operation.
         await CreateLogAsync(appConfig.AppId, resourceIdentifier.Identifier, correlationID);
+        
+        Log.Information(
+            "User deleted successfully for the id {Identifier}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+            resourceIdentifier.Identifier, appConfig.AppId, correlationID);
     }
 
     /// <summary>
@@ -61,10 +68,12 @@ public class DeleteUserV2 : ProvisioningBase, IDeleteResourceV2
 
         if (string.IsNullOrWhiteSpace(identifier))
         {
+            Log.Error("Identifier cannot be null or empty");
             throw new ArgumentNullException(nameof(identifier), "Identifier cannot be null or empty");
         }
         if (userURIs == null || userURIs.Delete == null)
         {
+            Log.Error("Delete endpoint cannot be null or empty");
             throw new ArgumentNullException(nameof(userURIs.Delete), "Delete endpoint cannot be null or empty");
         }
     }

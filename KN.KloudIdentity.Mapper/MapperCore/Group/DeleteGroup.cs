@@ -10,6 +10,7 @@ using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Group
 {
@@ -31,7 +32,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             IHttpClientFactory httpClientFactory,
             IGetFullAppConfigQuery getFullAppConfigQuery,
             IKloudIdentityLogger logger
-            )
+        )
             : base(authContext, getFullAppConfigQuery)
         {
             _httpClientFactory = httpClientFactory;
@@ -47,16 +48,22 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>A Task representing the asynchronous operation.</returns>
         public async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string appId, string correlationID)
         {
+            Log.Information(
+                "Executing DeleteGroup for {ResourceIdentifier}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                resourceIdentifier, appId, correlationID);
             _appConfig = await GetAppConfigAsync(appId);
 
             // Validate the request.
-            ValidatedRequest(resourceIdentifier.Identifier, _appConfig);
+            ValidatedRequest(resourceIdentifier.Identifier, _appConfig, correlationID);
 
             // Initiate the asynchronous deletion of a user/resource.
-            await DeleteGroupAsync(resourceIdentifier.Identifier);
+            await DeleteGroupAsync(resourceIdentifier.Identifier, correlationID);
 
             // Log the operation.
-            await CreateLogAsync(_appConfig, resourceIdentifier.Identifier, correlationID);
+            _ = CreateLogAsync(_appConfig, resourceIdentifier.Identifier, correlationID);
+            Log.Information(
+                "DeleteGroup operation completed successfully for {ResourceIdentifier}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                resourceIdentifier, appId, correlationID);
         }
 
         /// <summary>
@@ -66,7 +73,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <returns>A Task representing the asynchronous operation.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the identifier is null or empty.</exception>
         /// <exception cref="HttpRequestException">Thrown when the HTTP request fails.</exception>
-        private async Task DeleteGroupAsync(string identifier)
+        private async Task DeleteGroupAsync(string identifier, string correlationID)
         {
             var groupURIs = _appConfig?.GroupURIs?.FirstOrDefault();
 
@@ -76,7 +83,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound, authConfig, token);
+            Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, _appConfig.AuthenticationMethodOutbound,
+                authConfig, token);
 
             // Build the API URL.
             var apiUrl = DynamicApiUrlUtil.GetFullUrl(groupURIs!.Delete!.ToString(), identifier);
@@ -85,6 +93,9 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
             {
                 if (!response.IsSuccessStatusCode)
                 {
+                    Log.Error(
+                        "Error deleting group. Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, ReasonPhrase: {ReasonPhrase}",
+                        identifier, _appConfig.AppId, correlationID, response.StatusCode, response.ReasonPhrase);
                     throw new HttpRequestException(
                         $"HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}"
                     );
@@ -98,16 +109,23 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Group
         /// <param name="identifier">The identifier to be validated.</param>
         /// <param name="appConfig">The mapper configuration containing DELETEAPIForGroups.</param>
         /// <exception cref="ArgumentNullException">Thrown when the identifier or DELETEAPIForGroups is null or empty.</exception>
-        private void ValidatedRequest(string identifier, AppConfig appConfig)
+        private void ValidatedRequest(string identifier, AppConfig appConfig, string correlationID)
         {
             var groupURIs = appConfig?.GroupURIs?.FirstOrDefault();
 
             if (string.IsNullOrWhiteSpace(identifier))
             {
+                Log.Error(
+                    "No identifier provided for {ResourceIdentifier}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                    identifier, appConfig?.AppId, correlationID);
                 throw new ArgumentNullException(nameof(identifier), "Identifier cannot be null or empty");
             }
+
             if (groupURIs != null && groupURIs.Delete == null)
             {
+                Log.Error(
+                    "No DELETEAPIForGroups provided for {ResourceIdentifier}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                    identifier, appConfig?.AppId, correlationID);
                 throw new ArgumentNullException(nameof(groupURIs.Delete), "DELETEAPIForGroups cannot be null or empty");
             }
         }
