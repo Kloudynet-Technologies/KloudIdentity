@@ -17,7 +17,7 @@ public class LicenseValidationMiddleware(
 
     private readonly IMemoryCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     private const string LicenseCacheKey = "LicenseStatus";
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(60);
 
     public async Task InvokeAsync(HttpContext context)
     {
