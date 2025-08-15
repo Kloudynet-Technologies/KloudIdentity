@@ -59,7 +59,9 @@ public class LicenseValidationMiddleware(
         if (!licenseStatus.IsValid)
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            await context.Response.WriteAsync(licenseStatus.Message ?? "License is invalid.",
+         await context.Response.WriteAsync(
+                "KloudIdentity platform license is invalid or expired. " +
+                "Please contact Kloudynet Technologies to obtain a new license and activate the platform.",
                 context.RequestAborted);
             return;
         }
