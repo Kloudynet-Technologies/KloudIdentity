@@ -14,7 +14,10 @@ public class LicenseValidationMiddleware(
     IOptions<AppSettings> options)
 {
     private readonly RequestDelegate _next = next ?? throw new ArgumentNullException(nameof(next));
-    private readonly ILicenseValidationQuery _licenseValidationQuery = licenseValidationQuery ?? throw new ArgumentNullException(nameof(licenseValidationQuery));
+
+    private readonly ILicenseValidationQuery _licenseValidationQuery =
+        licenseValidationQuery ?? throw new ArgumentNullException(nameof(licenseValidationQuery));
+
     private readonly IMemoryCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     private readonly AppSettings _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
 
@@ -30,12 +33,14 @@ public class LicenseValidationMiddleware(
         if (_cache.TryGetValue(CircuitBreakerKey, out _))
         {
             context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-            await context.Response.WriteAsync("License validation service unavailable. Please try again later.", context.RequestAborted);
+            await context.Response.WriteAsync("License validation service unavailable. Please try again later.",
+                context.RequestAborted);
             return;
         }
 
         LicenseStatus licenseStatus;
-        if (!_cache.TryGetValue(cacheKey, out var cachedStatusObj) || cachedStatusObj is not LicenseStatus { IsValid: true } cachedValidStatus)
+        if (!_cache.TryGetValue(cacheKey, out var cachedStatusObj) ||
+            cachedStatusObj is not LicenseStatus { IsValid: true } cachedValidStatus)
         {
             try
             {
@@ -47,7 +52,8 @@ public class LicenseValidationMiddleware(
                 // Open circuit breaker for a short duration
                 _cache.Set(CircuitBreakerKey, true, CircuitBreakerDuration);
                 context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                await context.Response.WriteAsync("License validation service unavailable. Please try again later.", context.RequestAborted);
+                await context.Response.WriteAsync("License validation service unavailable. Please try again later.",
+                    context.RequestAborted);
                 return;
             }
         }
@@ -59,7 +65,7 @@ public class LicenseValidationMiddleware(
         if (!licenseStatus.IsValid)
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-         await context.Response.WriteAsync(
+            await context.Response.WriteAsync(
                 "KloudIdentity platform license is invalid or expired. " +
                 "Please contact Kloudynet Technologies to obtain a new license and activate the platform.",
                 context.RequestAborted);
