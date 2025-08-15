@@ -2,6 +2,7 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //------------------------------------------------------------
 
+using KN.KloudIdentity.Mapper.Common.License;
 using Serilog;
 
 namespace Microsoft.SCIM.WebHostSample
@@ -219,6 +220,7 @@ namespace Microsoft.SCIM.WebHostSample
             app.UseAuthorization();
             app.UseHangfireDashboard("/hangfire/jobs");
             app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
+            app.UseMiddleware<LicenseValidationMiddleware>();
 
             app.UseEndpoints(
                 (IEndpointRouteBuilder endpoints) =>
