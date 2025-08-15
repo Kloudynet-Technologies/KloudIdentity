@@ -46,17 +46,20 @@ public class LicenseStatusCheckQuery : ILicenseStatusCheckQuery
                 "An error occurred while processing the license status check request. Error Message: {ErrorMessage}",
                 ex.Message);
             throw new InvalidOperationException(ex.Message);
-            throw new InvalidOperationException("An error occurred while processing the license status check request.", ex);
+            throw new InvalidOperationException("An error occurred while processing the license status check request.",
+                ex);
+        }
     }
 
-    private static LicenseStatus ProcessResponse(IInterserviceResponseMsg? response)
+    private LicenseStatus ProcessResponse(IInterserviceResponseMsg? response)
     {
         if (response == null || response.IsError == true)
         {
-            Log.Error("License status check failed. Error: {ErrorMessage}", response?.ErrorMessage ?? "Unknown error");
-            
+            Log.Error("License status check failed. Error: {ErrorMessage}",
+                response?.ErrorMessage ?? "Unknown error");
+
             // Return a LicenseStatus indicating failure
-           return new LicenseStatus
+            return new LicenseStatus
             {
                 IsValid = false,
                 Message = response?.ErrorMessage ?? "Unknown error occurred."
@@ -64,7 +67,7 @@ public class LicenseStatusCheckQuery : ILicenseStatusCheckQuery
         }
 
         var isValid = JsonConvert.DeserializeObject<bool>(response.Message);
-        
+
         return new LicenseStatus
         {
             IsValid = isValid,
