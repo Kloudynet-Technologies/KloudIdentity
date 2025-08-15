@@ -9,12 +9,12 @@ namespace KN.KloudIdentity.Mapper.Common.License;
 
 public class LicenseValidationMiddleware(
     RequestDelegate next,
-    ILicenseStatusCheckQuery licenseStatusCheckQuery,
+    ILicenseValidationQuery licenseValidationQuery,
     IMemoryCache cache,
     IOptions<AppSettings> options)
 {
     private readonly RequestDelegate _next = next ?? throw new ArgumentNullException(nameof(next));
-    private readonly ILicenseStatusCheckQuery _licenseStatusCheckQuery = licenseStatusCheckQuery ?? throw new ArgumentNullException(nameof(licenseStatusCheckQuery));
+    private readonly ILicenseValidationQuery _licenseValidationQuery = licenseValidationQuery ?? throw new ArgumentNullException(nameof(licenseValidationQuery));
     private readonly IMemoryCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     private readonly AppSettings _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
 
@@ -25,7 +25,7 @@ public class LicenseValidationMiddleware(
 
         if (!_cache.TryGetValue(cacheKey, out var cachedStatusObj))
         {
-            var licenseStatus = await _licenseStatusCheckQuery.IsLicenseValidAsync(context.RequestAborted);
+            var licenseStatus = await _licenseValidationQuery.IsLicenseValidAsync(context.RequestAborted);
             _cache.Set(cacheKey, licenseStatus, cacheDuration);
 
             if (!licenseStatus.IsValid)

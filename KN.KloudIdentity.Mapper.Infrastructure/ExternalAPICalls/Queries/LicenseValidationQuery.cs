@@ -9,17 +9,8 @@ using Serilog;
 
 namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 
-public class LicenseStatusCheckQuery : ILicenseStatusCheckQuery
+public class LicenseValidationQuery(IRequestClient<IMgtPortalServiceRequestMsg> requestClient) : ILicenseValidationQuery
 {
-    private readonly IRequestClient<IMgtPortalServiceRequestMsg> _requestClient;
-
-    public LicenseStatusCheckQuery(
-        IRequestClient<IMgtPortalServiceRequestMsg> requestClient
-    )
-    {
-        _requestClient = requestClient;
-    }
-
     public async Task<LicenseStatus> IsLicenseValidAsync(CancellationToken cancellationToken = default)
     {
         return await SendMessageAndProcessResponse(cancellationToken);
@@ -36,7 +27,7 @@ public class LicenseStatusCheckQuery : ILicenseStatusCheckQuery
 
         try
         {
-            var response = await _requestClient.GetResponse<IInterserviceResponseMsg>(message, cancellationToken);
+            var response = await requestClient.GetResponse<IInterserviceResponseMsg>(message, cancellationToken);
 
             return ProcessResponse(response.Message);
         }
@@ -45,7 +36,6 @@ public class LicenseStatusCheckQuery : ILicenseStatusCheckQuery
             Log.Error(ex,
                 "An error occurred while processing the license status check request. Error Message: {ErrorMessage}",
                 ex.Message);
-            throw new InvalidOperationException(ex.Message);
             throw new InvalidOperationException("An error occurred while processing the license status check request.",
                 ex);
         }

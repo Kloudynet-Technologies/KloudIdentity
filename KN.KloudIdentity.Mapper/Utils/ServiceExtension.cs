@@ -97,6 +97,6 @@ public static class ServiceExtension
 
         services.AddScoped<IListAs400GroupsQuery, ListAs400GroupsQuery>();
         
-        services.AddScoped<ILicenseStatusCheckQuery, LicenseStatusCheckQuery>();
+        services.AddScoped<ILicenseValidationQuery, LicenseValidationQuery>();
     }
 }
