@@ -18,33 +18,50 @@ public class LicenseValidationMiddleware(
     private readonly IMemoryCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     private readonly AppSettings _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
 
+    private static readonly TimeSpan CircuitBreakerDuration = TimeSpan.FromMinutes(1);
+    private const string CircuitBreakerKey = "LicenseValidation_CircuitBreaker";
+
     public async Task InvokeAsync(HttpContext context)
     {
         var cacheKey = _options.LicenseValidation.CacheKey;
         var cacheDuration = TimeSpan.FromMinutes(_options.LicenseValidation.CacheDurationMinutes);
 
-        if (!_cache.TryGetValue(cacheKey, out var cachedStatusObj))
+        // Check if circuit breaker is open
+        if (_cache.TryGetValue(CircuitBreakerKey, out _))
         {
-            var licenseStatus = await _licenseValidationQuery.IsLicenseValidAsync(context.RequestAborted);
-            _cache.Set(cacheKey, licenseStatus, cacheDuration);
+            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            await context.Response.WriteAsync("License validation service unavailable. Please try again later.", context.RequestAborted);
+            return;
+        }
 
-            if (!licenseStatus.IsValid)
+        LicenseStatus licenseStatus;
+        if (!_cache.TryGetValue(cacheKey, out var cachedStatusObj) || cachedStatusObj is not LicenseStatus { IsValid: true } cachedValidStatus)
+        {
+            try
             {
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await context.Response.WriteAsync(licenseStatus.Message ?? "License is invalid.",
-                    context.RequestAborted);
+                licenseStatus = await _licenseValidationQuery.IsLicenseValidAsync(context.RequestAborted);
+                _cache.Set(cacheKey, licenseStatus, cacheDuration);
+            }
+            catch (Exception)
+            {
+                // Open circuit breaker for a short duration
+                _cache.Set(CircuitBreakerKey, true, CircuitBreakerDuration);
+                context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                await context.Response.WriteAsync("License validation service unavailable. Please try again later.", context.RequestAborted);
                 return;
             }
         }
         else
         {
-            if (cachedStatusObj is LicenseStatus { IsValid: false } cachedStatus)
-            {
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await context.Response.WriteAsync(cachedStatus.Message ?? "License is invalid.",
-                    context.RequestAborted);
-                return;
-            }
+            licenseStatus = cachedValidStatus;
+        }
+
+        if (!licenseStatus.IsValid)
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsync(licenseStatus.Message ?? "License is invalid.",
+                context.RequestAborted);
+            return;
         }
 
         await _next(context);

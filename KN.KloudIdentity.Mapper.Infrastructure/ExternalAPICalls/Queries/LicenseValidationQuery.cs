@@ -3,7 +3,6 @@ using KN.KloudIdentity.Mapper.Domain.License;
 using KN.KloudIdentity.Mapper.Domain.Messaging;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using MassTransit;
-using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Serilog;
 
@@ -31,6 +30,16 @@ public class LicenseValidationQuery(IRequestClient<IMgtPortalServiceRequestMsg> 
 
             return ProcessResponse(response.Message);
         }
+        catch (MassTransit.RequestTimeoutException ex)
+        {
+            Log.Error(ex, "License status check request timed out. Error Message: {ErrorMessage}", ex.Message);
+            throw new TimeoutException("License status check request timed out.", ex);
+        }
+        catch (MassTransit.RequestFaultException ex)
+        {
+            Log.Error(ex, "License status check request faulted. Error Message: {ErrorMessage}", ex.Message);
+            throw new InvalidOperationException("License status check request faulted.", ex);
+        }
         catch (Exception ex)
         {
             Log.Error(ex,
@@ -56,7 +65,30 @@ public class LicenseValidationQuery(IRequestClient<IMgtPortalServiceRequestMsg> 
             };
         }
 
-        var isValid = JsonConvert.DeserializeObject<bool>(response.Message);
+        bool isValid = false;
+        try
+        {
+            var deserialized = JsonConvert.DeserializeObject<bool>(response.Message);
+            if (deserialized == null)
+            {
+                Log.Error("License status check failed. Deserialized value is null. Raw message: {RawMessage}", response.Message);
+                return new LicenseStatus
+                {
+                    IsValid = false,
+                    Message = "License status could not be determined due to invalid response format."
+                };
+            }
+            isValid = deserialized;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "License status check failed during deserialization. Raw message: {RawMessage}", response.Message);
+            return new LicenseStatus
+            {
+                IsValid = false,
+                Message = "License status could not be determined due to deserialization error."
+            };
+        }
 
         return new LicenseStatus
         {
