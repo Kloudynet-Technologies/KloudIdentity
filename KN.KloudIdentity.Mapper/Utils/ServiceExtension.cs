@@ -39,6 +39,7 @@ public static class ServiceExtension
     public static void ConfigureMapperServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddHttpClient();
+        services.AddMemoryCache();
         services.AddScoped<Context>();
 
         services.AddScoped<AutoMapperConfig>();
@@ -95,5 +96,7 @@ public static class ServiceExtension
         services.AddScoped<IOutboundPayloadProcessor, OutboundPayloadProcessor>();
 
         services.AddScoped<IListAs400GroupsQuery, ListAs400GroupsQuery>();
+        
+        services.AddScoped<ILicenseValidationQuery, LicenseValidationQuery>();
     }
 }

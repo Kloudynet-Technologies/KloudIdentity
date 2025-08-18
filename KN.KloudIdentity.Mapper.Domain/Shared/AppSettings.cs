@@ -7,6 +7,7 @@ public class AppSettings
     public string ExternalQueueEncryptionKey { get; set; } = string.Empty;
     public string ExternalQueueUrl { get; set; } = string.Empty;
     public UserMigrationOptions UserMigration { get; set; } = new UserMigrationOptions();
+    public LicenseValidationOptions LicenseValidation { get; set; } = new LicenseValidationOptions();
 }
 
 public class RabbitMQOptions
@@ -35,4 +36,10 @@ public class UserMigrationOptions
     public Dictionary<string, bool> AppFeatureEnabledMap { get; set; } = new Dictionary<string, bool>();
     public Dictionary<string, string> AppCorrelationPropertyMap { get; set; } = new Dictionary<string, string>();
     public string AzureStorageConnectionString { get; set; } = string.Empty;
+}
+
+public class LicenseValidationOptions
+{
+    public string CacheKey { get; set; } = "LicenseStatus";
+    public int CacheDurationMinutes { get; set; } = 60;
 }
