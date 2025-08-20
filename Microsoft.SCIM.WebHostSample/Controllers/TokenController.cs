@@ -1,65 +1,98 @@
-//------------------------------------------------------------
-// Copyright (c) Microsoft Corporation.  All rights reserved.
-//------------------------------------------------------------
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace Microsoft.SCIM.WebHostSample.Controllers
 {
-    using System;
-    using System.IdentityModel.Tokens.Jwt;
-    using System.Text;
-    using Microsoft.AspNetCore.Mvc;
-    using Microsoft.Extensions.Configuration;
-    using Microsoft.IdentityModel.Tokens;
-
-    // Controller for generating a bearer token for authorization during testing.
-    // This is not meant to replace proper Oauth for authentication purposes.
     [Route("scim/token")]
     [ApiController]
     public class TokenController : ControllerBase
     {
         private readonly IConfiguration configuration;
-        private const int defaultTokenExpirationTimeInMins = 120;
+        private const int DefaultTokenExpirationTimeInMins = 120;
 
-        public TokenController(IConfiguration Configuration)
+        public TokenController(IConfiguration configuration)
         {
-            this.configuration = Configuration;
+            this.configuration = configuration;
         }
 
-        private string GenerateJSONWebToken()
+        public class TokenRequest
         {
-            var section = this.configuration.GetSection("KI");
+            [Required]
+            public string User { get; set; }
 
-            SymmetricSecurityKey securityKey =
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]));
-            SigningCredentials credentials =
-                new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            DateTime startTime = DateTime.UtcNow;
-            DateTime expiryTime;
-            if (double.TryParse(section["Token:TokenLifetimeInMins"], out double tokenExpiration))
-                expiryTime = startTime.AddMinutes(tokenExpiration);
-            else
-                expiryTime = startTime.AddMinutes(defaultTokenExpirationTimeInMins);
-
-            JwtSecurityToken token =
-                new JwtSecurityToken(
-                    section["Token:TokenIssuer"],
-                    section["Token:TokenAudience"],
-                    null,
-                    notBefore: startTime,
-                    expires: expiryTime,
-                    signingCredentials: credentials);
-
-            string result = new JwtSecurityTokenHandler().WriteToken(token);
-            return result;
+            [Required]
+            [MinLength(8, ErrorMessage = "Password must be at least 8 characters long.")]
+            public string Password { get; set; }
         }
 
-        [HttpGet]
-        public ActionResult Get()
+        private string GenerateJsonWebToken()
         {
-            string tokenString = this.GenerateJSONWebToken();
-            return this.Ok(new { token = tokenString });
+            var section = configuration.GetSection("KI");
+
+            var signingKey = section["Token:IssuerSigningKey"];
+            if (string.IsNullOrWhiteSpace(signingKey))
+            {
+                throw new InvalidOperationException("IssuerSigningKey configuration value is missing or empty.");
+            }
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, "scim-service"),
+                new Claim(ClaimTypes.Role, "TokenGenerator")
+            };
+
+            var startTime = DateTime.UtcNow;
+            var expiryTime = startTime.AddMinutes(
+                double.TryParse(section["Token:TokenLifetimeInMins"], out double tokenExpiration)
+                ? tokenExpiration
+                : DefaultTokenExpirationTimeInMins);
+
+            var token = new JwtSecurityToken(
+                section["Token:TokenIssuer"],
+                section["Token:TokenAudience"],
+                claims,
+                notBefore: startTime,
+                expires: expiryTime,
+                signingCredentials: credentials);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        [HttpPost]
+        public ActionResult Post([FromBody] TokenRequest request)
+        {
+            var section = configuration.GetSection("KI:Token");
+
+            var expectedUser = section["AuthUser"];
+            var expectedPassword = section["AuthPassword"];
+
+            if (request.User != expectedUser || !IsPasswordValid(request.Password, expectedPassword))
+            {
+                return Unauthorized("Invalid credentials");
+            }
+
+            var tokenString = this.GenerateJsonWebToken();
+            return Ok(new { token = tokenString });
+        }
+        
+        private static bool IsPasswordValid(string providedPassword, string expectedPassword)
+        {
+            if (providedPassword == null || expectedPassword == null)
+                return false;
+
+            var providedBytes = Encoding.UTF8.GetBytes(providedPassword);
+            var expectedBytes = Encoding.UTF8.GetBytes(expectedPassword);
+
+            return providedBytes.Length == expectedBytes.Length &&
+                   System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(providedBytes, expectedBytes);
+        }
     }
 }
