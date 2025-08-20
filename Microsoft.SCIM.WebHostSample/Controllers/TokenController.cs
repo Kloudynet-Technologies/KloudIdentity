@@ -72,30 +72,60 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
         [HttpPost]
         public ActionResult Post([FromBody] TokenRequest request)
         {
-            var section = configuration.GetSection("KI:Token");
+            if (!IsValidRequest(request, out var validationResult))
+                return validationResult;
 
+            if (!Authenticate(request.User, request.Password))
+                return Unauthorized("Invalid credentials");
+
+            var tokenString = GenerateJsonWebToken();
+            return Ok(new { token = tokenString });
+        }
+
+        // Validation helper
+        private bool IsValidRequest(TokenRequest request, out ActionResult result)
+        {
+            if (request == null)
+            {
+                result = BadRequest("Request body is missing.");
+                return false;
+            }
+
+            if (!ModelState.IsValid)
+            {
+                result = BadRequest(ModelState);
+                return false;
+            }
+
+            result = null;
+            return true;
+        }
+
+        // Authentication helper
+        private bool Authenticate(string user, string password)
+        {
+            var section = configuration.GetSection("KI:Token");
             var expectedUser = section["AuthUser"];
             var expectedPassword = section["AuthPassword"];
 
-            if (request.User != expectedUser || !IsPasswordValid(request.Password, expectedPassword))
-            {
-                return Unauthorized("Invalid credentials");
-            }
+            if (string.IsNullOrWhiteSpace(expectedUser) || string.IsNullOrWhiteSpace(expectedPassword))
+                throw new InvalidOperationException("AuthUser or AuthPassword configuration value is missing or empty.");
 
-            var tokenString = this.GenerateJsonWebToken();
-            return Ok(new { token = tokenString });
+            return IsConstantTimeEqual(user, expectedUser) &&
+                   IsConstantTimeEqual(password, expectedPassword);
         }
-        
-        private static bool IsPasswordValid(string providedPassword, string expectedPassword)
+
+        private static bool IsConstantTimeEqual(string a, string b)
         {
-            if (providedPassword == null || expectedPassword == null)
+            if (a == null || b == null)
                 return false;
 
-            var providedBytes = Encoding.UTF8.GetBytes(providedPassword);
-            var expectedBytes = Encoding.UTF8.GetBytes(expectedPassword);
+            var aBytes = Encoding.UTF8.GetBytes(a);
+            var bBytes = Encoding.UTF8.GetBytes(b);
 
-            return providedBytes.Length == expectedBytes.Length &&
-                   System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(providedBytes, expectedBytes);
+            return aBytes.Length == bBytes.Length &&
+                   System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(aBytes, bBytes);
         }
+
     }
 }
