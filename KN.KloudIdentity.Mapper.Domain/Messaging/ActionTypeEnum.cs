@@ -7,5 +7,6 @@ public enum ActionType
     GetApplicationSetting,
     ListInboundApplications,
     GetInboundConfigurations,
-    ListAs400Groups
+    ListAs400Groups,
+    LicenseStatusCheck,
 }
