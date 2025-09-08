@@ -181,7 +181,7 @@ namespace Microsoft.SCIM.WebHostSample
                     LogSeverities.Information);
             });
 
-            if (configuration["ConnectionStrings:HangfireDBConnection"] != null)
+            if (!string.IsNullOrWhiteSpace(configuration["ConnectionStrings:HangfireDBConnection"]))
             {
                 services.AddHangfire(x =>
                     x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
@@ -220,7 +220,7 @@ namespace Microsoft.SCIM.WebHostSample
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
-            if (configuration["ConnectionStrings:HangfireDBConnection"] != null)
+            if (!string.IsNullOrWhiteSpace(configuration["ConnectionStrings:HangfireDBConnection"]))
             {
                 app.UseHangfireDashboard("/hangfire/jobs");
             }
