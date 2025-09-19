@@ -160,7 +160,7 @@ namespace Microsoft.SCIM.WebHostSample
                 {
                     var options = context.GetRequiredService<IOptions<AppSettings>>().Value;
 
-                    cfg.Host(options.RabbitMQ.Hostname, "/", h =>
+                    cfg.Host(options.RabbitMQ.Hostname, options.RabbitMQ.VirtualHost, h =>
                     {
                         h.Username(options.RabbitMQ.UserName);
                         h.Password(options.RabbitMQ.Password);
