@@ -181,12 +181,12 @@ namespace Microsoft.SCIM.WebHostSample
                     LogSeverities.Information);
             });
 
-            if (!string.IsNullOrWhiteSpace(configuration["ConnectionStrings:HangfireDBConnection"]))
-            {
-                services.AddHangfire(x =>
-                    x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
-                services.AddHangfireServer();
-            }
+            // if (!string.IsNullOrWhiteSpace(configuration["ConnectionStrings:HangfireDBConnection"]))
+            // {
+            //     services.AddHangfire(x =>
+            //         x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
+            //     services.AddHangfireServer();
+            // }
 
             services.AddHealthChecks();
 
@@ -220,10 +220,10 @@ namespace Microsoft.SCIM.WebHostSample
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
-            if (!string.IsNullOrWhiteSpace(configuration["ConnectionStrings:HangfireDBConnection"]))
-            {
-                app.UseHangfireDashboard("/hangfire/jobs");
-            }
+            // if (!string.IsNullOrWhiteSpace(configuration["ConnectionStrings:HangfireDBConnection"]))
+            // {
+            //     app.UseHangfireDashboard("/hangfire/jobs");
+            // }
 
             app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
             app.UseMiddleware<LicenseValidationMiddleware>();
