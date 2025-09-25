@@ -26,36 +26,25 @@ public class LicenseValidationMiddleware(
 
     public async Task InvokeAsync(HttpContext context)
     {
-        var cacheKey = _options.LicenseValidation.CacheKey;
-        var cacheDuration = TimeSpan.FromMinutes(_options.LicenseValidation.CacheDurationMinutes);
+        // Paths to ignore
+        var ignoredPaths = new[] { "/api/healthz" };
 
-        // Check if circuit breaker is open
-        if (_cache.TryGetValue(CircuitBreakerKey, out _))
+        if (ignoredPaths.Any(p => context.Request.Path.StartsWithSegments(p, StringComparison.OrdinalIgnoreCase)))
         {
-            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-            await context.Response.WriteAsync("License validation service unavailable. Please try again later.",
-                context.RequestAborted);
+            await _next(context);
             return;
         }
 
+        var cacheKey = _options.LicenseValidation.CacheKey;
+        var cacheDuration = TimeSpan.FromMinutes(_options.LicenseValidation.CacheDurationMinutes);
+
         LicenseStatus licenseStatus;
+
         if (!_cache.TryGetValue(cacheKey, out var cachedStatusObj) ||
             cachedStatusObj is not LicenseStatus { IsValid: true } cachedValidStatus)
         {
-            try
-            {
-                licenseStatus = await _licenseValidationQuery.IsLicenseValidAsync(context.RequestAborted);
-                _cache.Set(cacheKey, licenseStatus, cacheDuration);
-            }
-            catch (Exception)
-            {
-                // Open circuit breaker for a short duration
-                _cache.Set(CircuitBreakerKey, true, CircuitBreakerDuration);
-                context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                await context.Response.WriteAsync("License validation service unavailable. Please try again later.",
-                    context.RequestAborted);
-                return;
-            }
+            licenseStatus = await _licenseValidationQuery.IsLicenseValidAsync(context.RequestAborted);
+            _cache.Set(cacheKey, licenseStatus, cacheDuration);
         }
         else
         {
