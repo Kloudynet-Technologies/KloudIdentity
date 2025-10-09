@@ -23,9 +23,9 @@ public interface IAuthStrategy
     /// <param name="authConfig"></param>
     /// <param name="args"></param>
     /// <returns></returns>
-    async Task<string> GetTokenAsync(dynamic authConfig, dynamic[]? args = null)
+    Task<string> GetTokenAsync(dynamic authConfig, dynamic[]? args = null)
     {
         // Default implementation (can be overridden by implementing classes)
-        return await GetTokenAsync(authConfig);
+        return GetTokenAsync(authConfig);
     }
 }

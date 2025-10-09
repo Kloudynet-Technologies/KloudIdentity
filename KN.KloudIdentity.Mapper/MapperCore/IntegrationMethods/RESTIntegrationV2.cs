@@ -53,7 +53,6 @@ public class RESTIntegrationV2 : RESTIntegration
                 throw new ArgumentException("Authentication configuration is required for DotRez authentication.");
             }
 
-            httpClient = args[0];
             var dotRezAuthStrategy = _authStrategies.FirstOrDefault(s => s.AuthenticationMethod == AuthenticationMethods.DotRez);
             if (dotRezAuthStrategy == null)
             {
