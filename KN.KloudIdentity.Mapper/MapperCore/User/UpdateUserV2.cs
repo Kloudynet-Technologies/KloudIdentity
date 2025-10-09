@@ -83,6 +83,9 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         switch (integrationMethodOutbound)
         {
             case IntegrationMethods.REST:
+                var patchAttrs = userAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PATCH).ToList();
+                return patchAttrs.Count != 0 ? patchAttrs : userAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PUT).ToList();
+
             case IntegrationMethods.SQL:
                 return userAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PATCH).ToList();
             default:
@@ -95,7 +98,7 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
     {
         var logEntity = new CreateLogEntity(
             appId,
-            LogType.Edit.ToString(),
+            nameof(LogType.Edit),
             LogSeverities.Information,
             "Update user",
             $"User updated successfully for the id {identifier}",
