@@ -158,7 +158,7 @@ public class AS400Integration(
         return value ?? string.Empty;
     }
 
-    public async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId,
+    public async Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId,
         CancellationToken cancellationToken = default)
     {
         Log.Information("Provisioning started for user creation. AppId: {AppId}, CorrelationID: {CorrelationID}",
@@ -188,6 +188,8 @@ public class AS400Integration(
 
             throw new HttpRequestException($"Error occurred while creating the user: {responseMessage?.ErrorMessage}");
         }
+
+        return null;
     }
 
     private async Task<StagingQueueResponseMessage> SendMessage(string correlationId,

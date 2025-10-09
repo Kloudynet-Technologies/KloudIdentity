@@ -85,7 +85,7 @@ public class RESTIntegration : IIntegrationBase
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="HttpRequestException">When an error occurred during provisioning</exception>
-    public virtual async Task ProvisionAsync(
+    public virtual async Task<Core2EnterpriseUser?> ProvisionAsync(
         dynamic payload,
         AppConfig appConfig,
         string correlationId,
@@ -103,8 +103,8 @@ public class RESTIntegration : IIntegrationBase
         // Get auth token if required
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
 
-        var custom = _appSettings.CustomApiHttpClients?.FirstOrDefault(x => x.AppId == appConfig.AppId);
-        var content = PrepareHttpContent(jPayload, custom?.ClientType, custom?.ContentType);
+        var custom = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
+        var content = PrepareHttpContent(jPayload, custom?.ClientType, custom?.HttpSettings?.ContentType);
 
         var response = await httpClient.PostAsync(userUri, content, cancellationToken);
 
@@ -120,17 +120,23 @@ public class RESTIntegration : IIntegrationBase
             throw new HttpRequestException($"Error creating user: {response.StatusCode} - {responseBody}");
         }
 
+        string? idVal = null;
+        if (custom?.IsIdentifierTakeFromCreateUser == true)
+            idVal = GetIdentifier(responseBody, custom.ClientType);
+        else
+        {
+            var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
+            idVal = payload[idField]!.ToString();
+        }
+
         // Fire-and-forget success logging
         _ = Task.Run(async () =>
         {
             try
             {
-                var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
-                string? idVal = jPayload[idField]?.ToString();
-
-                Log.Information(
-                    "User created successfully. Id: {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
-                    idVal, appConfig.AppId, correlationId);
+                    Log.Information(
+                        "User created successfully. Id: {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                        idVal, appConfig.AppId, correlationId);
 
                 await CreateLogAsync(
                     appConfig.AppId,
@@ -146,6 +152,11 @@ public class RESTIntegration : IIntegrationBase
                     appConfig.AppId, correlationId);
             }
         }, cancellationToken);
+
+        return new Core2EnterpriseUser()
+        {
+            Identifier = idVal
+        };
     }
 
     /// <summary>
@@ -198,7 +209,7 @@ public class RESTIntegration : IIntegrationBase
             string idField = GetFieldMapperValue(appConfig, "Identifier", urnPrefix);
             string usernameField = GetFieldMapperValue(appConfig, "UserName", urnPrefix);
 
-            core2EntUsr.Identifier = GetValueCaseInsensitive(user, idField);
+            core2EntUsr.Identifier = identifier;
             core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
 
             // Create log for the operation.
@@ -263,8 +274,8 @@ public class RESTIntegration : IIntegrationBase
         // Get auth token if required
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
 
-        var custom = _appSettings.CustomApiHttpClients?.FirstOrDefault(x => x.AppId == appConfig.AppId);
-        var content = PrepareHttpContent(jPayload, custom?.ClientType, custom?.ContentType);
+        var custom = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
+        var content = PrepareHttpContent(jPayload, custom?.ClientType, custom?.HttpSettings?.ContentType);
         HttpResponseMessage? response = null;
 
         if (userUrIs!.Put != null)
@@ -374,20 +385,20 @@ public class RESTIntegration : IIntegrationBase
         // Get auth token if required
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
 
-        var custom = _appSettings.CustomApiHttpClients?.FirstOrDefault(x => x.AppId == appConfig.AppId);
-        var content = PrepareHttpContent(jPayload, custom?.ClientType, custom?.ContentType);
+        var custom = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
+        var content = PrepareHttpContent(jPayload, custom?.ClientType, custom?.HttpSettings?.ContentType);
         HttpResponseMessage? response = null;
         if (userUrIs!.Patch is not null)
         {
             var apiPath = DynamicApiUrlUtil.GetFullUrl(userUrIs!.Patch!.ToString(), resource.Identifier);
-             response = await httpClient.PatchAsync(apiPath, content);
+            response = await httpClient.PatchAsync(apiPath, content);
         }
         else if (userUrIs.Put is not null)
         {
             var apiPath = DynamicApiUrlUtil.GetFullUrl(userUrIs.Put!.ToString(), resource.Identifier);
             response = await httpClient.PutAsync(apiPath, content);
         }
-        
+
         if (response is { IsSuccessStatusCode: false })
         {
             Log.Error(
@@ -397,7 +408,7 @@ public class RESTIntegration : IIntegrationBase
                 $"Error updating user: {response.StatusCode} - {response.ReasonPhrase}"
             );
         }
-        
+
         // Log the operation.
         _ = Task.Run(() =>
         {
@@ -427,7 +438,8 @@ public class RESTIntegration : IIntegrationBase
     /// <exception cref="HttpRequestException"></exception>
     public async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID)
     {
-        var userUri = appConfig.UserURIs.FirstOrDefault()?.Delete?? throw new InvalidOperationException("User deletion endpoint not configured.");
+        var userUri = appConfig.UserURIs.FirstOrDefault()?.Delete ??
+                      throw new InvalidOperationException("User deletion endpoint not configured.");
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
         var apiUrl = DynamicApiUrlUtil.GetFullUrl(userUri.ToString(), identifier);
 
@@ -473,13 +485,26 @@ public class RESTIntegration : IIntegrationBase
         HttpClientExtensions.SetAuthenticationHeaders(client, appConfig.AuthenticationMethodOutbound,
             appConfig.AuthenticationDetails, token);
 
-        var customHttpClient = _appSettings.CustomApiHttpClients?.FirstOrDefault(x => x.AppId == appConfig.AppId);
-        if (customHttpClient?.Headers is { Count: > 0 })
+        var customHttpClient = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
+        if (customHttpClient?.HttpSettings?.Headers is { Count: > 0 })
         {
-            client.SetCustomHeaders(customHttpClient.Headers);
+            client.SetCustomHeaders(customHttpClient.HttpSettings.Headers);
         }
 
         return client;
+    }
+
+    private string? GetIdentifier(string responseString, string clientType)
+    {
+        if (string.IsNullOrWhiteSpace(responseString) || string.IsNullOrWhiteSpace(clientType))
+            return null;
+
+        var json = JObject.Parse(responseString);
+        return clientType.ToLowerInvariant() switch
+        {
+            "manageengine sdp" => json["user"]?["id"]?.ToString() ?? string.Empty,
+            _ => json["id"]?.ToString() ?? string.Empty
+        };
     }
 
     private async Task CreateLogAsync(string appId, string eventInfo, string logMessage, LogType logType,

@@ -8,7 +8,7 @@ public class AppSettings
     public string ExternalQueueUrl { get; set; } = string.Empty;
     public UserMigrationOptions UserMigration { get; set; } = new UserMigrationOptions();
     public LicenseValidationOptions LicenseValidation { get; set; } = new LicenseValidationOptions();
-    public List<CustomApiHttpClient> CustomApiHttpClients { get; set; } = [];
+    public List<AppIntegrationConfig> AppIntegrationConfigs { get; set; } = [];
 }
 
 public class RabbitMQOptions
@@ -46,10 +46,19 @@ public class LicenseValidationOptions
     public int CacheDurationMinutes { get; set; } = 60;
 }
 
-public class CustomApiHttpClient
+public class AppIntegrationConfig
 {
-    public required string AppId { get; set; }
+    public string AppId { get; set; } = string.Empty;
+
+    public HttpSettings? HttpSettings { get; set; }
+
+    public string ClientType { get; set; } = string.Empty;
+
+    public bool IsIdentifierTakeFromCreateUser { get; set; }
+}   
+
+public class HttpSettings
+{
     public Dictionary<string, string>? Headers { get; set; }
     public string? ContentType { get; set; }
-    public string? ClientType { get; set; }
-}   
+}

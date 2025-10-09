@@ -41,7 +41,7 @@ namespace KN.KloudIdentity.Mapper.Utils
                     token
                 );
                 
-            //    httpClient.DefaultRequestHeaders.Add(authConfig.AuthHeaderName.ToString(), token);
+               httpClient.DefaultRequestHeaders.Add(authConfig.AuthHeaderName.ToString(), token);
             }
             else if (method == AuthenticationMethods.OIDC_ClientCrd)
             {
