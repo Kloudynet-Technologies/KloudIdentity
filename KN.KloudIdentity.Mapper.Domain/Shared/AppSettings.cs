@@ -8,6 +8,7 @@ public class AppSettings
     public string ExternalQueueUrl { get; set; } = string.Empty;
     public UserMigrationOptions UserMigration { get; set; } = new UserMigrationOptions();
     public LicenseValidationOptions LicenseValidation { get; set; } = new LicenseValidationOptions();
+    public List<string> DotRezAppIds { get; set; } = new List<string>();
 }
 
 public class RabbitMQOptions
