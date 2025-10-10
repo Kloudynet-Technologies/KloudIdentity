@@ -18,4 +18,11 @@ public abstract class ExtensionAttributeKIUserBase
         get;
         set;
     }
+    
+    [DataMember(Name = AttributeNames.CebuAttribute1, IsRequired = false, EmitDefaultValue = false)]
+    public string CebuAttribute1
+    {
+        get;
+        set;
+    }
 }

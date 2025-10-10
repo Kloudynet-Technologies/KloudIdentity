@@ -1063,6 +1063,30 @@ namespace Microsoft.SCIM
                 extension.SupplementalGroupProfile = value.Value;
             }
         }
+
+        private static void PatchCebuAttribute1(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.CebuAttribute1, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            if (null == value)
+            {
+                extension.CebuAttribute1 = null;
+            }
+            else
+            {
+                extension.CebuAttribute1 = value.Value;
+            }
+        }
         
         private static void PatchExtensionKIUser(this Core2EnterpriseUser user, PatchOperation2 operation)
         {
@@ -1085,6 +1109,10 @@ namespace Microsoft.SCIM
 
                 case AttributeNames.SupplementalGroupProfile:
                     Core2EnterpriseUserExtensions.PatchSupplementalGroupProfile(extension, operation);
+                    break;
+                
+                case AttributeNames.CebuAttribute1:
+                    Core2EnterpriseUserExtensions.PatchCebuAttribute1(extension, operation);
                     break;
             }
         }
