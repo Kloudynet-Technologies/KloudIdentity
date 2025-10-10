@@ -50,7 +50,7 @@ public class RESTIntegration : IIntegrationBase
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public virtual async Task<dynamic> GetAuthenticationAsync(AppConfig config,
-        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default)
+        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default, params dynamic[] args)
     {
         return await _authContext.GetTokenAsync(config, direction);
     }
@@ -87,9 +87,9 @@ public class RESTIntegration : IIntegrationBase
 
         var userURIs = appConfig.UserURIs.FirstOrDefault();
 
-        var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound);
-
         var httpClient = _httpClientFactory.CreateClient();
+
+        var token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, cancellationToken, httpClient);
 
         Utils.HttpClientExtensions.SetAuthenticationHeaders(httpClient, appConfig.AuthenticationMethodOutbound,
             appConfig.AuthenticationDetails, token);
@@ -212,7 +212,7 @@ public class RESTIntegration : IIntegrationBase
         }
     }
 
-    private string GetFieldMapperValue(AppConfig appConfig, string fieldName, string urnPrefix)
+    public string GetFieldMapperValue(AppConfig appConfig, string fieldName, string urnPrefix)
     {
         var field = appConfig.UserAttributeSchemas.FirstOrDefault(f => f.SourceValue == fieldName);
         if (field != null)
@@ -380,7 +380,7 @@ public class RESTIntegration : IIntegrationBase
                 Log.Information(
                     "User updated successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
                     idVal, appConfig.AppId, correlationID);
-                
+
                 _ = CreateLogAsync(appConfig.AppId,
                     "Update User",
                     $"User updated successfully for the id {idVal}",
@@ -423,7 +423,7 @@ public class RESTIntegration : IIntegrationBase
                     $"HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}"
                 );
             }
-            
+
             // Log the operation.
             _ = CreateLogAsync(appConfig.AppId,
                 "Delete User",

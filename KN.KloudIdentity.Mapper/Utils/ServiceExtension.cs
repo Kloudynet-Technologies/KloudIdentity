@@ -47,6 +47,8 @@ public static class ServiceExtension
         services.AddScoped<IAuthStrategy, ApiKeyStrategy>();
         services.AddScoped<IAuthStrategy, BasicAuthStrategy>();
         services.AddScoped<IAuthStrategy, OAuth2Strategy>();
+        services.AddScoped<IAuthStrategy, DotRezAuthStrategy>();
+
         services.AddScoped<IConfigReader, ConfigReaderSQL>();
 
         services.AddScoped<IList<IIntegrationBase>>(provider =>
@@ -62,7 +64,17 @@ public static class ServiceExtension
         });
 
         services.AddScoped<ICreateResourceV2, CreateUserV3>();
-        services.AddScoped<IIntegrationBase, RESTIntegration>();
+        // Use configuration or feature flag to select the integration implementation
+        var useV2 = configuration.GetValue<bool>("Features:UseRESTIntegrationV2") || false;
+        if (useV2)
+        {
+            services.AddScoped<IIntegrationBase, RESTIntegrationV2>();
+        }
+        else
+        {
+            services.AddScoped<IIntegrationBase, RESTIntegration>();
+        }
+
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
         services.AddScoped<IIntegrationBase, AS400Integration>();
         services.AddScoped<IIntegrationBase, SQLIntegration>();
@@ -96,7 +108,7 @@ public static class ServiceExtension
         services.AddScoped<IOutboundPayloadProcessor, OutboundPayloadProcessor>();
 
         services.AddScoped<IListAs400GroupsQuery, ListAs400GroupsQuery>();
-        
+
         services.AddScoped<ILicenseValidationQuery, LicenseValidationQuery>();
     }
 }
