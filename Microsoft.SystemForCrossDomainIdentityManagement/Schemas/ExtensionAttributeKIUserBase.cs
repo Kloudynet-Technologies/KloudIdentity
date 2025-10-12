@@ -19,8 +19,50 @@ public abstract class ExtensionAttributeKIUserBase
         set;
     }
     
-    [DataMember(Name = AttributeNames.CebuAttribute1, IsRequired = false, EmitDefaultValue = false)]
-    public string CebuAttribute1
+    [DataMember(Name = AttributeNames.ExtensionAttribute1, IsRequired = false, EmitDefaultValue = false)]
+    public string ExtensionAttribute1
+    {
+        get;
+        set;
+    }
+    
+    [DataMember(Name = AttributeNames.ExtensionAttribute2, IsRequired = false, EmitDefaultValue = false)]
+    public string ExtensionAttribute2
+    {
+        get;
+        set;
+    }
+    
+    [DataMember(Name = AttributeNames.ExtensionAttribute3, IsRequired = false, EmitDefaultValue = false)]
+    public string ExtensionAttribute3
+    {
+        get;
+        set;
+    }
+    
+    [DataMember(Name = AttributeNames.ExtensionAttribute4, IsRequired = false, EmitDefaultValue = false)]
+    public string ExtensionAttribute4
+    {
+        get;
+        set;
+    }
+    
+    [DataMember(Name = AttributeNames.ExtensionAttribute5, IsRequired = false, EmitDefaultValue = false)]
+    public string ExtensionAttribute5
+    {
+        get;
+        set;
+    }
+    
+    [DataMember(Name = AttributeNames.ExtensionAttribute6, IsRequired = false, EmitDefaultValue = false)]
+    public string ExtensionAttribute6
+    {
+        get;
+        set;
+    }
+    
+    [DataMember(Name = AttributeNames.ExtensionAttribute7, IsRequired = false, EmitDefaultValue = false)]
+    public string ExtensionAttribute7
     {
         get;
         set;
