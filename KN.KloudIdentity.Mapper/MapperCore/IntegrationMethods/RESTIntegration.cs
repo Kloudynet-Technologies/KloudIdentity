@@ -56,7 +56,8 @@ public class RESTIntegration : IIntegrationBase
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public virtual async Task<dynamic> GetAuthenticationAsync(AppConfig config,
-        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default, params dynamic[] args)
+        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default,
+        params dynamic[] args)
     {
         return await _authContext.GetTokenAsync(config, direction);
     }
@@ -105,7 +106,6 @@ public class RESTIntegration : IIntegrationBase
 
         var custom = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
         var content = PrepareHttpContent(jPayload, custom?.ClientType, custom?.HttpSettings?.ContentType);
-
         var response = await httpClient.PostAsync(userUri, content, cancellationToken);
 
         // Read full response
@@ -134,9 +134,9 @@ public class RESTIntegration : IIntegrationBase
         {
             try
             {
-                    Log.Information(
-                        "User created successfully. Id: {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
-                        idVal, appConfig.AppId, correlationId);
+                Log.Information(
+                    "User created successfully. Id: {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                    idVal, appConfig.AppId, correlationId);
 
                 await CreateLogAsync(
                     appConfig.AppId,
