@@ -74,11 +74,13 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
         payload = await ExecuteCustomLogicAsync(payload, appConfig, correlationID);
 
         // Step 5: Provisioning
-        await integrationOp.ProvisionAsync(payload, appConfig, correlationID);
-
+        var result = await integrationOp.ProvisionAsync(payload, appConfig, correlationID);
+        if (result is not null)
+            resource.Identifier = result.Identifier;
+        
         // Step 6: Logging
         await CreateLogAsync(appId, correlationID);
-
+    
         Log.Information("User provisioned successfully. AppId: {AppId}, CorrelationID: {CorrelationID}, Identifier: {Identifier}", appId, correlationID, resource.Identifier);
 
         return resource;

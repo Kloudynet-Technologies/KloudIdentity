@@ -8,6 +8,7 @@ public class AppSettings
     public string ExternalQueueUrl { get; set; } = string.Empty;
     public UserMigrationOptions UserMigration { get; set; } = new UserMigrationOptions();
     public LicenseValidationOptions LicenseValidation { get; set; } = new LicenseValidationOptions();
+    public List<AppIntegrationConfig> AppIntegrationConfigs { get; set; } = [];
     public List<string> DotRezAppIds { get; set; } = new List<string>();
 }
 
@@ -44,4 +45,21 @@ public class LicenseValidationOptions
 {
     public string CacheKey { get; set; } = "LicenseStatus";
     public int CacheDurationMinutes { get; set; } = 60;
+}
+
+public class AppIntegrationConfig
+{
+    public string AppId { get; set; } = string.Empty;
+
+    public HttpSettings? HttpSettings { get; set; }
+
+    public string ClientType { get; set; } = string.Empty;
+
+    public bool IsIdentifierTakeFromCreateUser { get; set; }
+}   
+
+public class HttpSettings
+{
+    public Dictionary<string, string>? Headers { get; set; }
+    public string? ContentType { get; set; }
 }

@@ -26,7 +26,8 @@ public class RESTIntegrationV2 : RESTIntegration
     private readonly IOptions<AppSettings> _appSettings;
 
     public RESTIntegrationV2(IAuthContext authContext, IHttpClientFactory httpClientFactory, IConfiguration configuration,
-        IKloudIdentityLogger logger, IEnumerable<IAuthStrategy> authStrategies, IOptions<AppSettings> appSettings) : base(authContext, httpClientFactory, configuration, logger)
+        IKloudIdentityLogger logger, IEnumerable<IAuthStrategy> authStrategies, IOptions<AppSettings> appSettings) : 
+        base(authContext, httpClientFactory, configuration, appSettings, logger)
     {
         _authContext = authContext;
         _httpClientFactory = httpClientFactory;
