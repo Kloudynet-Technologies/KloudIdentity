@@ -127,6 +127,10 @@ public class RESTIntegration : IIntegrationBase
         {
             var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
             idVal = payload[idField]!.ToString();
+            if (string.Equals(custom?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
+            {
+                idVal = payload["userName"]!.ToString();
+            }
         }
 
         // Fire-and-forget success logging
@@ -262,7 +266,7 @@ public class RESTIntegration : IIntegrationBase
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="HttpRequestException"></exception>
-    public async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
+    public virtual async  Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
         string correlationId)
     {
         var userUrIs = appConfig.UserURIs?.FirstOrDefault()
@@ -375,7 +379,7 @@ public class RESTIntegration : IIntegrationBase
     /// <param name="correlationId"></param>
     /// <returns></returns>
     /// <exception cref="HttpRequestException"></exception>
-    public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
+    public virtual async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
         string correlationId)
     {
         var userUrIs = appConfig.UserURIs.FirstOrDefault();
@@ -436,7 +440,7 @@ public class RESTIntegration : IIntegrationBase
     /// <param name="correlationID"></param>
     /// <returns></returns>
     /// <exception cref="HttpRequestException"></exception>
-    public async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID)
+    public virtual async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID)
     {
         var userUri = appConfig.UserURIs.FirstOrDefault()?.Delete ??
                       throw new InvalidOperationException("User deletion endpoint not configured.");
@@ -479,8 +483,8 @@ public class RESTIntegration : IIntegrationBase
     private async Task<HttpClient> CreateHttpClientAsync(AppConfig appConfig, SCIMDirections direction,
         CancellationToken cancellationToken = default)
     {
-        var token = await GetAuthenticationAsync(appConfig, direction, cancellationToken);
         var client = _httpClientFactory.CreateClient();
+        var token = await GetAuthenticationAsync(appConfig, direction, cancellationToken, client);
 
         HttpClientExtensions.SetAuthenticationHeaders(client, appConfig.AuthenticationMethodOutbound,
             appConfig.AuthenticationDetails, token);

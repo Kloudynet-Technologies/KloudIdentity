@@ -65,7 +65,7 @@ public static class ServiceExtension
 
         services.AddScoped<ICreateResourceV2, CreateUserV3>();
         // Use configuration or feature flag to select the integration implementation
-        var useV2 = configuration.GetValue<bool>("Features:UseRESTIntegrationV2") || false;
+        var useV2 = configuration.GetValue<bool>("Features:UseRESTIntegrationV2") || true;
         if (useV2)
         {
             services.AddScoped<IIntegrationBase, RESTIntegrationV2>();
