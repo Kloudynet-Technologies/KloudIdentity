@@ -79,7 +79,7 @@ public class AS400Integration(
     }
 
     public async Task<dynamic> GetAuthenticationAsync(AppConfig config,
-        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default)
+        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default, params dynamic[] args)
     {
         if (config.AuthenticationDetails == null)
         {

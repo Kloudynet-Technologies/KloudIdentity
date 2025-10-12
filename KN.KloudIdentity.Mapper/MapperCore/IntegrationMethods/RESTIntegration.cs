@@ -56,7 +56,7 @@ public class RESTIntegration : IIntegrationBase
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public virtual async Task<dynamic> GetAuthenticationAsync(AppConfig config,
-        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default)
+        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default, params dynamic[] args)
     {
         return await _authContext.GetTokenAsync(config, direction);
     }
@@ -229,7 +229,7 @@ public class RESTIntegration : IIntegrationBase
         throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
     }
 
-    private string GetFieldMapperValue(AppConfig appConfig, string fieldName, string urnPrefix)
+    public string GetFieldMapperValue(AppConfig appConfig, string fieldName, string urnPrefix)
     {
         var field = appConfig.UserAttributeSchemas.FirstOrDefault(f => f.SourceValue == fieldName);
         if (field != null)

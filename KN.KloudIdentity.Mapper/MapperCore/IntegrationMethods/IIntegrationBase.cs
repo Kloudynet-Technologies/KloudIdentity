@@ -29,7 +29,7 @@ public interface IIntegrationBase
     /// <param name="direction">SCIM direction</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<dynamic> GetAuthenticationAsync(AppConfig config, SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default);
+    Task<dynamic> GetAuthenticationAsync(AppConfig config, SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default, params dynamic[] args);
 
     /// <summary>
     /// Provisions the user asynchronously to LOB application.

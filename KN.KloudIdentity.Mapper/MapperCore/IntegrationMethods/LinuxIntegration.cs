@@ -113,7 +113,7 @@ public class LinuxIntegration : IIntegrationBase
     }
 
     public async Task<dynamic> GetAuthenticationAsync(AppConfig config,
-        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default)
+        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default, params dynamic[] args)
     {
         return await Task.FromResult(config.AuthenticationDetails);
     }
