@@ -10,6 +10,8 @@ public class AppSettings
     public LicenseValidationOptions LicenseValidation { get; set; } = new LicenseValidationOptions();
     public List<AppIntegrationConfig> AppIntegrationConfigs { get; set; } = [];
     public List<string> DotRezAppIds { get; set; } = new List<string>();
+    public UserKeyMappingOptions UserKeyMapping { get; set; } = new UserKeyMappingOptions();
+    public List<UserKeyMappingConfig> UserKeyMappingConfig { get; set; } = [];
 }
 
 public class RabbitMQOptions
@@ -62,4 +64,16 @@ public class HttpSettings
 {
     public Dictionary<string, string>? Headers { get; set; }
     public string? ContentType { get; set; }
+}
+
+public class UserKeyMappingOptions
+{
+    public string AzureStorageConnectionString { get; set; } = string.Empty;
+}
+
+public class UserKeyMappingConfig
+{
+    public string AppId { get; set; } = string.Empty;  
+
+    public string AzureStorageTableName { get; set; } = string.Empty;
 }

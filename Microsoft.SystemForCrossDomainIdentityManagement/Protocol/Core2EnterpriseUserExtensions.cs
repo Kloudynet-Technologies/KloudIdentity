@@ -1228,6 +1228,75 @@ namespace Microsoft.SCIM
                 extension.ExtensionAttribute7 = value.Value;
             }
         }
+        private static void PatchExtensionAttribute8(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.ExtensionAttribute8, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            if (null == value)
+            {
+                extension.ExtensionAttribute8 = null;
+            }
+            else
+            {
+                extension.ExtensionAttribute8 = value.Value;
+            }
+        }
+        private static void PatchExtensionAttribute9(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.ExtensionAttribute9, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            if (null == value)
+            {
+                extension.ExtensionAttribute9 = null;
+            }
+            else
+            {
+                extension.ExtensionAttribute9 = value.Value;
+            }
+        }
+        private static void PatchExtensionAttribute10(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.ExtensionAttribute10, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            if (null == value)
+            {
+                extension.ExtensionAttribute10 = null;
+            }
+            else
+            {
+                extension.ExtensionAttribute10 = value.Value;
+            }
+        }
         private static void PatchExtensionKIUser(this Core2EnterpriseUser user, PatchOperation2 operation)
         {
             if (null == operation)
@@ -1277,6 +1346,18 @@ namespace Microsoft.SCIM
                 
                 case AttributeNames.ExtensionAttribute7:
                     Core2EnterpriseUserExtensions.PatchExtensionAttribute7(extension, operation);
+                    break;
+
+                case AttributeNames.ExtensionAttribute8:
+                    Core2EnterpriseUserExtensions.PatchExtensionAttribute8(extension, operation);
+                    break;
+
+                case AttributeNames.ExtensionAttribute9:
+                    Core2EnterpriseUserExtensions.PatchExtensionAttribute9(extension, operation);
+                    break;
+
+                case AttributeNames.ExtensionAttribute10:
+                    Core2EnterpriseUserExtensions.PatchExtensionAttribute10(extension, operation);
                     break;
             }
         }

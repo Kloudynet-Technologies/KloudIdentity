@@ -67,4 +67,25 @@ public abstract class ExtensionAttributeKIUserBase
         get;
         set;
     }
+
+    [DataMember(Name = AttributeNames.ExtensionAttribute8, IsRequired = false, EmitDefaultValue = false)]
+    public string ExtensionAttribute8
+    {
+        get;
+        set;
+    }
+
+    [DataMember(Name = AttributeNames.ExtensionAttribute9, IsRequired = false, EmitDefaultValue = false)]
+    public string ExtensionAttribute9
+    {
+        get;
+        set;
+    }
+
+    [DataMember(Name = AttributeNames.ExtensionAttribute10, IsRequired = false, EmitDefaultValue = false)]
+    public string ExtensionAttribute10
+    {
+        get;
+        set;
+    }
 }
