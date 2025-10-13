@@ -103,6 +103,7 @@ public class RESTIntegrationV2 : RESTIntegration
         var result = await base.ProvisionAsync((object)payload, appConfig, correlationId, cancellationToken);
 
         // Get API call to get userKey
+        var result2 = await base.GetAsync(result!.Identifier, appConfig, correlationId, cancellationToken);
 
         // store username, userkey and rolecode to database
 

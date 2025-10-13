@@ -193,6 +193,7 @@ public class RESTIntegration : IIntegrationBase
     {
         var userUri = appConfig.UserURIs.FirstOrDefault()?.Get
                       ?? throw new ApplicationException("GET API not configured.");
+        var customConfig = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
         var client = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
         var url = DynamicApiUrlUtil.GetFullUrl(userUri.ToString(), identifier);
         var response = await client.GetAsync(url, cancellationToken);
@@ -210,11 +211,19 @@ public class RESTIntegration : IIntegrationBase
 
             string urnPrefix = _configuration["urnPrefix"]!;
 
-            string idField = GetFieldMapperValue(appConfig, "Identifier", urnPrefix);
             string usernameField = GetFieldMapperValue(appConfig, "UserName", urnPrefix);
 
             core2EntUsr.Identifier = identifier;
-            core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
+
+            if (string.Equals(customConfig?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
+            {
+                core2EntUsr.KIExtension.ExtensionAttribute1 = user["data"]?[0]?["userKey"]?.ToString() ?? string.Empty;
+                core2EntUsr.UserName = user["data"]?[0]?["username"]?.ToString() ?? string.Empty;
+            }
+            else
+            {
+                core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
+            }
 
             // Create log for the operation.
             _ = CreateLogAsync(appConfig.AppId,
@@ -266,7 +275,7 @@ public class RESTIntegration : IIntegrationBase
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="HttpRequestException"></exception>
-    public virtual async  Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
+    public virtual async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
         string correlationId)
     {
         var userUrIs = appConfig.UserURIs?.FirstOrDefault()
