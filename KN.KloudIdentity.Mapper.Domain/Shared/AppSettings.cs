@@ -9,6 +9,8 @@ public class AppSettings
     public UserMigrationOptions UserMigration { get; set; } = new UserMigrationOptions();
     public LicenseValidationOptions LicenseValidation { get; set; } = new LicenseValidationOptions();
     public List<string> DotRezAppIds { get; set; } = new List<string>();
+    public UserKeyMappingOptions UserKeyMapping { get; set; } = new UserKeyMappingOptions();
+    public List<UserKeyMappingConfig> UserKeyMappingConfig { get; set; } = [];
 }
 
 public class RabbitMQOptions
@@ -44,4 +46,16 @@ public class LicenseValidationOptions
 {
     public string CacheKey { get; set; } = "LicenseStatus";
     public int CacheDurationMinutes { get; set; } = 60;
+}
+
+public class UserKeyMappingOptions
+{
+    public string AzureStorageConnectionString { get; set; } = string.Empty;
+}
+
+public class UserKeyMappingConfig
+{
+    public string AppId { get; set; } = string.Empty;  
+
+    public string AzureStorageTableName { get; set; } = string.Empty;
 }
