@@ -21,14 +21,13 @@ namespace KN.KloudIdentity.Mapper.Utils
             AuthenticationMethods method,
             dynamic authConfig,
             string token
-            )
+        )
         {
             if (method == AuthenticationMethods.None)
                 return;
 
             if (method == AuthenticationMethods.APIKey)
             {
-
                 if (authConfig.AuthHeaderName == null)
                 {
                     throw new ArgumentNullException(
@@ -37,7 +36,12 @@ namespace KN.KloudIdentity.Mapper.Utils
                     );
                 }
 
-                httpClient.DefaultRequestHeaders.Add(authConfig.AuthHeaderName.ToString(), token);
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                    authConfig.AuthHeaderName.ToString(),
+                    token
+                );
+                
+               httpClient.DefaultRequestHeaders.Add(authConfig.AuthHeaderName.ToString(), token);
             }
             else if (method == AuthenticationMethods.OIDC_ClientCrd)
             {
@@ -57,8 +61,8 @@ namespace KN.KloudIdentity.Mapper.Utils
                 var authHeaderName = string.IsNullOrWhiteSpace(auth.AuthHeaderName) ? "Basic" : auth.AuthHeaderName;
 
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-                   authHeaderName,
-                   token);
+                    authHeaderName,
+                    token);
             }
             else if (method == AuthenticationMethods.Bearer)
             {
@@ -72,6 +76,29 @@ namespace KN.KloudIdentity.Mapper.Utils
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
                     token
                 );
+            }
+        }
+
+        public static void SetCustomHeaders(this HttpClient httpClient, Dictionary<string, string>? headers)
+        {
+            if (headers == null)
+                return;
+
+            foreach (var header in headers)
+            {
+                if (header.Key.Equals("Accept", StringComparison.OrdinalIgnoreCase))
+                {
+                    httpClient.DefaultRequestHeaders.Accept.Clear();
+                    httpClient.DefaultRequestHeaders.Accept.Add(
+                        new MediaTypeWithQualityHeaderValue(header.Value));
+                }
+                else
+                {
+                    if (!httpClient.DefaultRequestHeaders.Contains(header.Key))
+                    {
+                        httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
+                    }
+                }
             }
         }
     }

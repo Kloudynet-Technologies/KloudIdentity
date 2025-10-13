@@ -39,7 +39,7 @@ public interface IIntegrationBase
     /// <param name="correlationId">Correlation ID</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default);
+    Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Validates the payload asynchronously before been sent to LOB app.

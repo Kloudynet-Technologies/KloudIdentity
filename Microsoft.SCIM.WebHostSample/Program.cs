@@ -29,7 +29,7 @@ namespace Microsoft.SCIM.WebHostSample
                         var appConfigLabel = settings["AppConfigLabel"];
                         options.Connect(settings["ConnectionStrings:AppConfig"])
                             .Select("KI:*", appConfigLabel)
-                            .ConfigureKeyVault(kv => { kv.SetCredential(new DefaultAzureCredential()); })
+                            .ConfigureKeyVault(kv => { kv.SetCredential(new InteractiveBrowserCredential()); })
                             .ConfigureRefresh(refresh =>
                             {
                                 refresh.Register("KI:RefreshOption", refreshAll: true)

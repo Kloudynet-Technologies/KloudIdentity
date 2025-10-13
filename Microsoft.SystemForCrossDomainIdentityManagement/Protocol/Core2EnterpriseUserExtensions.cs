@@ -1063,7 +1063,171 @@ namespace Microsoft.SCIM
                 extension.SupplementalGroupProfile = value.Value;
             }
         }
+
+        private static void PatchExtensionAttribute1(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.ExtensionAttribute1, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            if (null == value)
+            {
+                extension.ExtensionAttribute1 = null;
+            }
+            else
+            {
+                extension.ExtensionAttribute1 = value.Value;
+            }
+        }
         
+        private static void PatchExtensionAttribute2(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.ExtensionAttribute2, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            if (null == value)
+            {
+                extension.ExtensionAttribute2 = null;
+            }
+            else
+            {
+                extension.ExtensionAttribute2 = value.Value;
+            }
+        }
+        
+        private static void PatchExtensionAttribute3(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.ExtensionAttribute3, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            if (null == value)
+            {
+                extension.ExtensionAttribute3 = null;
+            }
+            else
+            {
+                extension.ExtensionAttribute3 = value.Value;
+            }
+        }
+        private static void PatchExtensionAttribute4(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.ExtensionAttribute4, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            if (null == value)
+            {
+                extension.ExtensionAttribute4 = null;
+            }
+            else
+            {
+                extension.ExtensionAttribute4 = value.Value;
+            }
+        }
+        
+        private static void PatchExtensionAttribute5(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.ExtensionAttribute5, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            if (null == value)
+            {
+                extension.ExtensionAttribute5 = null;
+            }
+            else
+            {
+                extension.ExtensionAttribute5 = value.Value;
+            }
+        }
+        private static void PatchExtensionAttribute6(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.ExtensionAttribute6, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            if (null == value)
+            {
+                extension.ExtensionAttribute6 = null;
+            }
+            else
+            {
+                extension.ExtensionAttribute6 = value.Value;
+            }
+        }
+        private static void PatchExtensionAttribute7(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.ExtensionAttribute7, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            if (null == value)
+            {
+                extension.ExtensionAttribute7 = null;
+            }
+            else
+            {
+                extension.ExtensionAttribute7 = value.Value;
+            }
+        }
         private static void PatchExtensionKIUser(this Core2EnterpriseUser user, PatchOperation2 operation)
         {
             if (null == operation)
@@ -1085,6 +1249,34 @@ namespace Microsoft.SCIM
 
                 case AttributeNames.SupplementalGroupProfile:
                     Core2EnterpriseUserExtensions.PatchSupplementalGroupProfile(extension, operation);
+                    break;
+                
+                case AttributeNames.ExtensionAttribute1:
+                    Core2EnterpriseUserExtensions.PatchExtensionAttribute1(extension, operation);
+                    break;
+                
+                case AttributeNames.ExtensionAttribute2:
+                    Core2EnterpriseUserExtensions.PatchExtensionAttribute2(extension, operation);
+                    break;
+                
+                case AttributeNames.ExtensionAttribute3:
+                    Core2EnterpriseUserExtensions.PatchExtensionAttribute3(extension, operation);
+                    break;
+                
+                case AttributeNames.ExtensionAttribute4:
+                    Core2EnterpriseUserExtensions.PatchExtensionAttribute4(extension, operation);
+                    break;
+                
+                case AttributeNames.ExtensionAttribute5:
+                    Core2EnterpriseUserExtensions.PatchExtensionAttribute5(extension, operation);
+                    break;
+                
+                case AttributeNames.ExtensionAttribute6:
+                    Core2EnterpriseUserExtensions.PatchExtensionAttribute6(extension, operation);
+                    break;
+                
+                case AttributeNames.ExtensionAttribute7:
+                    Core2EnterpriseUserExtensions.PatchExtensionAttribute7(extension, operation);
                     break;
             }
         }
