@@ -480,7 +480,8 @@ public class RESTIntegration : IIntegrationBase
     {
         if (string.Equals(contentType, "application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
         {
-            var encodedJson = Uri.EscapeDataString(payload.ToString(Formatting.None));
+            var wrappedPayload = new JObject { ["user"] = payload };
+            var encodedJson = Uri.EscapeDataString(wrappedPayload.ToString(Formatting.None));
             var formData = clientType == "ManageEngine SDP" ? $"input_data={encodedJson}" : encodedJson;
             return new StringContent(formData, Encoding.UTF8, "application/x-www-form-urlencoded");
         }
