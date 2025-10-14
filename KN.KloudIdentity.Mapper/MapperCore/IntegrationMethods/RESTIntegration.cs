@@ -220,6 +220,10 @@ public class RESTIntegration : IIntegrationBase
                 core2EntUsr.KIExtension.ExtensionAttribute1 = user["data"]?[0]?["userKey"]?.ToString() ?? string.Empty;
                 core2EntUsr.UserName = user["data"]?[0]?["username"]?.ToString() ?? string.Empty;
             }
+            else if (string.Equals(customConfig?.ClientType, "ManageEngine SDP", StringComparison.OrdinalIgnoreCase))
+            {
+                core2EntUsr.UserName = GetValueCaseInsensitive(user["user"] as JObject, usernameField);
+            }
             else
             {
                 core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
@@ -257,9 +261,9 @@ public class RESTIntegration : IIntegrationBase
         }
     }
 
-    private string GetValueCaseInsensitive(JObject jsonObject, string propertyName)
+    private string GetValueCaseInsensitive(JObject? jsonObject, string propertyName)
     {
-        var property = jsonObject.Properties()
+        var property = jsonObject?.Properties()
             .FirstOrDefault(p => string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
 
         return property!.Value.ToString();
