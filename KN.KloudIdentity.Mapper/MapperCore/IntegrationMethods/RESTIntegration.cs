@@ -211,7 +211,7 @@ public class RESTIntegration : IIntegrationBase
 
             string urnPrefix = _configuration["urnPrefix"]!;
 
-            string usernameField = GetFieldMapperValue(appConfig, "UserName", urnPrefix);
+            //string usernameField = GetFieldMapperValue(appConfig, "UserName", urnPrefix);
 
             core2EntUsr.Identifier = identifier;
 
@@ -222,7 +222,7 @@ public class RESTIntegration : IIntegrationBase
             }
             else
             {
-                core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
+               // core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
             }
 
             // Create log for the operation.

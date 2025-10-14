@@ -108,6 +108,7 @@ namespace Microsoft.SCIM
         public const string ExtensionAttribute8 = "extensionAttribute8";
         public const string ExtensionAttribute9 = "extensionAttribute9";
         public const string ExtensionAttribute10 = "extensionAttribute10";
+        public const string ExtensionAttribute11 = "extensionAttribute11";
         public const string ExtensionKIUser = SchemaIdentifiers.Core2KIUser;
         public const string AppId = "appId";
     }

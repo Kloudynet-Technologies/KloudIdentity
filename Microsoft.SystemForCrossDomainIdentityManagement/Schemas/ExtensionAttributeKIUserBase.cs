@@ -88,4 +88,11 @@ public abstract class ExtensionAttributeKIUserBase
         get;
         set;
     }
+
+    [DataMember(Name = AttributeNames.ExtensionAttribute11, IsRequired = false, EmitDefaultValue = false)]
+    public string ExtensionAttribute11
+    {
+        get;
+        set;
+    }
 }

@@ -6,6 +6,9 @@ using KN.KloudIdentity.Mapper.BackgroundJobs;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Config.Db;
 using KN.KloudIdentity.Mapper.Domain;
+using KN.KloudIdentity.Mapper.Infrastructure.CEB.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.CEB.Commands;
+using KN.KloudIdentity.Mapper.Infrastructure.CEB.Queries;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Commands;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
@@ -63,6 +66,20 @@ public static class ServiceExtension
             return new AzureStorageManager(connectionString, appSettings);
         });
 
+        services.AddSingleton<ICreateUserDetailsToStorageCommand>(provider =>
+        {
+            var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
+            var connectionString = appSettings.UserKeyMapping.AzureStorageConnectionString;
+            return new CreateUserDetailsToStorageCommand(connectionString, appSettings);
+        });
+
+        services.AddSingleton<IGetUserDetailsFromStorageQuery>(provider =>
+        {
+            var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
+            var connectionString = appSettings.UserKeyMapping.AzureStorageConnectionString;
+            return new GetUserDetailsFromStorageQuery(connectionString, appSettings);
+        });
+
         services.AddScoped<ICreateResourceV2, CreateUserV3>();
         // Use configuration or feature flag to select the integration implementation
         var useV2 = configuration.GetValue<bool>("Features:UseRESTIntegrationV2") || true;
@@ -110,5 +127,8 @@ public static class ServiceExtension
         services.AddScoped<IListAs400GroupsQuery, ListAs400GroupsQuery>();
 
         services.AddScoped<ILicenseValidationQuery, LicenseValidationQuery>();
+
+        //services.AddScoped<ICreateUserDetailsToStorageCommand, CreateUserDetailsToStorageCommand>();
+        //services.AddScoped<IGetUserDetailsFromStorageQuery, GetUserDetailsFromStorageQuery>();
     }
 }

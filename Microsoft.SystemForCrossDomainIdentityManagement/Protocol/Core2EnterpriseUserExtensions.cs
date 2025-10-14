@@ -1297,6 +1297,32 @@ namespace Microsoft.SCIM
                 extension.ExtensionAttribute10 = value.Value;
             }
         }
+
+        private static void PatchExtensionAttribute11(ExtensionAttributeKIUser extension, PatchOperation2 operation)
+        {
+            OperationValue value = operation.Value.SingleOrDefault();
+            if (OperationName.Remove == operation.Name)
+            {
+                if ((null == value) || string.Equals(extension.ExtensionAttribute11, value.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            if (null == value)
+            {
+                extension.ExtensionAttribute11 = null;
+            }
+            else
+            {
+                extension.ExtensionAttribute11 = value.Value;
+            }
+        }
+
+
         private static void PatchExtensionKIUser(this Core2EnterpriseUser user, PatchOperation2 operation)
         {
             if (null == operation)
@@ -1312,52 +1338,55 @@ namespace Microsoft.SCIM
             ExtensionAttributeKIUser extension = user.KIExtension;
             switch (operation.Path.AttributePath)
             {
-                case AttributeNames.GroupProfile:
+                case var path when path.Equals(AttributeNames.GroupProfile, StringComparison.OrdinalIgnoreCase):
                     Core2EnterpriseUserExtensions.PatchGroupProfile(extension, operation);
                     break;
 
-                case AttributeNames.SupplementalGroupProfile:
+                case var path when path.Equals(AttributeNames.SupplementalGroupProfile, StringComparison.OrdinalIgnoreCase):
                     Core2EnterpriseUserExtensions.PatchSupplementalGroupProfile(extension, operation);
                     break;
                 
-                case AttributeNames.ExtensionAttribute1:
+                case var path when path.Equals(AttributeNames.ExtensionAttribute1, StringComparison.OrdinalIgnoreCase):
                     Core2EnterpriseUserExtensions.PatchExtensionAttribute1(extension, operation);
                     break;
                 
-                case AttributeNames.ExtensionAttribute2:
+                case var path when path.Equals(AttributeNames.ExtensionAttribute2, StringComparison.OrdinalIgnoreCase):
                     Core2EnterpriseUserExtensions.PatchExtensionAttribute2(extension, operation);
                     break;
                 
-                case AttributeNames.ExtensionAttribute3:
+                case var path when path.Equals(AttributeNames.ExtensionAttribute3, StringComparison.OrdinalIgnoreCase):
                     Core2EnterpriseUserExtensions.PatchExtensionAttribute3(extension, operation);
                     break;
                 
-                case AttributeNames.ExtensionAttribute4:
+                case var path when path.Equals(AttributeNames.ExtensionAttribute4, StringComparison.OrdinalIgnoreCase):
                     Core2EnterpriseUserExtensions.PatchExtensionAttribute4(extension, operation);
                     break;
                 
-                case AttributeNames.ExtensionAttribute5:
+                case var path when path.Equals(AttributeNames.ExtensionAttribute5, StringComparison.OrdinalIgnoreCase):
                     Core2EnterpriseUserExtensions.PatchExtensionAttribute5(extension, operation);
                     break;
                 
-                case AttributeNames.ExtensionAttribute6:
+                case var path when path.Equals(AttributeNames.ExtensionAttribute6, StringComparison.OrdinalIgnoreCase):
                     Core2EnterpriseUserExtensions.PatchExtensionAttribute6(extension, operation);
                     break;
                 
-                case AttributeNames.ExtensionAttribute7:
+                case var path when path.Equals(AttributeNames.ExtensionAttribute7, StringComparison.OrdinalIgnoreCase):
                     Core2EnterpriseUserExtensions.PatchExtensionAttribute7(extension, operation);
                     break;
 
-                case AttributeNames.ExtensionAttribute8:
+                case var path when path.Equals(AttributeNames.ExtensionAttribute8, StringComparison.OrdinalIgnoreCase):
                     Core2EnterpriseUserExtensions.PatchExtensionAttribute8(extension, operation);
                     break;
 
-                case AttributeNames.ExtensionAttribute9:
+                case var path when path.Equals(AttributeNames.ExtensionAttribute9, StringComparison.OrdinalIgnoreCase):
                     Core2EnterpriseUserExtensions.PatchExtensionAttribute9(extension, operation);
                     break;
 
-                case AttributeNames.ExtensionAttribute10:
+                case var path when path.Equals(AttributeNames.ExtensionAttribute10, StringComparison.OrdinalIgnoreCase):
                     Core2EnterpriseUserExtensions.PatchExtensionAttribute10(extension, operation);
+                    break;
+                case var path when path.Equals(AttributeNames.ExtensionAttribute11, StringComparison.OrdinalIgnoreCase):
+                    Core2EnterpriseUserExtensions.PatchExtensionAttribute11(extension, operation);
                     break;
             }
         }

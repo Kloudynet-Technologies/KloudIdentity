@@ -7,6 +7,9 @@ using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
+using KN.KloudIdentity.Mapper.Infrastructure.CEB.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.CEB.Commands;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
@@ -14,6 +17,7 @@ using Microsoft.SCIM;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
+using static MassTransit.ValidationResultExtensions;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
@@ -25,10 +29,18 @@ public class RESTIntegrationV2 : RESTIntegration
     private readonly IKloudIdentityLogger _logger;
     private readonly IEnumerable<IAuthStrategy> _authStrategies;
     private readonly IOptions<AppSettings> _appSettings;
+    private readonly ICreateUserDetailsToStorageCommand _createUserDetailsToStorageCommand;
+    private readonly IGetUserDetailsFromStorageQuery _getUserDetailsFromStorageQuery;
+
 
     public RESTIntegrationV2(IAuthContext authContext, IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
-        IKloudIdentityLogger logger, IEnumerable<IAuthStrategy> authStrategies, IOptions<AppSettings> appSettings) :
+        IKloudIdentityLogger logger, 
+        IEnumerable<IAuthStrategy> authStrategies, 
+        IOptions<AppSettings> appSettings,
+        ICreateUserDetailsToStorageCommand createUserDetailsToStorageCommand,
+        IGetUserDetailsFromStorageQuery getUserDetailsFromStorageQuery
+        ) :
         base(authContext, httpClientFactory, configuration, appSettings, logger)
     {
         _authContext = authContext;
@@ -38,6 +50,8 @@ public class RESTIntegrationV2 : RESTIntegration
         _appSettings = appSettings;
         _authStrategies = authStrategies;
         IntegrationMethod = IntegrationMethods.REST;
+        _createUserDetailsToStorageCommand = createUserDetailsToStorageCommand;
+        _getUserDetailsFromStorageQuery = getUserDetailsFromStorageQuery;
     }
 
     public override async Task<dynamic> GetAuthenticationAsync(AppConfig config,
@@ -87,11 +101,12 @@ public class RESTIntegrationV2 : RESTIntegration
 
     public override async Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema,
         Core2EnterpriseUser resource,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) 
     {
         var payload = JSONParserUtilV2<Resource>.Parse(schema, resource);
 
-        // need to mapping payload to Navitaire format
+        // need to mapping payload to Navitaire format       
+                
 
         return await Task.FromResult(payload);
     }
@@ -100,30 +115,81 @@ public class RESTIntegrationV2 : RESTIntegration
         string correlationId,
         CancellationToken cancellationToken = default)
     {
-        var result = await base.ProvisionAsync((object)payload, appConfig, correlationId, cancellationToken);
 
+        //var result = await base.ProvisionAsync((object)payload, appConfig, correlationId, cancellationToken);
+        var result = new Core2EnterpriseUser { Identifier = "TESTInfosecCRUDRowel", UserName = payload["username"] };
         // Get API call to get userKey
         var result2 = await base.GetAsync(result!.Identifier, appConfig, correlationId, cancellationToken);
 
+        var userkey = result2.KIExtension.ExtensionAttribute1;
         // store username, userkey and rolecode to database
+
+        var saveUserKey = await _createUserDetailsToStorageCommand.CreateUserKeyDataAsync(userkey, result!.UserName);      
 
         return result;
     }
 
-    public override Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
+    public override async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
     {
+
+        string username = payload["username"];
+        if (string.IsNullOrWhiteSpace(username))
+            throw new ArgumentException("Username cannot be null or empty in the payload.", nameof(payload));
+    
+
         // get userKey from database using resource identifier
+        var userDetails = await _getUserDetailsFromStorageQuery.GetUserKeyDataAsync(payload["username"]);
+
         // set userKey to resource identifier
+        if (userDetails != null)
+        {            
+            resource.Identifier = userDetails.UserKey;       
+        }
+        else
+        {
+            // Handle the case where user not found in storage
+            Log.Warning("No user mapping found in storage for username {Username}. CorrelationId: {CorrelationId}", username, correlationId);
+           
+            throw new InvalidOperationException($"User not found in storage: {username}");
+        }
+
+        
         // call base method
-        return base.ReplaceAsync((object)payload, resource, appConfig, correlationId);
+        await base.ReplaceAsync((object)payload, resource, appConfig, correlationId);
+
+        Log.Information("ReplaceAsync completed for username {Username}. CorrelationId: {CorrelationId}", username, correlationId);
+
     }
 
-    public override Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
+    public async override Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
     {
         // get userKey from database using resource identifier
         // set userKey to resource identifier
+
+        string username = resource.Identifier;
+        if (string.IsNullOrWhiteSpace(username))
+            throw new ArgumentException("Username cannot be null or empty in the payload.", nameof(payload));
+
+
+        // get userKey from database using resource identifier
+        var userDetails = await _getUserDetailsFromStorageQuery.GetUserKeyDataAsync(payload["username"]);
+
+        // set userKey to resource identifier
+        if (userDetails != null)
+        {
+            resource.Identifier = userDetails.UserKey;
+        }
+        else
+        {
+            // Handle the case where user not found in storage
+            Log.Warning("No user mapping found in storage for username {Username}. CorrelationId: {CorrelationId}", username, correlationId);
+
+            throw new InvalidOperationException($"User not found in storage: {username}");
+        }
+
+
         // call base method
-        return base.UpdateAsync((object)payload, resource, appConfig, correlationId);
+        await base.UpdateAsync((object)payload, resource, appConfig, correlationId);
     }
 
     public override Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID)
