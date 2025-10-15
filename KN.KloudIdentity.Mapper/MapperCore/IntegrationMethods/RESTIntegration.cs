@@ -124,12 +124,10 @@ public class RESTIntegration : IIntegrationBase
         if (custom?.IsIdentifierTakeFromCreateUser == true)
             idVal = GetIdentifier(responseBody, custom.ClientType);
         else
-        {
-            var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
-            idVal = payload[idField]!.ToString();
+        {            
             if (string.Equals(custom?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
             {
-                idVal = payload["userName"]!.ToString();
+                idVal = payload["username"]!.ToString();
             }
         }
 
@@ -390,7 +388,8 @@ public class RESTIntegration : IIntegrationBase
     /// <exception cref="HttpRequestException"></exception>
     public virtual async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
         string correlationId)
-    {
+    {    
+
         var userUrIs = appConfig.UserURIs.FirstOrDefault();
         // Ensure payload is JObject
         JObject jPayload = payload as JObject ?? JObject.FromObject(payload);
@@ -424,10 +423,9 @@ public class RESTIntegration : IIntegrationBase
 
         // Log the operation.
         _ = Task.Run(() =>
-        {
-            var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
-            string? idVal = payload[idField]!.ToString();
-
+        {          
+            string? idVal = resource.Identifier ;
+          
             Log.Information(
                 "User updated successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
                 idVal, appConfig.AppId, correlationId);

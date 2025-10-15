@@ -1,16 +1,10 @@
-using System;
 using System.Security.Authentication;
-using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
-using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.CEB.Abstractions;
-using KN.KloudIdentity.Mapper.Infrastructure.CEB.Commands;
-using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
-using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.SCIM;
@@ -104,10 +98,7 @@ public class RESTIntegrationV2 : RESTIntegration
         CancellationToken cancellationToken = default) 
     {
         var payload = JSONParserUtilV2<Resource>.Parse(schema, resource);
-
-        // need to mapping payload to Navitaire format       
                 
-
         return await Task.FromResult(payload);
     }
 
@@ -115,27 +106,43 @@ public class RESTIntegrationV2 : RESTIntegration
         string correlationId,
         CancellationToken cancellationToken = default)
     {
+        var custom = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
 
-        //var result = await base.ProvisionAsync((object)payload, appConfig, correlationId, cancellationToken);
-        var result = new Core2EnterpriseUser { Identifier = "TESTInfosecCRUDRowel", UserName = payload["username"] };
-        // Get API call to get userKey
-        var result2 = await base.GetAsync(result!.Identifier, appConfig, correlationId, cancellationToken);
+        if (string.Equals(custom?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
+        {
+            payload = PreparePayloadOptional(payload, appConfig);
+        }
 
-        var userkey = result2.KIExtension.ExtensionAttribute1;
-        // store username, userkey and rolecode to database
+        //var usernameNew = payload["username"] = "TESTInfosecCRUD1Test10";
+        var result = await base.ProvisionAsync((object)payload, appConfig, correlationId, cancellationToken);
 
-        var saveUserKey = await _createUserDetailsToStorageCommand.CreateUserKeyDataAsync(userkey, result!.UserName);      
+        if (string.Equals(custom?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
+        {
+            // Get API call to get userKey
+            var result2 = await base.GetAsync(result!.Identifier, appConfig, correlationId, cancellationToken);
+
+            var userkey = result2.KIExtension.ExtensionAttribute1;
+            // store username, userkey and rolecode to database
+
+            var saveUserKey = await _createUserDetailsToStorageCommand.CreateUserKeyDataAsync(userkey, result!.Identifier);
+        }               
 
         return result;
     }
 
     public override async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
     {
+        var custom = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
 
-        string username = payload["username"];
+        if (string.Equals(custom?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
+        {
+            payload = PreparePayloadOptional(payload, appConfig);
+        }
+
+        string username = resource.Identifier;
         if (string.IsNullOrWhiteSpace(username))
-            throw new ArgumentException("Username cannot be null or empty in the payload.", nameof(payload));
-    
+            throw new ArgumentException("Username cannot be null or empty in the payload.", nameof(resource));
+
 
         // get userKey from database using resource identifier
         var userDetails = await _getUserDetailsFromStorageQuery.GetUserKeyDataAsync(payload["username"]);
@@ -163,16 +170,20 @@ public class RESTIntegrationV2 : RESTIntegration
 
     public async override Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
     {
-        // get userKey from database using resource identifier
-        // set userKey to resource identifier
+        var custom = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
+
+        if (string.Equals(custom?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
+        {
+            payload = PreparePayloadOptional(payload, appConfig);
+        }
 
         string username = resource.Identifier;
         if (string.IsNullOrWhiteSpace(username))
-            throw new ArgumentException("Username cannot be null or empty in the payload.", nameof(payload));
+            throw new ArgumentException("Username cannot be null or empty in the payload.", nameof(resource));
 
 
         // get userKey from database using resource identifier
-        var userDetails = await _getUserDetailsFromStorageQuery.GetUserKeyDataAsync(payload["username"]);
+        var userDetails = await _getUserDetailsFromStorageQuery.GetUserKeyDataAsync(username);
 
         // set userKey to resource identifier
         if (userDetails != null)
@@ -187,16 +198,66 @@ public class RESTIntegrationV2 : RESTIntegration
             throw new InvalidOperationException($"User not found in storage: {username}");
         }
 
-
         // call base method
         await base.UpdateAsync((object)payload, resource, appConfig, correlationId);
     }
 
-    public override Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID)
+    public async override Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID)
     {
-        // get userKey from database using resource identifier
-        // set userKey to resource identifier
+        // get userKey from database using resource identifier       
+        var userDetails = await _getUserDetailsFromStorageQuery.GetUserKeyDataAsync(identifier);       
+
+        if (userDetails != null)
+        {
+            identifier = userDetails.UserKey;
+        }
+        else
+        {
+            // Handle the case where user not found in storage
+            Log.Warning("No user mapping found in storage for username {Username}. CorrelationId: {CorrelationId}", identifier, correlationID);
+
+            throw new InvalidOperationException($"User not found in storage: {identifier}");
+        }
+
         // call base method
-        return base.DeleteAsync(identifier, appConfig, correlationID);
+        await base.DeleteAsync(identifier, appConfig, correlationID);
     }
+
+
+    private dynamic PreparePayloadOptional(dynamic payload , AppConfig appConfig)
+    {
+        var custom = _appSettings.Value.AppIntegrationConfigs?
+        .FirstOrDefault(x => x.AppId == appConfig.AppId);
+
+        // Only apply transformation if ClientType is Navitaire
+        if (!string.Equals(custom?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
+            return payload;
+
+        var payloadObj = payload is JObject jObj ? jObj : JObject.FromObject(payload);
+
+        // Safely extract the existing "name" section
+        var nameSection = (payloadObj["name"] as JObject) ?? new JObject();
+
+        // Remove the original "name"
+        payloadObj.Remove("name");
+
+        // Build the "person" object
+        var personObj = new JObject
+        {
+            ["name"] = new JObject
+            {
+                ["first"] = nameSection["first"] ?? JValue.CreateNull(),
+                ["last"] = nameSection["last"] ?? JValue.CreateNull()
+            }
+        };
+
+        // Insert into the payload
+        payloadObj["person"] = personObj;
+
+        Log.Information("Navitaire payload transformation applied for AppId: {AppId}", appConfig.AppId);
+
+        return payloadObj;
+    }
+
+
 }
