@@ -484,6 +484,16 @@ public class RESTIntegration : IIntegrationBase
     {
         if (string.Equals(contentType, "application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
         {
+            if (clientType == "ManageEngine SDP")
+            {
+                var login_name = payload["login_name"]?.ToString();
+                if (login_name != null)
+                {
+                    var atIdx = login_name.IndexOf('@');
+                    payload["login_name"] = atIdx > 0 ? login_name.Substring(0, atIdx) : login_name;
+                }
+            }
+
             var wrappedPayload = new JObject { ["user"] = payload };
             var encodedJson = Uri.EscapeDataString(wrappedPayload.ToString(Formatting.None));
             var formData = clientType == "ManageEngine SDP" ? $"input_data={encodedJson}" : encodedJson;
