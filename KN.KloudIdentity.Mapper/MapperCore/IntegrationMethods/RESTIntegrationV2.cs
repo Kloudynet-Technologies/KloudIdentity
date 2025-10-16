@@ -112,20 +112,8 @@ public class RESTIntegrationV2 : RESTIntegration
         {
             payload = PreparePayloadOptional(payload, appConfig);
         }
-
-        //var usernameNew = payload["username"] = "TESTInfosecCRUD1Test10";
-        var result = await base.ProvisionAsync((object)payload, appConfig, correlationId, cancellationToken);
-
-        if (string.Equals(custom?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
-        {
-            // Get API call to get userKey
-            var result2 = await base.GetAsync(result!.Identifier, appConfig, correlationId, cancellationToken);
-
-            var userkey = result2.KIExtension.ExtensionAttribute1;
-            // store username, userkey and rolecode to database
-
-            var saveUserKey = await _createUserDetailsToStorageCommand.CreateUserKeyDataAsync(userkey, result!.Identifier);
-        }               
+        
+        var result = await base.ProvisionAsync((object)payload, appConfig, correlationId, cancellationToken);                     
 
         return result;
     }
@@ -135,37 +123,21 @@ public class RESTIntegrationV2 : RESTIntegration
         var custom = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
 
         if (string.Equals(custom?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
-        {
+        {           
             payload = PreparePayloadOptional(payload, appConfig);
-        }
 
-        string username = resource.Identifier;
-        if (string.IsNullOrWhiteSpace(username))
-            throw new ArgumentException("Username cannot be null or empty in the payload.", nameof(resource));
+            // Get API call to get userKey
+            var result2 = await base.GetAsync(resource.Identifier, appConfig, correlationId);
 
+            var userkey = result2.KIExtension.ExtensionAttribute1;
 
-        // get userKey from database using resource identifier
-        var userDetails = await _getUserDetailsFromStorageQuery.GetUserKeyDataAsync(payload["username"]);
-
-        // set userKey to resource identifier
-        if (userDetails != null)
-        {            
-            resource.Identifier = userDetails.UserKey;       
-        }
-        else
-        {
-            // Handle the case where user not found in storage
-            Log.Warning("No user mapping found in storage for username {Username}. CorrelationId: {CorrelationId}", username, correlationId);
-           
-            throw new InvalidOperationException($"User not found in storage: {username}");
-        }
-
-        
+            resource.Identifier = userkey;
+        }  
+                
         // call base method
         await base.ReplaceAsync((object)payload, resource, appConfig, correlationId);
 
-        Log.Information("ReplaceAsync completed for username {Username}. CorrelationId: {CorrelationId}", username, correlationId);
-
+        Log.Information("ReplaceAsync completed for username {Username}. CorrelationId: {CorrelationId}", resource.Identifier, correlationId);
     }
 
     public async override Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
@@ -175,48 +147,36 @@ public class RESTIntegrationV2 : RESTIntegration
         if (string.Equals(custom?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
         {
             payload = PreparePayloadOptional(payload, appConfig);
-        }
 
-        string username = resource.Identifier;
-        if (string.IsNullOrWhiteSpace(username))
-            throw new ArgumentException("Username cannot be null or empty in the payload.", nameof(resource));
+            // Get API call to get userKey
+            var result2 = await base.GetAsync(resource.Identifier, appConfig, correlationId);
 
+            var userkey = result2.KIExtension.ExtensionAttribute1;
 
-        // get userKey from database using resource identifier
-        var userDetails = await _getUserDetailsFromStorageQuery.GetUserKeyDataAsync(username);
-
-        // set userKey to resource identifier
-        if (userDetails != null)
-        {
-            resource.Identifier = userDetails.UserKey;
-        }
-        else
-        {
-            // Handle the case where user not found in storage
-            Log.Warning("No user mapping found in storage for username {Username}. CorrelationId: {CorrelationId}", username, correlationId);
-
-            throw new InvalidOperationException($"User not found in storage: {username}");
-        }
+            resource.Identifier = userkey;
+        }   
 
         // call base method
         await base.UpdateAsync((object)payload, resource, appConfig, correlationId);
+
+        Log.Information("UpdateAsync completed for username {Username}. CorrelationId: {CorrelationId}", resource.Identifier, correlationId);
+
     }
 
     public async override Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID)
     {
+        var custom = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
+
         // get userKey from database using resource identifier       
-        var userDetails = await _getUserDetailsFromStorageQuery.GetUserKeyDataAsync(identifier);       
+        if (string.Equals(custom?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
+        {          
 
-        if (userDetails != null)
-        {
-            identifier = userDetails.UserKey;
-        }
-        else
-        {
-            // Handle the case where user not found in storage
-            Log.Warning("No user mapping found in storage for username {Username}. CorrelationId: {CorrelationId}", identifier, correlationID);
+            // Get API call to get userKey
+            var result2 = await base.GetAsync(identifier, appConfig, correlationID);
 
-            throw new InvalidOperationException($"User not found in storage: {identifier}");
+            var userkey = result2.KIExtension.ExtensionAttribute1;
+
+            identifier = userkey;
         }
 
         // call base method
