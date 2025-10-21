@@ -56,12 +56,12 @@ public static class ServiceExtension
             return provider.GetServices<IIntegrationBase>().ToList();
         });
 
-        services.AddSingleton<IAzureStorageManager>(provider =>
-        {
-            var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
-            var connectionString = appSettings.UserMigration.AzureStorageConnectionString;
-            return new AzureStorageManager(connectionString, appSettings);
-        });
+        //services.AddSingleton<IAzureStorageManager>(provider =>
+        //{
+        //    var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
+        //    var connectionString = appSettings.UserMigration.AzureStorageConnectionString;
+        //    return new AzureStorageManager(connectionString, appSettings);
+        //});
 
         services.AddScoped<ICreateResourceV2, CreateUserV3>();
         // Use configuration or feature flag to select the integration implementation
