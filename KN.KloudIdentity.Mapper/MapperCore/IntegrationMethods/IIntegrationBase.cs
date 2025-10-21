@@ -29,7 +29,7 @@ public interface IIntegrationBase
     /// <param name="direction">SCIM direction</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<dynamic> GetAuthenticationAsync(AppConfig config, SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default);
+    Task<dynamic> GetAuthenticationAsync(AppConfig config, SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default, params dynamic[] args);
 
     /// <summary>
     /// Provisions the user asynchronously to LOB application.
@@ -39,7 +39,7 @@ public interface IIntegrationBase
     /// <param name="correlationId">Correlation ID</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default);
+    Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Validates the payload asynchronously before been sent to LOB app.

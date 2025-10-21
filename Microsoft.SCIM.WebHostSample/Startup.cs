@@ -71,7 +71,8 @@ namespace Microsoft.SCIM.WebHostSample
         {
             services.AddDbContext<Context>();
 
-            void ConfigureMvcNewtonsoftJsonOptions(MvcNewtonsoftJsonOptions options) => options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+            void ConfigureMvcNewtonsoftJsonOptions(MvcNewtonsoftJsonOptions options) =>
+                options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
 
             void ConfigureAuthenticationOptions(AuthenticationOptions options)
             {
@@ -86,16 +87,17 @@ namespace Microsoft.SCIM.WebHostSample
                 if (this.environment.IsDevelopment())
                 {
                     options.TokenValidationParameters =
-                       new TokenValidationParameters
-                       {
-                           ValidateIssuer = false,
-                           ValidateAudience = false,
-                           ValidateLifetime = false,
-                           ValidateIssuerSigningKey = false,
-                           ValidIssuer = section["Token:TokenIssuer"],
-                           ValidAudience = section["Token:TokenAudience"],
-                           IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]))
-                       };
+                        new TokenValidationParameters
+                        {
+                            ValidateIssuer = false,
+                            ValidateAudience = false,
+                            ValidateLifetime = false,
+                            ValidateIssuerSigningKey = false,
+                            ValidIssuer = section["Token:TokenIssuer"],
+                            ValidAudience = section["Token:TokenAudience"],
+                            IssuerSigningKey =
+                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]))
+                        };
                 }
                 else
                 {
@@ -103,27 +105,26 @@ namespace Microsoft.SCIM.WebHostSample
                     options.Audience = section["Token:TokenAudience"];
 
                     options.TokenValidationParameters =
-                       new TokenValidationParameters
-                       {
-                           ValidateIssuer = true,
-                           ValidateAudience = true,
-                           ValidateLifetime = false,
-                           ValidateIssuerSigningKey = true,
-                           ValidIssuer = section["Token:TokenIssuer"],
-                           ValidAudience = section["Token:TokenAudience"],
-                           IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]))
-                       };
+                        new TokenValidationParameters
+                        {
+                            ValidateIssuer = true,
+                            ValidateAudience = true,
+                            ValidateLifetime = false,
+                            ValidateIssuerSigningKey = true,
+                            ValidIssuer = section["Token:TokenIssuer"],
+                            ValidAudience = section["Token:TokenAudience"],
+                            IssuerSigningKey =
+                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]))
+                        };
 
                     options.Events = new JwtBearerEvents
                     {
-                        OnTokenValidated = context =>
-                        {
-                            return Task.CompletedTask;
-                        },
+                        OnTokenValidated = context => { return Task.CompletedTask; },
                         OnAuthenticationFailed = AuthenticationFailed
                     };
                 }
             }
+
             services.AddOptions<AppSettings>().Bind(configuration.GetSection("KI"));
 
             services.AddApplicationInsightsTelemetry();
@@ -159,15 +160,12 @@ namespace Microsoft.SCIM.WebHostSample
                 {
                     var options = context.GetRequiredService<IOptions<AppSettings>>().Value;
 
-                    cfg.Host(options.RabbitMQ.Hostname, "/", h =>
+                    cfg.Host(options.RabbitMQ.Hostname, options.RabbitMQ.VirtualHost, h =>
                     {
                         h.Username(options.RabbitMQ.UserName);
                         h.Password(options.RabbitMQ.Password);
                     });
-                    cfg.ReceiveEndpoint("scimservice_in", e =>
-                    {
-                        e.ConfigureConsumer<InterserviceConsumer>(context);
-                    });
+                    cfg.ReceiveEndpoint("scimservice_in", e => { e.ConfigureConsumer<InterserviceConsumer>(context); });
 
                     cfg.ConfigureEndpoints(context);
                 });
@@ -179,13 +177,17 @@ namespace Microsoft.SCIM.WebHostSample
                 var endpointProvider = scope.ServiceProvider.GetService<ISendEndpointProvider>();
 
                 return new KloudIdentityLogger(
-                endpointProvider!,
-                LogSeverities.Information);
+                    endpointProvider!,
+                    LogSeverities.Information);
             });
 
-            services.AddHangfire(x => x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
+            if (!string.IsNullOrWhiteSpace(configuration["ConnectionStrings:HangfireDBConnection"]))
+            {
+                services.AddHangfire(x =>
+                    x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
+                services.AddHangfireServer();
+            }
 
-            services.AddHangfireServer();
             services.AddHealthChecks();
 
             services.AddScoped<NonSCIMGroupProvider>();
@@ -218,16 +220,19 @@ namespace Microsoft.SCIM.WebHostSample
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
-            app.UseHangfireDashboard("/hangfire/jobs");
+            if (!string.IsNullOrWhiteSpace(configuration["ConnectionStrings:HangfireDBConnection"]))
+            {
+                app.UseHangfireDashboard("/hangfire/jobs");
+            }
+
             app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
             app.UseMiddleware<LicenseValidationMiddleware>();
 
-            app.UseEndpoints(
-                (IEndpointRouteBuilder endpoints) =>
-                {
-                    endpoints.MapDefaultControllerRoute();
-                    endpoints.MapHealthChecks("/api/healthz");
-                });
+            app.UseEndpoints((IEndpointRouteBuilder endpoints) =>
+            {
+                endpoints.MapDefaultControllerRoute();
+                endpoints.MapHealthChecks("/api/healthz");
+            });
         }
 
         private Task AuthenticationFailed(AuthenticationFailedContext arg)

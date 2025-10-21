@@ -113,7 +113,7 @@ public class LinuxIntegration : IIntegrationBase
     }
 
     public async Task<dynamic> GetAuthenticationAsync(AppConfig config,
-        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default)
+        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default, params dynamic[] args)
     {
         return await Task.FromResult(config.AuthenticationDetails);
     }
@@ -171,7 +171,7 @@ public class LinuxIntegration : IIntegrationBase
         return true;
     }
 
-    public async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationID,
+    public async Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationID,
         CancellationToken cancellationToken = default)
     {
         Log.Information("Provisioning started for user creation. AppId: {AppId}, CorrelationID: {CorrelationID}",
@@ -198,6 +198,8 @@ public class LinuxIntegration : IIntegrationBase
                 appConfig.AppId, correlationID, responseMessage?.ErrorMessage);
             throw new ApplicationException($"Error occurred while creating the user: {responseMessage?.ErrorMessage}");
         }
+        
+        return null;
     }
 
     private async Task<StagingQueueResponseMessage> SendMessage(string correlationID,

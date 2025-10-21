@@ -80,8 +80,8 @@ public class NonSCIMUserProvider : ProviderBase
         string resourceIdentifier = Guid.NewGuid().ToString();
         resource.Identifier = resourceIdentifier;
 
-        await _createUser.ExecuteAsync(user, appId, correlationIdentifier);
-
+        var result = await _createUser.ExecuteAsync(user, appId, correlationIdentifier);
+        resource.Identifier = result.Identifier;
         // this.storage.Users.Add(resourceIdentifier, user);
 
         return await Task.FromResult(resource);

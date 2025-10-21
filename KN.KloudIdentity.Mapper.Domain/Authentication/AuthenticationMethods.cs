@@ -7,5 +7,6 @@ public enum AuthenticationMethods
     Bearer = 2,
     OIDC_ClientCrd = 3,
     APIKey = 4,
-    SAML = 5
+    SAML = 5,
+    DotRez = 6
 }

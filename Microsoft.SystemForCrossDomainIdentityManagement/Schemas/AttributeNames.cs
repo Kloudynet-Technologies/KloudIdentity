@@ -98,6 +98,13 @@ namespace Microsoft.SCIM
         public const string Watermark = "watermark";
         public const string GroupProfile = "groupProfile";
         public const string SupplementalGroupProfile = "supplementalGroupProfile";
+        public const string ExtensionAttribute1 = "extensionAttribute1";
+        public const string ExtensionAttribute2 = "extensionAttribute2";
+        public const string ExtensionAttribute3 = "extensionAttribute3";
+        public const string ExtensionAttribute4 = "extensionAttribute4";
+        public const string ExtensionAttribute5 = "extensionAttribute5";
+        public const string ExtensionAttribute6 = "extensionAttribute6";
+        public const string ExtensionAttribute7 = "extensionAttribute7";
         public const string ExtensionKIUser = SchemaIdentifiers.Core2KIUser;
         public const string AppId = "appId";
     }

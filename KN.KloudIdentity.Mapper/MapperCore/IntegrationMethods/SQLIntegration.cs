@@ -29,7 +29,7 @@ public class SQLIntegration : IIntegrationBase
     }
 
     public async Task<dynamic> GetAuthenticationAsync(AppConfig config,
-        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default)
+        SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default, params dynamic[] args)
     {
         if (config.AuthenticationDetails == null)
         {
@@ -125,7 +125,7 @@ public class SQLIntegration : IIntegrationBase
         return parameter;
     }
 
-    public async Task ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId,
+    public async Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId,
         CancellationToken cancellationToken = default)
     {
         Log.Information("Provisioning started for user creation. AppId: {AppId}, CorrelationID: {CorrelationID}",
@@ -165,6 +165,8 @@ public class SQLIntegration : IIntegrationBase
         await connection.CloseAsync();
         Log.Information("DB Connection Closed. AppId: {AppId}, CorrelationId: {CorrelationId}", appConfig.AppId,
             correlationId);
+        
+        return null;
     }
 
     public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, AppConfig appConfig, string correlationId,

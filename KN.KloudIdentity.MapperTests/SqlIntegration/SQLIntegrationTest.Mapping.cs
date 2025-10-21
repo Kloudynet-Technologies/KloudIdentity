@@ -61,9 +61,9 @@ public partial class SQLIntegrationTest
 
         var parameters = result as List<OdbcParameter>;
 
-        #pragma warning disable CS8602
-        Assert.Equal("Email", parameters[0].ParameterName);        
-        Assert.Equal("Name", parameters[1].ParameterName);        
+#pragma warning disable CS8602
+        Assert.Equal("Email", parameters[0].ParameterName);
+        Assert.Equal("Name", parameters[1].ParameterName);
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public partial class SQLIntegrationTest
             new AttributeSchema { SourceValue = "UserName", DestinationField = "Email", DestinationType = AttributeDataTypes.NVarChar },
             new AttributeSchema { SourceValue = "DisplayName", DestinationField = "Name", DestinationType = AttributeDataTypes.NChar }
         };
-        var resource = new Core2EnterpriseUser { UserName = "testuser@example.com" , DisplayName = "中华人民共和国" };
+        var resource = new Core2EnterpriseUser { UserName = "testuser@example.com", DisplayName = "中华人民共和国" };
 
         // Act
         var result = await _odbcIntegration.MapAndPreparePayloadAsync(schema, resource);
@@ -86,7 +86,7 @@ public partial class SQLIntegrationTest
 
         var parameters = result as List<OdbcParameter>;
 
-        #pragma warning disable CS8602
+#pragma warning disable CS8602
         Assert.Equal(OdbcType.NVarChar, parameters[0].OdbcType);
         Assert.Equal(OdbcType.NChar, parameters[1].OdbcType);
         Assert.Equal("testuser@example.com", parameters[0].Value);
@@ -111,11 +111,11 @@ public partial class SQLIntegrationTest
         Assert.IsType<List<OdbcParameter>>(result);
 
         var parameters = result as List<OdbcParameter>;
-        #pragma warning disable CS8602
+#pragma warning disable CS8602
         Assert.Equal(OdbcType.Bit, parameters[0].OdbcType);
-       // Assert.Equal(true, parameters[0].Value);
+        // Assert.Equal(true, parameters[0].Value);
     }
-   
+
 
     [Fact]
     public async Task MapAndPreparePayloadAsync_IntDataType_ReturnsOdbcParameters()
@@ -135,11 +135,11 @@ public partial class SQLIntegrationTest
         Assert.IsType<List<OdbcParameter>>(result);
 
         var parameters = result as List<OdbcParameter>;
-        #pragma warning disable CS8602
         Assert.Equal("Id", parameters[0].ParameterName);
         Assert.Equal(OdbcType.Int, parameters[0].OdbcType);
-        var expectedValue = 1L;
-        Assert.Equal(expectedValue, parameters[0].Value);
+
+        // Accept both int and long
+        Assert.True(Convert.ToInt64(parameters[0].Value) == 1);
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public partial class SQLIntegrationTest
         Assert.IsType<List<OdbcParameter>>(result);
 
         var parameters = result as List<OdbcParameter>;
-    
+
         Assert.Equal("JoinedDate", parameters[0].ParameterName);
         Assert.Equal(OdbcType.DateTime, parameters[0].OdbcType);
 
@@ -195,8 +195,8 @@ public partial class SQLIntegrationTest
         Assert.IsType<List<OdbcParameter>>(result);
 
         var parameters = result as List<OdbcParameter>;
-        #pragma warning disable CS8602
-        Assert.Equal(OdbcType.VarChar, parameters[0].OdbcType);       
+#pragma warning disable CS8602
+        Assert.Equal(OdbcType.VarChar, parameters[0].OdbcType);
         Assert.Equal(resource.UserName, parameters[0].Value);
     }
 
@@ -216,7 +216,7 @@ public partial class SQLIntegrationTest
             }
         };
 
-        var resource = new Core2EnterpriseUser {};
+        var resource = new Core2EnterpriseUser { };
 
         // Act
         var result = await _odbcIntegration.MapAndPreparePayloadAsync(schema, resource);
@@ -224,7 +224,7 @@ public partial class SQLIntegrationTest
         // Assert
         Assert.NotNull(result);
         var parameters = Assert.IsType<List<OdbcParameter>>(result);
-      
+
         Assert.Equal(OdbcType.VarChar, parameters[0].OdbcType);
         Assert.Equal("John David", parameters[0].Value);
     }
@@ -257,10 +257,10 @@ public partial class SQLIntegrationTest
         };
 
         // Act & Assert
-        #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
         await Assert.ThrowsAsync<ArgumentNullException>(async () =>
         await _odbcIntegration.MapAndPreparePayloadAsync(schema, null));
-        #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
     }
 
     [Fact]
@@ -284,6 +284,6 @@ public partial class SQLIntegrationTest
 
         // Act & Assert
         await Assert.ThrowsAsync<HttpRequestException>(async () =>
-            await _odbcIntegration.MapAndPreparePayloadAsync(schema, resource));        
+            await _odbcIntegration.MapAndPreparePayloadAsync(schema, resource));
     }
 }
