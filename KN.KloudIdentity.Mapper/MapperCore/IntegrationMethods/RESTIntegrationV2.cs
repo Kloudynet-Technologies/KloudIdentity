@@ -4,7 +4,6 @@ using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
-using KN.KloudIdentity.Mapper.Infrastructure.CEB.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.SCIM;
@@ -23,17 +22,12 @@ public class RESTIntegrationV2 : RESTIntegration
     private readonly IKloudIdentityLogger _logger;
     private readonly IEnumerable<IAuthStrategy> _authStrategies;
     private readonly IOptions<AppSettings> _appSettings;
-    private readonly ICreateUserDetailsToStorageCommand _createUserDetailsToStorageCommand;
-    private readonly IGetUserDetailsFromStorageQuery _getUserDetailsFromStorageQuery;
-
 
     public RESTIntegrationV2(IAuthContext authContext, IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
         IKloudIdentityLogger logger, 
         IEnumerable<IAuthStrategy> authStrategies, 
-        IOptions<AppSettings> appSettings,
-        ICreateUserDetailsToStorageCommand createUserDetailsToStorageCommand,
-        IGetUserDetailsFromStorageQuery getUserDetailsFromStorageQuery
+        IOptions<AppSettings> appSettings
         ) :
         base(authContext, httpClientFactory, configuration, appSettings, logger)
     {
@@ -43,9 +37,7 @@ public class RESTIntegrationV2 : RESTIntegration
         _logger = logger;
         _appSettings = appSettings;
         _authStrategies = authStrategies;
-        IntegrationMethod = IntegrationMethods.REST;
-        _createUserDetailsToStorageCommand = createUserDetailsToStorageCommand;
-        _getUserDetailsFromStorageQuery = getUserDetailsFromStorageQuery;
+        IntegrationMethod = IntegrationMethods.REST;       
     }
 
     public override async Task<dynamic> GetAuthenticationAsync(AppConfig config,
@@ -169,8 +161,7 @@ public class RESTIntegrationV2 : RESTIntegration
 
         // get userKey from database using resource identifier       
         if (string.Equals(custom?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
-        {          
-
+        {         
             // Get API call to get userKey
             var result2 = await base.GetAsync(identifier, appConfig, correlationID);
 
@@ -218,6 +209,4 @@ public class RESTIntegrationV2 : RESTIntegration
 
         return payloadObj;
     }
-
-
 }

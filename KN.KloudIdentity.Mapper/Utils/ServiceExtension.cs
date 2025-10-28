@@ -6,9 +6,6 @@ using KN.KloudIdentity.Mapper.BackgroundJobs;
 using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Config.Db;
 using KN.KloudIdentity.Mapper.Domain;
-using KN.KloudIdentity.Mapper.Infrastructure.CEB.Abstractions;
-using KN.KloudIdentity.Mapper.Infrastructure.CEB.Commands;
-using KN.KloudIdentity.Mapper.Infrastructure.CEB.Queries;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Commands;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
@@ -26,7 +23,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.SCIM;
-using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.Utils;
 
@@ -59,26 +55,18 @@ public static class ServiceExtension
             return provider.GetServices<IIntegrationBase>().ToList();
         });
 
-        services.AddSingleton<IAzureStorageManager>(provider =>
-        {
-            var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
-            var connectionString = appSettings.UserMigration.AzureStorageConnectionString;
-            return new AzureStorageManager(connectionString, appSettings);
-        });
+        var appSettingsSection = configuration.GetSection("AppSettings");
+        var appSettings = appSettingsSection.Get<AppSettings>();
+        var connectionString = appSettings?.UserMigration?.AzureStorageConnectionString;
 
-        services.AddSingleton<ICreateUserDetailsToStorageCommand>(provider =>
+        if (!string.IsNullOrWhiteSpace(connectionString))
         {
-            var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
-            var connectionString = appSettings.UserKeyMapping.AzureStorageConnectionString;
-            return new CreateUserDetailsToStorageCommand(connectionString, appSettings);
-        });
-
-        services.AddSingleton<IGetUserDetailsFromStorageQuery>(provider =>
-        {
-            var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
-            var connectionString = appSettings.UserKeyMapping.AzureStorageConnectionString;
-            return new GetUserDetailsFromStorageQuery(connectionString, appSettings);
-        });
+            services.AddSingleton<IAzureStorageManager>(provider =>
+            {
+                var options = provider.GetRequiredService<IOptions<AppSettings>>().Value;
+                return new AzureStorageManager(connectionString, options);
+            });
+        }
 
         services.AddScoped<ICreateResourceV2, CreateUserV3>();
         // Use configuration or feature flag to select the integration implementation
@@ -127,8 +115,5 @@ public static class ServiceExtension
         services.AddScoped<IListAs400GroupsQuery, ListAs400GroupsQuery>();
 
         services.AddScoped<ILicenseValidationQuery, LicenseValidationQuery>();
-
-        //services.AddScoped<ICreateUserDetailsToStorageCommand, CreateUserDetailsToStorageCommand>();
-        //services.AddScoped<IGetUserDetailsFromStorageQuery, GetUserDetailsFromStorageQuery>();
     }
 }

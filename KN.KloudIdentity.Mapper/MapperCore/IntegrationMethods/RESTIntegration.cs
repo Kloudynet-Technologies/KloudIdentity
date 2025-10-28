@@ -1,7 +1,4 @@
-using System;
-using System.Net.Http.Headers;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Web.Http;
 using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
@@ -207,9 +204,7 @@ public class RESTIntegration : IIntegrationBase
 
             var core2EntUsr = new Core2EnterpriseUser();
 
-            string urnPrefix = _configuration["urnPrefix"]!;
-
-            //string usernameField = GetFieldMapperValue(appConfig, "UserName", urnPrefix);
+            string urnPrefix = _configuration["urnPrefix"]!;            
 
             core2EntUsr.Identifier = identifier;
 
@@ -220,7 +215,8 @@ public class RESTIntegration : IIntegrationBase
             }
             else
             {
-               // core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
+                string usernameField = GetFieldMapperValue(appConfig, "UserName", urnPrefix);
+                core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
             }
 
             // Create log for the operation.
