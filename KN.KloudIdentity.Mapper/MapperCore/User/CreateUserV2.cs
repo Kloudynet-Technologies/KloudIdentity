@@ -20,16 +20,16 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 /// </summary>
 public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
 {
-    private readonly IList<IIntegrationBase> _integrations;
     private readonly IKloudIdentityLogger _logger;
+    private readonly IIntegrationBaseFactory _integrationBaseFactory;
 
     public CreateUserV2(
         IGetFullAppConfigQuery getFullAppConfigQuery,
-        IList<IIntegrationBase> integrations,
+        IIntegrationBaseFactory integrationBaseFactory,
         IOutboundPayloadProcessor outboundPayloadProcessor,
         IKloudIdentityLogger logger) : base(getFullAppConfigQuery, outboundPayloadProcessor)
     {
-        _integrations = integrations;
+        _integrationBaseFactory = integrationBaseFactory;
         _logger = logger;
     }
 
@@ -52,7 +52,7 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
         var appConfig = await GetAppConfigAsync(appId);
 
         // Resolve integration method operations
-        var integrationOp = _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??
+        var integrationOp = _integrationBaseFactory.GetIntegration(appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST, appId) ??
                                 throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
 
         // Step 2: Attribute mapping
@@ -77,10 +77,10 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
         var result = await integrationOp.ProvisionAsync(payload, appConfig, correlationID);
         if (result is not null)
             resource.Identifier = result.Identifier;
-        
+
         // Step 6: Logging
         await CreateLogAsync(appId, correlationID);
-    
+
         Log.Information("User provisioned successfully. AppId: {AppId}, CorrelationID: {CorrelationID}, Identifier: {Identifier}", appId, correlationID, resource.Identifier);
 
         return resource;
