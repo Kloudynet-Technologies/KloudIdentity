@@ -6,14 +6,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore;
 
 public class IntegrationBaseFactory : IIntegrationBaseFactory
 {
-    private readonly IServiceProvider _provider;
     private readonly IConfiguration _configuration;
     private readonly IList<IIntegrationBase> _integrations;
     private readonly Dictionary<string, IIntegrationBase> _integrationTypeDict;
 
-    public IntegrationBaseFactory(IServiceProvider provider, IConfiguration configuration, IList<IIntegrationBase> integrations)
+    public IntegrationBaseFactory(IConfiguration configuration, IList<IIntegrationBase> integrations)
     {
-        _provider = provider;
         _configuration = configuration;
         _integrations = integrations;
         _integrationTypeDict = integrations.ToDictionary(i => i.GetType().Name, i => i);
@@ -35,16 +33,15 @@ public class IntegrationBaseFactory : IIntegrationBaseFactory
                                                .Get<Dictionary<string, string>>();
             if (mapping != null && mapping.TryGetValue(appId, out var integrationType))
             {
-                return integrationType switch
+                if (_integrationTypeDict.TryGetValue(integrationType, out var integration))
                 {
-                    var typeName when _integrationTypeDict.ContainsKey(typeName) => _integrationTypeDict[typeName],
-                    _ => throw new InvalidOperationException($"Integration type '{integrationType}' is not registered.")
-                };
+                    return integration;
+                }
             }
         }
 
-        // Fallback to the last matching integration method if no specific mapping is found.
-        // This assumes the last registered integration is the default for that method.
+        // Fall back to the last matching integration method if no specific mapping is found.
+        // This assumes the last registered or newest integration is the default for that method.
         return integrations.Last();
     }
 }
