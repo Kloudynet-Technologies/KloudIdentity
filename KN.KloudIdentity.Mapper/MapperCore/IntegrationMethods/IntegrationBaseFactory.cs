@@ -21,7 +21,8 @@ public class IntegrationBaseFactory : IIntegrationBaseFactory
     {
         // Filter integrations by the specified integration method
         var integrations = _integrations.Where(i => i.IntegrationMethod == integrationMethod);
-        if (!integrations.Any())
+        var integrationBases = integrations as IIntegrationBase[] ?? integrations.ToArray();
+        if (!integrationBases.Any())
         {
             throw new InvalidOperationException($"No integrations registered for integration method: {integrationMethod}");
         }
@@ -40,8 +41,21 @@ public class IntegrationBaseFactory : IIntegrationBaseFactory
             }
         }
 
-        // Fall back to the last matching integration method if no specific mapping is found.
-        // This assumes the last registered or newest integration is the default for that method.
-        return integrations.Last();
+        // Use DefaultIntegration mapping from configuration
+        var defaultMapping = _configuration.GetSection("IntegrationMappings:DefaultIntegration")
+                                           .Get<Dictionary<string, string>>();
+        if (defaultMapping != null)
+        {
+            var methodKey = integrationMethod.ToString();
+            if (defaultMapping.TryGetValue(methodKey, out var defaultIntegrationType))
+            {
+                if (_integrationTypeDict.TryGetValue(defaultIntegrationType, out var defaultIntegration))
+                {
+                    return defaultIntegration;
+                }
+            }
+        }
+        
+        throw new InvalidOperationException($"No integrations registered for integration method: {integrationMethod}");
     }
 }

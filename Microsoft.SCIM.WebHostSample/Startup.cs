@@ -226,7 +226,7 @@ namespace Microsoft.SCIM.WebHostSample
             }
 
             app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
-            app.UseMiddleware<LicenseValidationMiddleware>();
+           // app.UseMiddleware<LicenseValidationMiddleware>();
 
             app.UseEndpoints((IEndpointRouteBuilder endpoints) =>
             {
