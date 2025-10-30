@@ -1,6 +1,5 @@
 using KN.KloudIdentity.Mapper.Domain.Application;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 

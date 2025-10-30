@@ -19,20 +19,20 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IKloudIdentityLogger _logger;
-    private readonly IList<IIntegrationBase> _integrations;
+    private readonly IIntegrationBaseFactory _integrationBaseFactory;
 
     public ReplaceUserV2(IAuthContext authContext,
         IHttpClientFactory httpClientFactory,
         IGetFullAppConfigQuery getFullAppConfigQuery,
         IKloudIdentityLogger logger,
-        IList<IIntegrationBase> integrations,
+        IIntegrationBaseFactory integrationBaseFactory,
         IOutboundPayloadProcessor outboundPayloadProcessor
     )
         : base(getFullAppConfigQuery, outboundPayloadProcessor)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _integrations = integrations;
+        _integrationBaseFactory = integrationBaseFactory;
     }
 
     public async Task ReplaceAsync(
@@ -50,7 +50,8 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
 
         // Resolve integration method operations
         var integrationOp =
-            _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??
+            _integrationBaseFactory.GetIntegration(appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST,
+                appId) ??
             throw new NotSupportedException(
                 $"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
 

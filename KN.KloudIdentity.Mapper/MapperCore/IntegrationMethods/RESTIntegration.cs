@@ -210,10 +210,6 @@ public class RESTIntegration : IIntegrationBase
                 core2EntUsr.KIExtension.ExtensionAttribute1 = user["data"]?[0]?["userKey"]?.ToString() ?? string.Empty;
                 core2EntUsr.UserName = user["data"]?[0]?["username"]?.ToString() ?? string.Empty;
             }
-            else if (string.Equals(customConfig?.ClientType, "ManageEngine SDP", StringComparison.OrdinalIgnoreCase))
-            {
-                core2EntUsr.UserName = GetValueCaseInsensitive(user["user"] as JObject, usernameField);
-            }
             else
             {
                 core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
@@ -236,7 +232,7 @@ public class RESTIntegration : IIntegrationBase
         throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
     }
 
-    public string GetFieldMapperValue(AppConfig appConfig, string fieldName, string urnPrefix)
+    protected string GetFieldMapperValue(AppConfig appConfig, string fieldName, string urnPrefix)
     {
         var field = appConfig.UserAttributeSchemas.FirstOrDefault(f => f.SourceValue == fieldName);
         if (field != null)
@@ -251,7 +247,7 @@ public class RESTIntegration : IIntegrationBase
         }
     }
 
-    public string GetValueCaseInsensitive(JObject? jsonObject, string propertyName)
+    protected string GetValueCaseInsensitive(JObject? jsonObject, string propertyName)
     {
         var property = jsonObject?.Properties()
             .FirstOrDefault(p => string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
@@ -275,10 +271,10 @@ public class RESTIntegration : IIntegrationBase
         var userUrIs = appConfig.UserURIs?.FirstOrDefault()
                        ?? throw new InvalidOperationException("User creation endpoint not configured.");
 
-        // Ensure payload is JObject
+        // Ensure the payload is JObject
         JObject jPayload = payload as JObject ?? JObject.FromObject(payload);
 
-        // Get auth token if required
+        // Get an auth token if required
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
 
         var custom = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
@@ -440,10 +436,10 @@ public class RESTIntegration : IIntegrationBase
     /// </summary>
     /// <param name="identifier"></param>
     /// <param name="appConfig"></param>
-    /// <param name="correlationID"></param>
+    /// <param name="correlationId"></param>
     /// <returns></returns>
     /// <exception cref="HttpRequestException"></exception>
-    public virtual async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID)
+    public virtual async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationId)
     {
         var userUri = appConfig.UserURIs.FirstOrDefault()?.Delete ??
                       throw new InvalidOperationException("User deletion endpoint not configured.");
@@ -455,7 +451,7 @@ public class RESTIntegration : IIntegrationBase
         {
             Log.Error(
                 "User deletion failed. AppId: {AppId}, CorrelationID: {CorrelationID}, Identifier: {Identifier}, Error: {Error}",
-                appConfig.AppId, correlationID, identifier, response.ReasonPhrase);
+                appConfig.AppId, correlationId, identifier, response.ReasonPhrase);
             throw new HttpRequestException(
                 $"HTTP request failed with error: {response.StatusCode} - {response.ReasonPhrase}"
             );
@@ -467,7 +463,7 @@ public class RESTIntegration : IIntegrationBase
             $"User deleted successfully for the id {identifier}",
             LogType.Provision,
             LogSeverities.Information,
-            correlationID);
+            correlationId);
     }
 
     private static HttpContent PrepareHttpContent(JObject payload, string? contentType)

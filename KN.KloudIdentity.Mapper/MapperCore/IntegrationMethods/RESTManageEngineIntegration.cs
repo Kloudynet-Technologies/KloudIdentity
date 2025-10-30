@@ -182,7 +182,7 @@ public class RestIntegrationManageEngine : RESTIntegration
                 "Updating failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
                 appConfig.AppId, correlationId, response.StatusCode, responseBody);
 
-            throw new HttpRequestException($"Error creating user: {response.StatusCode} - {responseBody}");
+            throw new HttpRequestException($"Error updating user: {response.StatusCode} - {responseBody}");
         }
 
         // Log the operation.
