@@ -9,7 +9,7 @@ public class AppSettings
     public UserMigrationOptions UserMigration { get; set; } = new UserMigrationOptions();
     public LicenseValidationOptions LicenseValidation { get; set; } = new LicenseValidationOptions();
     public List<AppIntegrationConfig> AppIntegrationConfigs { get; set; } = [];
-    public List<string> DotRezAppIds { get; set; } = new List<string>();
+    public IntegrationMappings IntegrationMappings { get; set; } = new IntegrationMappings();
 }
 
 public class RabbitMQOptions
@@ -50,16 +50,19 @@ public class LicenseValidationOptions
 public class AppIntegrationConfig
 {
     public string AppId { get; set; } = string.Empty;
-
     public HttpSettings? HttpSettings { get; set; }
-
+    
     public string ClientType { get; set; } = string.Empty;
-
-    public bool IsIdentifierTakeFromCreateUser { get; set; }
+    public string? TechnicianUrl { get; set; }
 }   
 
 public class HttpSettings
 {
     public Dictionary<string, string>? Headers { get; set; }
     public string? ContentType { get; set; }
+}
+public class IntegrationMappings
+{
+    public Dictionary<string, string> AppIdToIntegration { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> DefaultIntegration { get; set; } = new Dictionary<string, string>();
 }

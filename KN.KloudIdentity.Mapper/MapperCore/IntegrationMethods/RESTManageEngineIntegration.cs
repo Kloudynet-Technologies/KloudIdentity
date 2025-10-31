@@ -20,6 +20,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore;
 public class RestIntegrationManageEngine : RESTIntegration
 {
     private readonly IConfiguration _configuration;
+    private readonly AppSettings _appSettings;
 
     public RestIntegrationManageEngine(IAuthContext authContext, IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
@@ -29,6 +30,7 @@ public class RestIntegrationManageEngine : RESTIntegration
     {
         _configuration = configuration;
         IntegrationMethod = IntegrationMethods.REST;
+        _appSettings = appSettings.Value;
     }
 
     public override async Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema,
@@ -43,10 +45,8 @@ public class RestIntegrationManageEngine : RESTIntegration
             var atIdx = loginName.IndexOf('@');
             payload["login_name"] = atIdx > 0 ? loginName.Substring(0, atIdx) : loginName;
         }
-
-        var wrappedPayload = new JObject { ["user"] = payload };
-
-        return await Task.FromResult(wrappedPayload);
+        
+        return await Task.FromResult(payload);
     }
 
     public override async Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, AppConfig appConfig,
@@ -167,6 +167,11 @@ public class RestIntegrationManageEngine : RESTIntegration
         // Ensure the payload is JObject
         JObject jPayload = payload as JObject ?? JObject.FromObject(payload);
 
+        // Role might be another attribute. This is for testing purpose.
+        var role = payload["role"]?.ToString();
+        if(role == "Technician")
+         await ChangeAsTechnicianAsync(jPayload, resource, appConfig, correlationId);
+
         // Get an auth token if required
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
         var content = PrepareHttpContent(jPayload);
@@ -207,12 +212,60 @@ public class RestIntegrationManageEngine : RESTIntegration
     public override async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
         string correlationId)
     {
-       await ReplaceAsync(payload, resource, appConfig, correlationId);
+        await ReplaceAsync(payload, resource, appConfig, correlationId);
     }
 
-    private static HttpContent PrepareHttpContent(JObject payload)
+    private async Task ChangeAsTechnicianAsync(JObject payload, Core2EnterpriseUser resource,AppConfig appConfig, string correlationId)
     {
-        var encodedJson = Uri.EscapeDataString(payload.ToString(Formatting.None));
+        var appSetting = _appSettings.AppIntegrationConfigs.FirstOrDefault(x => x.AppId == appConfig.AppId);
+        if(string.IsNullOrWhiteSpace(appSetting?.TechnicianUrl))
+            throw new ApplicationException("Technician URL not configured.");
+        
+        // Get an auth token if required
+        var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
+        var content = PrepareHttpContent(payload, isTechnician: true);
+        var apiPath = DynamicApiUrlUtil.GetFullUrl(appSetting.TechnicianUrl, resource.Identifier);
+        var response = await httpClient.PutAsync(apiPath, content); // x-www-form-urlencoded or other
+
+        // Read the full response
+        var responseBody = await response.Content.ReadAsStringAsync(CancellationToken.None);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Log.Error(
+                "Change as Technician failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
+                appConfig.AppId, correlationId, response.StatusCode, responseBody);
+
+            throw new HttpRequestException($"Error updating user: {response.StatusCode} - {responseBody}");
+        }
+
+        // Log the operation.
+        _ = Task.Run(() =>
+        {
+            var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
+            string? idVal = payload[idField]!.ToString();
+
+            Log.Information(
+                "Change as Technician successful for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                idVal, appConfig.AppId, correlationId);
+
+            _ = CreateLogAsync(appConfig.AppId,
+                "RChange as Technician",
+                $"Change as Technician successful for the id {idVal}",
+                LogType.Edit,
+                LogSeverities.Information,
+                correlationId);
+        });
+    }
+    
+    private static HttpContent PrepareHttpContent(JObject payload, bool isTechnician = false)
+    {
+        if (payload is { } jObj && jObj.ContainsKey("role"))
+        {
+            jObj.Remove("role");
+        }
+        var wrappedPayload = isTechnician ? new JObject { ["technician"] = payload } : new JObject { ["user"] = payload };
+        var encodedJson = Uri.EscapeDataString(wrappedPayload.ToString(Formatting.None));
         var formData = $"input_data={encodedJson}";
         return new StringContent(formData, Encoding.UTF8, "application/x-www-form-urlencoded");
     }

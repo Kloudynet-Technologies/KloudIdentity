@@ -1,19 +1,21 @@
+using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
 public class IntegrationBaseFactory : IIntegrationBaseFactory
 {
-    private readonly IConfiguration _configuration;
+    private readonly AppSettings _appSettings;
     private readonly IList<IIntegrationBase> _integrations;
     private readonly Dictionary<string, IIntegrationBase> _integrationTypeDict;
 
-    public IntegrationBaseFactory(IConfiguration configuration, IList<IIntegrationBase> integrations)
+    public IntegrationBaseFactory(IList<IIntegrationBase> integrations,
+        IOptions<AppSettings> appSettings)
     {
-        _configuration = configuration;
         _integrations = integrations;
         _integrationTypeDict = integrations.ToDictionary(i => i.GetType().Name, i => i);
+        _appSettings = appSettings.Value;
     }
 
     public IIntegrationBase GetIntegration(IntegrationMethods integrationMethod, string appId = "")
@@ -23,15 +25,16 @@ public class IntegrationBaseFactory : IIntegrationBaseFactory
         var integrationBases = integrations as IIntegrationBase[] ?? integrations.ToArray();
         if (!integrationBases.Any())
         {
-            throw new InvalidOperationException($"No integrations registered for integration method: {integrationMethod}");
+            throw new InvalidOperationException(
+                $"No integrations registered for integration method: {integrationMethod}");
         }
 
+        var integrtionMapping = _appSettings.IntegrationMappings;
+        
         // Check for specific appId mapping in configuration
         if (!string.IsNullOrEmpty(appId))
         {
-            var mapping = _configuration.GetSection("IntegrationMappings:AppIdToIntegration")
-                                               .Get<Dictionary<string, string>>();
-            if (mapping != null && mapping.TryGetValue(appId, out var integrationType))
+            if (integrtionMapping.AppIdToIntegration.TryGetValue(appId, out var integrationType))
             {
                 if (_integrationTypeDict.TryGetValue(integrationType, out var integration))
                 {
@@ -41,17 +44,11 @@ public class IntegrationBaseFactory : IIntegrationBaseFactory
         }
 
         // Use DefaultIntegration mapping from configuration
-        var defaultMapping = _configuration.GetSection("IntegrationMappings:DefaultIntegration")
-                                           .Get<Dictionary<string, string>>();
-        if (defaultMapping != null)
+        if (integrtionMapping.DefaultIntegration.TryGetValue(integrationMethod.ToString(), out var defaultIntegrationType))
         {
-            var methodKey = integrationMethod.ToString();
-            if (defaultMapping.TryGetValue(methodKey, out var defaultIntegrationType))
+            if (_integrationTypeDict.TryGetValue(defaultIntegrationType, out var defaultIntegration))
             {
-                if (_integrationTypeDict.TryGetValue(defaultIntegrationType, out var defaultIntegration))
-                {
-                    return defaultIntegration;
-                }
+                return defaultIntegration;
             }
         }
         
