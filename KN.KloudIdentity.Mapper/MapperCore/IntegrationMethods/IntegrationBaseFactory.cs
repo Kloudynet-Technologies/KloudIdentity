@@ -23,18 +23,18 @@ public class IntegrationBaseFactory : IIntegrationBaseFactory
         // Filter integrations by the specified integration method
         var integrations = _integrations.Where(i => i.IntegrationMethod == integrationMethod);
         var integrationBases = integrations as IIntegrationBase[] ?? integrations.ToArray();
-        if (!integrationBases.Any())
+        if (integrationBases.Length == 0)
         {
             throw new InvalidOperationException(
                 $"No integrations registered for integration method: {integrationMethod}");
         }
 
-        var integrtionMapping = _appSettings.IntegrationMappings;
+        var integrationMapping = _appSettings.IntegrationMappings;
         
         // Check for specific appId mapping in configuration
         if (!string.IsNullOrEmpty(appId))
         {
-            if (integrtionMapping.AppIdToIntegration.TryGetValue(appId, out var integrationType))
+            if (integrationMapping.AppIdToIntegration.TryGetValue(appId, out var integrationType))
             {
                 if (_integrationTypeDict.TryGetValue(integrationType, out var integration))
                 {
@@ -44,7 +44,7 @@ public class IntegrationBaseFactory : IIntegrationBaseFactory
         }
 
         // Use DefaultIntegration mapping from configuration
-        if (integrtionMapping.DefaultIntegration.TryGetValue(integrationMethod.ToString(), out var defaultIntegrationType))
+        if (integrationMapping.DefaultIntegration.TryGetValue(integrationMethod.ToString(), out var defaultIntegrationType))
         {
             if (_integrationTypeDict.TryGetValue(defaultIntegrationType, out var defaultIntegration))
             {

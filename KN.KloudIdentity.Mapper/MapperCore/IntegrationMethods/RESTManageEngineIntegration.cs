@@ -21,6 +21,7 @@ public class RestIntegrationManageEngine : RESTIntegration
 {
     private readonly IConfiguration _configuration;
     private readonly AppSettings _appSettings;
+    private const string RoleField = "role";
 
     public RestIntegrationManageEngine(IAuthContext authContext, IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
@@ -45,7 +46,7 @@ public class RestIntegrationManageEngine : RESTIntegration
             var atIdx = loginName.IndexOf('@');
             payload["login_name"] = atIdx > 0 ? loginName.Substring(0, atIdx) : loginName;
         }
-        
+
         return await Task.FromResult(payload);
     }
 
@@ -140,6 +141,8 @@ public class RestIntegrationManageEngine : RESTIntegration
 
             core2EntUsr.Identifier = identifier;
             core2EntUsr.UserName = GetValueCaseInsensitive(user["user"] as JObject, usernameField);
+            core2EntUsr.KIExtension.ExtensionAttribute3 =
+                GetValueCaseInsensitive(user["user"] as JObject, "is_technician");
 
             // Create a log for the operation.
             _ = CreateLogAsync(appConfig.AppId,
@@ -164,13 +167,17 @@ public class RestIntegrationManageEngine : RESTIntegration
         var userUrIs = appConfig.UserURIs?.FirstOrDefault()
                        ?? throw new InvalidOperationException("User creation endpoint not configured.");
 
+        var user = await GetAsync(resource.Identifier, appConfig, correlationId);
         // Ensure the payload is JObject
         JObject jPayload = payload as JObject ?? JObject.FromObject(payload);
 
         // Role might be another attribute. This is for testing purpose.
-        var role = payload["role"]?.ToString();
-        if(role == "Technician")
-         await ChangeAsTechnicianAsync(jPayload, resource, appConfig, correlationId);
+        var role = payload[RoleField]?.ToString();
+        if (string.Equals(role, "Technician", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(user.KIExtension.ExtensionAttribute3, "false", StringComparison.OrdinalIgnoreCase))
+        {
+            await ChangeAsTechnicianAsync(jPayload, resource, appConfig, correlationId);
+        }
 
         // Get an auth token if required
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
@@ -215,12 +222,13 @@ public class RestIntegrationManageEngine : RESTIntegration
         await ReplaceAsync(payload, resource, appConfig, correlationId);
     }
 
-    private async Task ChangeAsTechnicianAsync(JObject payload, Core2EnterpriseUser resource,AppConfig appConfig, string correlationId)
+    private async Task ChangeAsTechnicianAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig,
+        string correlationId)
     {
         var appSetting = _appSettings.AppIntegrationConfigs.FirstOrDefault(x => x.AppId == appConfig.AppId);
-        if(string.IsNullOrWhiteSpace(appSetting?.TechnicianUrl))
+        if (string.IsNullOrWhiteSpace(appSetting?.TechnicianUrl))
             throw new ApplicationException("Technician URL not configured.");
-        
+
         // Get an auth token if required
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
         var content = PrepareHttpContent(payload, isTechnician: true);
@@ -250,21 +258,23 @@ public class RestIntegrationManageEngine : RESTIntegration
                 idVal, appConfig.AppId, correlationId);
 
             _ = CreateLogAsync(appConfig.AppId,
-                "RChange as Technician",
+                "Change as Technician",
                 $"Change as Technician successful for the id {idVal}",
                 LogType.Edit,
                 LogSeverities.Information,
                 correlationId);
         });
     }
-    
-    private static HttpContent PrepareHttpContent(JObject payload, bool isTechnician = false)
+
+    private HttpContent PrepareHttpContent(JObject payload, bool isTechnician = false)
     {
-        if (payload is { } jObj && jObj.ContainsKey("role"))
+        if (payload is { } jObj && jObj.ContainsKey(RoleField))
         {
-            jObj.Remove("role");
+            jObj.Remove(RoleField);
         }
-        var wrappedPayload = isTechnician ? new JObject { ["technician"] = payload } : new JObject { ["user"] = payload };
+
+        var wrappedPayload =
+            isTechnician ? new JObject { ["technician"] = payload } : new JObject { ["user"] = payload };
         var encodedJson = Uri.EscapeDataString(wrappedPayload.ToString(Formatting.None));
         var formData = $"input_data={encodedJson}";
         return new StringContent(formData, Encoding.UTF8, "application/x-www-form-urlencoded");
