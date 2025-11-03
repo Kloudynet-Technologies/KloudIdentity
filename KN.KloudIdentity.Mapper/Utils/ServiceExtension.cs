@@ -23,7 +23,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.SCIM;
-using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.Utils;
 
@@ -54,14 +53,20 @@ public static class ServiceExtension
         services.AddScoped<IList<IIntegrationBase>>(provider =>
         {
             return provider.GetServices<IIntegrationBase>().ToList();
-        });
+        });    
+                
+        var appSettingsSection = configuration.GetSection("AppSettings");
+        var appSettings = appSettingsSection.Get<AppSettings>();
+        var connectionString = appSettings?.UserMigration?.AzureStorageConnectionString;
 
-        services.AddSingleton<IAzureStorageManager>(provider =>
+        if (!string.IsNullOrWhiteSpace(connectionString))
         {
-            var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
-            var connectionString = appSettings.UserMigration.AzureStorageConnectionString;
-            return new AzureStorageManager(connectionString, appSettings);
-        });
+            services.AddSingleton<IAzureStorageManager>(provider =>
+            {
+                var options = provider.GetRequiredService<IOptions<AppSettings>>().Value;
+                return new AzureStorageManager(connectionString, options);
+            });
+        }
 
         services.AddScoped<ICreateResourceV2, CreateUserV3>();
        
