@@ -21,7 +21,7 @@ public class RestIntegrationManageEngine : RESTIntegration
 {
     private readonly IConfiguration _configuration;
     private readonly AppSettings _appSettings;
-    private const string RoleField = "role";
+    private const string RoleField = "associated_roles";
 
     public RestIntegrationManageEngine(IAuthContext authContext, IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
@@ -46,6 +46,14 @@ public class RestIntegrationManageEngine : RESTIntegration
             var atIdx = loginName.IndexOf('@');
             payload["login_name"] = atIdx > 0 ? loginName.Substring(0, atIdx) : loginName;
         }
+
+        payload["associated_roles"] = resource.Roles != null
+            ? JArray.FromObject(
+                resource.Roles
+                    .Where(x => x.Display != "User")
+                    .Select(y => new { id = y.Value })
+            )
+            : new JArray(); // empty array if roles are null
 
         return await Task.FromResult(payload);
     }
@@ -166,15 +174,24 @@ public class RestIntegrationManageEngine : RESTIntegration
     {
         var userUrIs = appConfig.UserURIs?.FirstOrDefault()
                        ?? throw new InvalidOperationException("User creation endpoint not configured.");
-
         var user = await GetAsync(resource.Identifier, appConfig, correlationId);
+        var isTechnician = string.Equals(
+            user.KIExtension.ExtensionAttribute3, 
+            "true", 
+            StringComparison.OrdinalIgnoreCase
+        );
         // Ensure the payload is JObject
         JObject jPayload = payload as JObject ?? JObject.FromObject(payload);
 
         // Role might be another attribute. This is for testing purpose.
-        var role = payload[RoleField]?.ToString();
-        if (string.Equals(role, "Technician", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(user.KIExtension.ExtensionAttribute3, "false", StringComparison.OrdinalIgnoreCase))
+        var rolesJson = payload[RoleField]?.ToString();
+
+        // Parse roles safely (if it’s a JSON array)
+        var roles = !string.IsNullOrEmpty(rolesJson)
+            ? JArray.Parse(rolesJson)
+            : new JArray();
+
+        if (roles.Count > 0 && !isTechnician)
         {
             await ChangeAsTechnicianAsync(jPayload, resource, appConfig, correlationId);
         }
@@ -268,13 +285,21 @@ public class RestIntegrationManageEngine : RESTIntegration
 
     private HttpContent PrepareHttpContent(JObject payload, bool isTechnician = false)
     {
-        if (payload is { } jObj && jObj.ContainsKey(RoleField))
+        if (!isTechnician && payload is { } jObj)
         {
-            jObj.Remove(RoleField);
+            if (jObj.ContainsKey(RoleField) && jObj[RoleField] is JArray rolesArray && !rolesArray.Any())
+            {
+                jObj.Remove(RoleField);
+            }
+
+            if (jObj.ContainsKey("associated_sites"))
+                jObj.Remove("associated_sites");
         }
 
         var wrappedPayload =
             isTechnician ? new JObject { ["technician"] = payload } : new JObject { ["user"] = payload };
+
+        Log.Debug("Wrapped payload: {Payload}", wrappedPayload);
         var encodedJson = Uri.EscapeDataString(wrappedPayload.ToString(Formatting.None));
         var formData = $"input_data={encodedJson}";
         return new StringContent(formData, Encoding.UTF8, "application/x-www-form-urlencoded");

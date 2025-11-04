@@ -2,6 +2,8 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //------------------------------------------------------------
 
+using Newtonsoft.Json.Linq;
+
 namespace Microsoft.SCIM
 {
     using System;
@@ -1059,7 +1061,30 @@ namespace Microsoft.SCIM
 
         private static void PatchRoles(this Core2EnterpriseUser user, PatchOperation2 operation)
         {
-            user.Roles = ProtocolExtensions.PatchRoles(user.Roles, operation);
+            // user.Roles = ProtocolExtensions.PatchRoles(user.Roles, operation);
+            if (operation?.Value != null && operation.Value.Count > 0)
+            {
+                var roles = operation.Value
+                    .Select(v =>
+                    {
+                        // Parse the incoming JSON for each role
+                        var j = JObject.Parse(v.Value);
+
+                        // Map fields manually
+                        return new Role
+                        {
+                            Value = (string)j["value"],
+                            Display = (string)j["displayName"] // manual mapping here
+                        };
+                    })
+                    .ToArray();
+
+                user.Roles = roles;
+            }
+            else if (operation?.Name == OperationName.Remove)
+            {
+                user.Roles = null;
+            }
         }
 
         private static void PatchGroupProfile(ExtensionAttributeKIUser extension, PatchOperation2 operation)
