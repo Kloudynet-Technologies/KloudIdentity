@@ -10,6 +10,7 @@ public class AppSettings
     public LicenseValidationOptions LicenseValidation { get; set; } = new LicenseValidationOptions();
     public List<AppIntegrationConfig> AppIntegrationConfigs { get; set; } = [];
     public List<string> DotRezAppIds { get; set; } = new List<string>();
+    public LoggingConfigs LoggingConfigs { get; set; } = new LoggingConfigs();
 }
 
 public class RabbitMQOptions
@@ -62,4 +63,20 @@ public class HttpSettings
 {
     public Dictionary<string, string>? Headers { get; set; }
     public string? ContentType { get; set; }
+}
+
+public class LoggingConfigs
+{
+    public string AzureStorageConnectionString { get; set; } = string.Empty;
+    public string AzureBlobContainerName { get; set; } = "kiapilogs";
+    public string AppInsightsConnectionString { get; set; } = string.Empty;
+    public LogLevel? LogLevel { get; set; }
+    public string SeqServerUrl { get; set; } = string.Empty;
+    public string SeqApiKey { get; set; } = string.Empty;
+    public string RollingInterval { get; set; } = "Hour";
+}
+
+public class LogLevel
+{
+    public string Default { get; set; } = "Information";
 }

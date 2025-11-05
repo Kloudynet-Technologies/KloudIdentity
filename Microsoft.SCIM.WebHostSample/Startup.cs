@@ -34,6 +34,7 @@ namespace Microsoft.SCIM.WebHostSample
     using KN.KI.RabbitMQ.MessageContracts;
     using KN.KloudIdentity.Mapper.Masstransit;
     using Hangfire;
+    using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 
     public class Startup
     {
@@ -42,27 +43,79 @@ namespace Microsoft.SCIM.WebHostSample
 
         public IMonitor MonitoringBehavior { get; set; }
         public IProvider ProviderBehavior { get; set; }
+        private readonly AppSettings _appSettings;
 
         public Startup(IWebHostEnvironment env, IConfiguration configuration)
         {
             this.environment = env;
             this.configuration = configuration;
+            _appSettings = configuration.GetSection("KI").Get<AppSettings>();
 
-            ConfigureSerilog(configuration);
+
+            ConfigureSerilog(_appSettings);
 
             this.MonitoringBehavior = new ConsoleMonitor();
             this.ProviderBehavior = new InMemoryProvider();
         }
 
-        private void ConfigureSerilog(IConfiguration config)
+        private void ConfigureSerilog(AppSettings appSettings)
         {
-            var logLevel = config.GetValue<string>("Logging:LogLevel:Default") ?? "Information";
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Is(Enum.Parse<Serilog.Events.LogEventLevel>(logLevel, true))
-                .WriteTo.Console()
-                .WriteTo.File("logs/log.txt", rollingInterval: RollingInterval.Day)
+            var logLevel = appSettings?.LoggingConfigs?.LogLevel?.Default ?? "Information";
+            var level = Enum.Parse<Serilog.Events.LogEventLevel>(logLevel, true);
+
+            var rollingInterval = appSettings?.LoggingConfigs?.RollingInterval ?? "Hour";
+            var interval = Enum.Parse<Serilog.RollingInterval>(rollingInterval, true);
+
+            var storageConnectionString = appSettings?.LoggingConfigs?.AzureStorageConnectionString;
+            var containerName = appSettings?.LoggingConfigs?.AzureBlobContainerName ?? "kiapilogs";
+            var aiConnectionString = appSettings?.LoggingConfigs?.AppInsightsConnectionString;
+            var seqServerUrl = appSettings?.LoggingConfigs?.SeqServerUrl;
+            var seqApiKey = appSettings?.LoggingConfigs?.SeqApiKey;
+
+            //var logLevel = config.GetValue<string>("Logging:LogLevel:Default") ?? "Information";
+            //Log.Logger = new LoggerConfiguration()
+            //    .MinimumLevel.Is(level)
+            //    .WriteTo.Console()
+            //    .WriteTo.File("logs/log.txt", rollingInterval: RollingInterval.Day)
+            //    .Enrich.FromLogContext()
+            //    .CreateLogger();
+
+            var loggerConfig = new LoggerConfiguration()
+                .MinimumLevel.Is(level)
                 .Enrich.FromLogContext()
-                .CreateLogger();
+                .WriteTo.Console()
+                .WriteTo.File("logs/log.txt", rollingInterval: interval).Enrich.FromLogContext();
+
+            if (!string.IsNullOrWhiteSpace(storageConnectionString))
+            {
+                loggerConfig.WriteTo.AzureBlobStorage(
+                    connectionString: storageConnectionString,
+                    storageContainerName: containerName,
+                    storageFileName: "{yyyy}{MM}{dd}/SCIMConnectorlog_{yyyy}{MM}{dd}_{HH}00.txt",
+                    useUtcTimeZone: false,
+                    restrictedToMinimumLevel: level).Enrich.FromLogContext();
+            }
+
+            if (!string.IsNullOrWhiteSpace(aiConnectionString))
+            {
+                loggerConfig.WriteTo.ApplicationInsights(
+                    connectionString: aiConnectionString,
+                    telemetryConverter: new TraceTelemetryConverter(),
+                    restrictedToMinimumLevel: level).Enrich.FromLogContext();
+            }
+
+            if (!string.IsNullOrWhiteSpace(seqServerUrl))
+            {
+                loggerConfig.WriteTo.Seq(
+                    serverUrl: seqServerUrl,
+                    apiKey: seqApiKey,
+                    period: TimeSpan.FromSeconds(5),
+                    batchPostingLimit: 50,
+                    restrictedToMinimumLevel: level).Enrich.FromLogContext();
+            }
+
+            Log.Logger = loggerConfig.CreateLogger();
+
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
