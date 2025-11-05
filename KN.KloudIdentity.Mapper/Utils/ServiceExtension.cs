@@ -55,7 +55,7 @@ public static class ServiceExtension
             return provider.GetServices<IIntegrationBase>().ToList();
         });    
                 
-        var appSettingsSection = configuration.GetSection("AppSettings");
+        var appSettingsSection = configuration.GetSection("KI");
         var appSettings = appSettingsSection.Get<AppSettings>();
         var connectionString = appSettings?.UserMigration?.AzureStorageConnectionString;
 
