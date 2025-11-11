@@ -291,9 +291,6 @@ public class RestIntegrationManageEngine : RESTIntegration
             {
                 jObj.Remove(RoleField);
             }
-
-            if (jObj.ContainsKey("associated_sites"))
-                jObj.Remove("associated_sites");
         }
 
         var wrappedPayload =
