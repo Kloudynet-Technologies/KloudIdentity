@@ -27,9 +27,13 @@ namespace Microsoft.SCIM.WebHostSample
                     config.AddAzureAppConfiguration(options =>
                     {
                         var appConfigLabel = settings["AppConfigLabel"];
+                        var tenantId = settings["AZURE_TENANT_ID"];
+                        var clientId = settings["AZURE_CLIENT_ID"];
+                        var clientSecret = settings["AZURE_CLIENT_SECRET"];
+                        var credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
                         options.Connect(settings["ConnectionStrings:AppConfig"])
                             .Select("KI:*", appConfigLabel)
-                            .ConfigureKeyVault(kv => { kv.SetCredential(new DefaultAzureCredential()); })
+                            .ConfigureKeyVault(kv => { kv.SetCredential(credential); })
                             .ConfigureRefresh(refresh =>
                             {
                                 refresh.Register("KI:RefreshOption", refreshAll: true)
