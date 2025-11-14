@@ -51,7 +51,7 @@ namespace Microsoft.SCIM.WebHostSample
             this.configuration = configuration;
             _appSettings = configuration.GetSection("KI").Get<AppSettings>();            
 
-            Log.Logger = LoggingConfigurator.ConfigureLogging(_appSettings!.LoggingConfigs[0], "SCIMConnectorLog");
+            Log.Logger = LoggingConfigurator.ConfigureLogging(_appSettings!.LoggingConfigs[0], "SCIMConnector");
 
             this.MonitoringBehavior = new ConsoleMonitor();
             this.ProviderBehavior = new InMemoryProvider();
