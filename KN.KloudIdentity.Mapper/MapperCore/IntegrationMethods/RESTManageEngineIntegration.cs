@@ -149,7 +149,7 @@ public class RestIntegrationManageEngine : RESTIntegration
 
             var core2EntUsr = new Core2EnterpriseUser();
 
-            string urnPrefix = _configuration["urnPrefix"]!;
+            string urnPrefix = _configuration["urnPrefix"] ?? throw new InvalidOperationException("urnPrefix configuration is missing");
 
             string usernameField = GetFieldMapperValue(appConfig, "UserName", urnPrefix);
 
