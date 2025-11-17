@@ -91,7 +91,13 @@ public class RestIntegrationManageEngine : RESTIntegration
 
         var json = JObject.Parse(responseBody);
         var idVal = json["user"]?["id"]?.ToString();
-
+        if (idVal == null)
+        {
+            Log.Error(
+                "User creation response did not contain a valid identifier. AppId: {AppId}, CorrelationID: {CorrelationID}, Response: {ResponseBody}",
+                appConfig.AppId, correlationId, responseBody);
+            throw new InvalidOperationException("User creation response did not contain a valid identifier.");
+        }
         // Fire-and-forget success logging
         _ = Task.Run(async () =>
         {
