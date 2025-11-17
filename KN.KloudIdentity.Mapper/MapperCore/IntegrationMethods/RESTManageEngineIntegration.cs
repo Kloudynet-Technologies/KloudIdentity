@@ -218,7 +218,7 @@ public class RestIntegrationManageEngine : RESTIntegration
         _ = Task.Run(() =>
         {
             var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
-            string? idVal = payload[idField]!.ToString();
+            string? idVal = payload[idField]?.ToString() ?? resource.Identifier;
 
             Log.Information(
                 "User replaced successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
