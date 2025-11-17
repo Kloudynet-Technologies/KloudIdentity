@@ -1067,17 +1067,29 @@ namespace Microsoft.SCIM
                 var roles = operation.Value
                     .Select(v =>
                     {
-                        // Parse the incoming JSON for each role
-                        var j = JObject.Parse(v.Value);
-
-                        // Map fields manually
-                        return new Role
+                        // Check for null or whitespace and handle invalid JSON
+                        if (string.IsNullOrWhiteSpace(v?.Value))
                         {
-                            Value = (string)j["value"],
-                            Display = (string)j["displayName"] // manual mapping here
-                        };
+                            return null;
+                        }
+
+                        try
+                        {
+                            var j = JObject.Parse(v.Value);
+                            // Map fields manually
+                            return new Role
+                            {
+                                Value = (string)j["value"],
+                                Display = (string)j["displayName"] // manual mapping here
+                            };
+                        }
+                        catch (JsonException)
+                        {
+                            // Optionally log the error or handle as needed
+                            return null;
+                        }
                     })
-                    .ToArray();
+                    .Where(role => role != null);
 
                 user.Roles = roles;
             }

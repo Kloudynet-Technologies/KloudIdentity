@@ -176,20 +176,20 @@ public class RestIntegrationManageEngine : RESTIntegration
                        ?? throw new InvalidOperationException("User creation endpoint not configured.");
         var user = await GetAsync(resource.Identifier, appConfig, correlationId);
         var isTechnician = string.Equals(
-            user.KIExtension.ExtensionAttribute3, 
-            "true", 
+            user.KIExtension.ExtensionAttribute3,
+            "true",
             StringComparison.OrdinalIgnoreCase
         );
         // Ensure the payload is JObject
         JObject jPayload = payload as JObject ?? JObject.FromObject(payload);
 
-        // Role might be another attribute. This is for testing purpose.
-        var rolesJson = payload[RoleField]?.ToString();
-
-        // Parse roles safely (if it’s a JSON array)
-        var roles = !string.IsNullOrEmpty(rolesJson)
-            ? JArray.Parse(rolesJson)
-            : new JArray();
+        // Parse roles safely (if it’s a JSON array or already a JArray)
+        var roles = payload[RoleField] switch
+        {
+            JArray arr => arr,
+            string json when !string.IsNullOrEmpty(json) => JArray.Parse(json),
+            _ => new JArray()
+        };
 
         if (roles.Count > 0 && !isTechnician)
         {
@@ -287,7 +287,7 @@ public class RestIntegrationManageEngine : RESTIntegration
     {
         if (!isTechnician && payload is { } jObj)
         {
-            if (jObj.ContainsKey(RoleField) && jObj[RoleField] is JArray rolesArray && !rolesArray.Any())
+            if (jObj.TryGetValue(RoleField, out JToken? value) && value is JArray rolesArray && !rolesArray.Any())
             {
                 jObj.Remove(RoleField);
             }
@@ -295,7 +295,7 @@ public class RestIntegrationManageEngine : RESTIntegration
 
         var wrappedPayload =
             isTechnician ? new JObject { ["technician"] = payload } : new JObject { ["user"] = payload };
-
+  
         Log.Debug("Wrapped payload: {Payload}", wrappedPayload);
         var encodedJson = Uri.EscapeDataString(wrappedPayload.ToString(Formatting.None));
         var formData = $"input_data={encodedJson}";
