@@ -1093,7 +1093,7 @@ namespace Microsoft.SCIM
 
                 user.Roles = roles;
             }
-            else if (operation?.Name == OperationName.Remove)
+            else
             {
                 user.Roles = null;
             }

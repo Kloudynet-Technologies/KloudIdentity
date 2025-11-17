@@ -179,7 +179,7 @@ public class RestIntegrationManageEngine : RESTIntegration
         string correlationId)
     {
         var userUrIs = appConfig.UserURIs?.FirstOrDefault()
-                       ?? throw new InvalidOperationException("User creation endpoint not configured.");
+                       ?? throw new InvalidOperationException("User update endpoint not configured.");
         var user = await GetAsync(resource.Identifier, appConfig, correlationId);
         var isTechnician = string.Equals(
             user.KIExtension.ExtensionAttribute3,
@@ -205,7 +205,9 @@ public class RestIntegrationManageEngine : RESTIntegration
         // Get an auth token if required
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
         var content = PrepareHttpContent(jPayload);
-        var apiPath = DynamicApiUrlUtil.GetFullUrl(userUrIs.Put!.ToString(), resource.Identifier);
+        var apiPath = userUrIs.Put != null 
+            ? DynamicApiUrlUtil.GetFullUrl(userUrIs.Put.ToString(), resource.Identifier)
+            : throw new InvalidOperationException("User update endpoint (PUT) not configured.");
         var response = await httpClient.PutAsync(apiPath, content); // x-www-form-urlencoded or other
 
         // Read the full response
