@@ -223,7 +223,8 @@ public class RestIntegrationManageEngine : RESTIntegration
         // Log the operation.
         _ = Task.Run(() =>
         {
-            var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
+            var urnPrefix = _configuration["urnPrefix"] ?? throw new InvalidOperationException("urnPrefix configuration is missing");
+            var idField = GetFieldMapperValue(appConfig, "Identifier", urnPrefix);
             string? idVal = payload[idField]?.ToString() ?? resource.Identifier;
 
             Log.Information(
