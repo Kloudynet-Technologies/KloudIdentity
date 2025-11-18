@@ -98,6 +98,7 @@ public class RestIntegrationManageEngine : RESTIntegration
                 appConfig.AppId, correlationId, responseBody);
             throw new InvalidOperationException("User creation response did not contain a valid identifier.");
         }
+
         // Fire-and-forget success logging
         _ = Task.Run(async () =>
         {
@@ -149,7 +150,8 @@ public class RestIntegrationManageEngine : RESTIntegration
 
             var core2EntUsr = new Core2EnterpriseUser();
 
-            string urnPrefix = _configuration["urnPrefix"] ?? throw new InvalidOperationException("urnPrefix configuration is missing");
+            string urnPrefix = _configuration["urnPrefix"] ??
+                               throw new InvalidOperationException("urnPrefix configuration is missing");
 
             string usernameField = GetFieldMapperValue(appConfig, "UserName", urnPrefix);
 
@@ -205,7 +207,7 @@ public class RestIntegrationManageEngine : RESTIntegration
         // Get an auth token if required
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
         var content = PrepareHttpContent(jPayload);
-        var apiPath = userUrIs.Put != null 
+        var apiPath = userUrIs.Put != null
             ? DynamicApiUrlUtil.GetFullUrl(userUrIs.Put.ToString(), resource.Identifier)
             : throw new InvalidOperationException("User update endpoint (PUT) not configured.");
         var response = await httpClient.PutAsync(apiPath, content); // x-www-form-urlencoded or other
@@ -225,7 +227,8 @@ public class RestIntegrationManageEngine : RESTIntegration
         // Log the operation.
         _ = Task.Run(() =>
         {
-            var urnPrefix = _configuration["urnPrefix"] ?? throw new InvalidOperationException("urnPrefix configuration is missing");
+            var urnPrefix = _configuration["urnPrefix"] ??
+                            throw new InvalidOperationException("urnPrefix configuration is missing");
             var idField = GetFieldMapperValue(appConfig, "Identifier", urnPrefix);
             string? idVal = payload[idField]?.ToString() ?? resource.Identifier;
 
@@ -294,17 +297,16 @@ public class RestIntegrationManageEngine : RESTIntegration
 
     private HttpContent PrepareHttpContent(JObject payload, bool isTechnician = false)
     {
-        if (!isTechnician && payload is { } jObj)
+        if (!isTechnician && payload is { } jObj &&
+            jObj.TryGetValue(RoleField, out JToken? value) &&
+            value is JArray rolesArray && !rolesArray.Any())
         {
-            if (jObj.TryGetValue(RoleField, out JToken? value) && value is JArray rolesArray && !rolesArray.Any())
-            {
-                jObj.Remove(RoleField);
-            }
+            jObj.Remove(RoleField);
         }
 
         var wrappedPayload =
             isTechnician ? new JObject { ["technician"] = payload } : new JObject { ["user"] = payload };
-  
+
         Log.Debug("Wrapped payload: {Payload}", wrappedPayload);
         var encodedJson = Uri.EscapeDataString(wrappedPayload.ToString(Formatting.None));
         var formData = $"input_data={encodedJson}";
