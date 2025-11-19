@@ -297,11 +297,19 @@ public class RestIntegrationManageEngine : RESTIntegration
 
     private HttpContent PrepareHttpContent(JObject payload, bool isTechnician = false)
     {
+        // This is a comment now, technician user can update a role right now.
+        /*
         if (!isTechnician && payload is { } jObj &&
             jObj.TryGetValue(RoleField, out JToken? value) &&
             value is JArray rolesArray && !rolesArray.Any())
         {
             jObj.Remove(RoleField);
+        }
+        */
+        // temporary fix for role issue
+        if(!isTechnician && payload.Property(RoleField) != null)
+        {
+            payload.Remove(RoleField);
         }
 
         var wrappedPayload =
