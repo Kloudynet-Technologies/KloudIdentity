@@ -83,6 +83,9 @@ public static class ServiceExtension
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
         services.AddScoped<IIntegrationBase, AS400Integration>();
         services.AddScoped<IIntegrationBase, SQLIntegration>();
+
+        services.AddScoped<IIntegrationBaseFactory, IntegrationBaseFactory>();
+
         services.AddScoped<IReqStagQueuePublisher, ReqStagQueuePublisherV1>();
         services.AddScoped<IGetResourceV2, GetUserV2>();
         services.AddScoped<IReplaceResourceV2, ReplaceUserV2>();

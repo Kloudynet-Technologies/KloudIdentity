@@ -14,7 +14,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
 public class CreateUserV3 : CreateUserV2, ICreateResourceV2
 {
-    private readonly IList<IIntegrationBase> _integrations;
+    private readonly IIntegrationBaseFactory _integrationFactory;
     private readonly IKloudIdentityLogger _logger;
     private readonly IOptions<AppSettings> _options;
     private readonly IReplaceResourceV2 _replaceResourceV2;
@@ -22,7 +22,7 @@ public class CreateUserV3 : CreateUserV2, ICreateResourceV2
 
     public CreateUserV3(
         IGetFullAppConfigQuery getFullAppConfigQuery,
-        IList<IIntegrationBase> integrations,
+        IIntegrationBaseFactory integrationFactory,
         IOutboundPayloadProcessor outboundPayloadProcessor,
         IKloudIdentityLogger logger,
         IOptions<AppSettings> options,
@@ -30,7 +30,7 @@ public class CreateUserV3 : CreateUserV2, ICreateResourceV2
         IServiceProvider serviceProvider) : base(getFullAppConfigQuery, integrations, outboundPayloadProcessor,
         logger)
     {
-        _integrations = integrations;
+        _integrationFactory = integrationFactory;
         _logger = logger;
         _options = options;
         _replaceResourceV2 = replaceResourceV2;
