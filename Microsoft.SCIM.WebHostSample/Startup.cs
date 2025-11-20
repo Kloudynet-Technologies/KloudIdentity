@@ -49,8 +49,14 @@ namespace Microsoft.SCIM.WebHostSample
         {
             this.environment = env;
             this.configuration = configuration;
-            _appSettings = configuration.GetSection("KI").Get<AppSettings>();            
+            _appSettings = configuration.GetSection("KI").Get<AppSettings>();
 
+            // Ensure that at least one primary logging method is configured.
+            // If no logging configuration is found, the application cannot proceed and will throw an exception.
+            if (_appSettings?.LoggingConfigs == null || _appSettings.LoggingConfigs.Count == 0)
+            {
+                throw new InvalidOperationException("LoggingConfigs must be configured in appsettings.");
+            }
             Log.Logger = LoggingConfigurator.ConfigureLogging(_appSettings!.LoggingConfigs[0], "SCIMConnector");
 
             this.MonitoringBehavior = new ConsoleMonitor();
