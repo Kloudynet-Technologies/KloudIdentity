@@ -33,7 +33,7 @@ namespace Microsoft.SCIM.WebHostSample
     using MassTransit;
     using KN.KI.RabbitMQ.MessageContracts;
     using KN.KloudIdentity.Mapper.Masstransit;
-    using Hangfire;    
+    using Hangfire;
     using KN.KI.LogAggregator.SerilogInitializer;
 
     public class Startup
@@ -61,8 +61,7 @@ namespace Microsoft.SCIM.WebHostSample
 
             this.MonitoringBehavior = new ConsoleMonitor();
             this.ProviderBehavior = new InMemoryProvider();
-        }
-        
+        }        
 
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
