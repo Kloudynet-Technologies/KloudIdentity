@@ -5,6 +5,7 @@ using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.SCIM;
 using Serilog;
@@ -17,7 +18,7 @@ public class CreateUserV3 : CreateUserV2, ICreateResourceV2
     private readonly IKloudIdentityLogger _logger;
     private readonly IOptions<AppSettings> _options;
     private readonly IReplaceResourceV2 _replaceResourceV2;
-    private readonly IAzureStorageManager _azureStorageManager;
+    private readonly IAzureStorageManager? _azureStorageManager;
 
     public CreateUserV3(
         IGetFullAppConfigQuery getFullAppConfigQuery,
@@ -26,15 +27,14 @@ public class CreateUserV3 : CreateUserV2, ICreateResourceV2
         IKloudIdentityLogger logger,
         IOptions<AppSettings> options,
         IReplaceResourceV2 replaceResourceV2,
-        IAzureStorageManager azureStorageManager) : base(getFullAppConfigQuery, integrationFactory, outboundPayloadProcessor,
+        IServiceProvider serviceProvider) : base(getFullAppConfigQuery, integrationFactory, outboundPayloadProcessor,        
         logger)
     {
         _integrationFactory = integrationFactory;
         _logger = logger;
         _options = options;
         _replaceResourceV2 = replaceResourceV2;
-
-        _azureStorageManager = azureStorageManager;
+        _azureStorageManager = serviceProvider.GetService<IAzureStorageManager>();
     }
 
     public override async Task<Core2EnterpriseUser> ExecuteAsync(Core2EnterpriseUser resource, string appId,
@@ -63,6 +63,13 @@ public class CreateUserV3 : CreateUserV2, ICreateResourceV2
         }
 
         // Step 3: Retrieve the user migration data from Azure Storage.
+
+        if (_azureStorageManager == null)
+        {
+            Log.Warning("AzureStorageManager is not configured. Skipping user migration logic. AppId: {AppId}, CorrelationID: {CorrelationID}", appId, correlationID);
+            return await base.ExecuteAsync(resource, appId, correlationID);
+        }
+
         var userMigrationData = await _azureStorageManager.GetUserMigrationDataAsync(appId, correlationPropertyValue);
         if (userMigrationData == null)
         {
