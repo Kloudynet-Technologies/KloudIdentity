@@ -199,9 +199,9 @@ public class RestIntegrationManageEngine : RESTIntegration
             _ => new JArray()
         };
 
-        if (roles.Count > 0 && !isTechnician)
+        if (roles.Count > 0)
         {
-            await ChangeAsTechnicianAsync(jPayload, resource, appConfig, correlationId);
+            await ConvertOrUpdateTechnicianAsync(jPayload, resource, appConfig, correlationId, isTechnician);
         }
 
         // Get an auth token if required
@@ -251,17 +251,17 @@ public class RestIntegrationManageEngine : RESTIntegration
         await ReplaceAsync(payload, resource, appConfig, correlationId);
     }
 
-    private async Task ChangeAsTechnicianAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig,
-        string correlationId)
+    private async Task ConvertOrUpdateTechnicianAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig,
+        string correlationId, bool isTechnician = false)
     {
-        var appSetting = _appSettings.AppIntegrationConfigs.FirstOrDefault(x => x.AppId == appConfig.AppId);
-        if (string.IsNullOrWhiteSpace(appSetting?.TechnicianUrl))
-            throw new ApplicationException("Technician URL not configured.");
-
+        var baseUrl = appConfig.UserURIs.FirstOrDefault()?.BaseUrl;
+        if (string.IsNullOrWhiteSpace(baseUrl))
+            throw new ApplicationException("Base URL not configured.");
         // Get an auth token if required
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
         var content = PrepareHttpContent(payload, isTechnician: true);
-        var apiPath = DynamicApiUrlUtil.GetFullUrl(appSetting.TechnicianUrl, resource.Identifier);
+        var apiPath = DynamicApiUrlUtil.GetFullUrl(isTechnician ? $"{baseUrl}/api/v3/technicians/{{0}}" : 
+                      $"{baseUrl}/api/v3/users/{{0}}/change_as_technician", resource.Identifier);
         var response = await httpClient.PutAsync(apiPath, content); // x-www-form-urlencoded or other
 
         // Read the full response
@@ -297,17 +297,7 @@ public class RestIntegrationManageEngine : RESTIntegration
 
     private HttpContent PrepareHttpContent(JObject payload, bool isTechnician = false)
     {
-        // This is a comment now, technician user can update a role right now.
-        /*
-        if (!isTechnician && payload is { } jObj &&
-            jObj.TryGetValue(RoleField, out JToken? value) &&
-            value is JArray rolesArray && !rolesArray.Any())
-        {
-            jObj.Remove(RoleField);
-        }
-        */
-        // temporary fix for role issue
-        if(!isTechnician && payload.Property(RoleField) != null)
+        if (!isTechnician && payload.Property(RoleField) != null)
         {
             payload.Remove(RoleField);
         }

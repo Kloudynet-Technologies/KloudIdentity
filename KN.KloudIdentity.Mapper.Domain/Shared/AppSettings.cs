@@ -51,9 +51,7 @@ public class AppIntegrationConfig
 {
     public string AppId { get; set; } = string.Empty;
     public HttpSettings? HttpSettings { get; set; }
-    
     public string ClientType { get; set; } = string.Empty;
-    public string? TechnicianUrl { get; set; }
 }   
 
 public class HttpSettings
