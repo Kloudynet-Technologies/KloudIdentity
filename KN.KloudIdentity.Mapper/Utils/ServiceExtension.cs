@@ -53,7 +53,7 @@ public static class ServiceExtension
         services.AddScoped<IList<IIntegrationBase>>(provider =>
         {
             return provider.GetServices<IIntegrationBase>().ToList();
-        });    
+        });
                 
         var appSettingsSection = configuration.GetSection("KI");
         var appSettings = appSettingsSection.Get<AppSettings>();
