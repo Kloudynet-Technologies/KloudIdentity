@@ -27,7 +27,7 @@ public class CreateUserV3 : CreateUserV2, ICreateResourceV2
         IKloudIdentityLogger logger,
         IOptions<AppSettings> options,
         IReplaceResourceV2 replaceResourceV2,
-        IServiceProvider serviceProvider) : base(getFullAppConfigQuery, integrationFactory, outboundPayloadProcessor,        
+        IServiceProvider serviceProvider) : base(getFullAppConfigQuery, integrationFactory, outboundPayloadProcessor,
         logger)
     {
         _integrationFactory = integrationFactory;

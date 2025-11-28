@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="KN.KI.LogAggregator.Messaging.RabbitMq" Version="0.0.6" />
+    <PackageReference Include="KN.KI.LogAggregator.SerilogInitializer" Version="1.0.4" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Data.Odbc" Version="9.0.1" />
   </ItemGroup>
