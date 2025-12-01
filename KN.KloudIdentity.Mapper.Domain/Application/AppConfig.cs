@@ -23,5 +23,5 @@ public record AppConfig
     public ExternalEndpointInfo? ExternalEndpointInfo { get; set; }
     public dynamic? IntegrationDetails { get; set; }
 
-    public ICollection<Action> Actions { get; set; }
+    public ICollection<Action> Actions { get; set; } = [];
 }
