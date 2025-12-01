@@ -199,7 +199,7 @@ public class RestIntegrationManageEngine : RESTIntegration
             _ => new JArray()
         };
 
-        if (roles.Count > 0)
+        if (roles.Count > 0) // if roles are present, based on isTechnician, convert or update technician
         {
             await ConvertOrUpdateTechnicianAsync(jPayload, resource, appConfig, correlationId, isTechnician);
         }
@@ -252,7 +252,7 @@ public class RestIntegrationManageEngine : RESTIntegration
     }
 
     private async Task ConvertOrUpdateTechnicianAsync(JObject payload, Core2EnterpriseUser resource, AppConfig appConfig,
-        string correlationId, bool isTechnician = false)
+        string correlationId, bool isAlreadyTechnician = false)
     {
         var baseUrl = appConfig.UserURIs.FirstOrDefault()?.BaseUrl;
         if (string.IsNullOrWhiteSpace(baseUrl))
@@ -260,7 +260,7 @@ public class RestIntegrationManageEngine : RESTIntegration
         // Get an auth token if required
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
         var content = PrepareHttpContent(payload, isTechnician: true);
-        var apiPath = DynamicApiUrlUtil.GetFullUrl(isTechnician ? $"{baseUrl}/api/v3/technicians/{{0}}" : 
+        var apiPath = DynamicApiUrlUtil.GetFullUrl(isAlreadyTechnician ? $"{baseUrl}/api/v3/technicians/{{0}}" : 
                       $"{baseUrl}/api/v3/users/{{0}}/change_as_technician", resource.Identifier);
         var response = await httpClient.PutAsync(apiPath, content); // x-www-form-urlencoded or other
 
