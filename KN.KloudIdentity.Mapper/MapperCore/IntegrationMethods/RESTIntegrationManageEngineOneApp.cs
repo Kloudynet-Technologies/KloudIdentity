@@ -12,12 +12,12 @@ using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
-public class RestIntegrationManageEngineV2 : RESTIntegration
+public class RESTIntegrationManageEngineOneApp : RESTIntegration
 {
     private readonly IConfiguration _configuration;
     private readonly AppSettings _appSettings;
 
-    public RestIntegrationManageEngineV2(IAuthContext authContext, IHttpClientFactory httpClientFactory,
+    public RESTIntegrationManageEngineOneApp(IAuthContext authContext, IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
         IKloudIdentityLogger logger,
         IOptions<AppSettings> appSettings) :
