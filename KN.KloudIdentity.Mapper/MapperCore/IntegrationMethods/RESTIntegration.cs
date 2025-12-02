@@ -119,7 +119,7 @@ public class RESTIntegration : IIntegrationBase
 
             throw new HttpRequestException($"Error creating user: {response.StatusCode} - {responseBody}");
         }
-        
+
         var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
         var idVal = payload[idField]!.ToString();
 
@@ -325,7 +325,7 @@ public class RESTIntegration : IIntegrationBase
             if (!response.IsSuccessStatusCode)
             {
                 Log.Error(
-                    "Updatting failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
+                    "Updating failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
                     appConfig.AppId, correlationId, response.StatusCode, responseBody);
 
                 throw new HttpRequestException($"Error creating user: {response.StatusCode} - {responseBody}");
@@ -466,7 +466,7 @@ public class RESTIntegration : IIntegrationBase
             correlationId);
     }
 
-    private static HttpContent PrepareHttpContent(JObject payload, string? contentType)
+    protected virtual HttpContent PrepareHttpContent(JObject payload, string? contentType)
     {
         if (string.Equals(contentType, "application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
         {
@@ -478,7 +478,7 @@ public class RESTIntegration : IIntegrationBase
         return new StringContent(payload.ToString(Formatting.None), Encoding.UTF8, "application/json");
     }
 
-    protected async Task<HttpClient> CreateHttpClientAsync(AppConfig appConfig, SCIMDirections direction,
+    protected virtual async Task<HttpClient> CreateHttpClientAsync(AppConfig appConfig, SCIMDirections direction,
         CancellationToken cancellationToken = default)
     {
         var client = _httpClientFactory.CreateClient();
