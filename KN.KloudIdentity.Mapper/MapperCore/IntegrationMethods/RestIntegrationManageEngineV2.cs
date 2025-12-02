@@ -78,4 +78,19 @@ public class RestIntegrationManageEngineV2 : RESTIntegration
 
         return new StringContent(formData, Encoding.UTF8, "application/x-www-form-urlencoded");
     }
+
+    protected override async Task<string> GetGeneratedIdentifierAsync(dynamic payload, HttpResponseMessage response, AppConfig appConfig)
+    {
+        // For ManageEngine, the identifier might be in a different format or location
+        var responseContent = await response.Content.ReadAsStringAsync();
+        var jsonResponse = JsonConvert.DeserializeObject<JObject>(responseContent);
+
+        var idValue = jsonResponse?["user"]?["id"]?.ToString();
+        if (!string.IsNullOrEmpty(idValue))
+        {
+            return idValue;
+        }
+
+        throw new InvalidOperationException("Unable to determine the generated identifier from ManageEngine response.");
+    }
 }

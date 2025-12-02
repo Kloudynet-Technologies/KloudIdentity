@@ -11,6 +11,7 @@ using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Utils;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.SCIM;
@@ -120,8 +121,7 @@ public class RESTIntegration : IIntegrationBase
             throw new HttpRequestException($"Error creating user: {response.StatusCode} - {responseBody}");
         }
 
-        var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
-        var idVal = payload[idField]!.ToString();
+        var idVal = await GetGeneratedIdentifierAsync(payload, response, appConfig);
 
         // Fire-and-forget success logging
         _ = Task.Run(async () =>
@@ -232,7 +232,7 @@ public class RESTIntegration : IIntegrationBase
         throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
     }
 
-    protected string GetFieldMapperValue(AppConfig appConfig, string fieldName, string urnPrefix)
+    protected virtual string GetFieldMapperValue(AppConfig appConfig, string fieldName, string urnPrefix)
     {
         var field = appConfig.UserAttributeSchemas.FirstOrDefault(f => f.SourceValue == fieldName);
         if (field != null)
@@ -514,5 +514,17 @@ public class RESTIntegration : IIntegrationBase
         );
 
         await _logger.CreateLogAsync(logEntity);
+    }
+
+    protected virtual async Task<string> GetGeneratedIdentifierAsync(dynamic payload, HttpResponseMessage response, AppConfig appConfig)
+    {
+        // Try to get the identifier from the payload first
+        var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
+        if (payload[idField] != null)
+        {
+            return payload[idField].ToString();
+        }
+
+        throw new InvalidOperationException("Unable to determine the generated identifier.");
     }
 }
