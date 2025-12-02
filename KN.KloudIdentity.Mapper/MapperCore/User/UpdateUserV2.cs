@@ -15,16 +15,16 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
 public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
 {
-    private readonly IList<IIntegrationBase> _integrations;
+    private readonly IIntegrationBaseFactory _integrationBaseFactory;
     private readonly IKloudIdentityLogger _logger;
 
     public UpdateUserV2(
         IGetFullAppConfigQuery getFullAppConfigQuery,
-        IList<IIntegrationBase> integrations,
+        IIntegrationBaseFactory integrationBaseFactory,
         IOutboundPayloadProcessor outboundPayloadProcessor,
         IKloudIdentityLogger logger) : base(getFullAppConfigQuery, outboundPayloadProcessor)
     {
-        _integrations = integrations;
+        _integrationBaseFactory = integrationBaseFactory;
         _logger = logger;
     }
 
@@ -33,18 +33,18 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
     /// </summary>
     /// <param name="patch">The user to update.</param>
     /// <param name="appId">The ID of the application.</param>
-    /// <param name="correlationID">The correlation ID.</param>
+    /// <param name="correlationId">The correlation ID.</param>
     /// <returns></returns>
     /// <exception cref="NotSupportedException">When integration method is not supported</exception>
-    public async Task UpdateAsync(IPatch patch, string appId, string correlationID)
+    public async Task UpdateAsync(IPatch patch, string appId, string correlationId)
     {
         Log.Information("Execution started for user update. AppId: {AppId}, CorrelationID: {CorrelationID}", appId,
-            correlationID);
+            correlationId);
         if (patch.PatchRequest is not PatchRequest2 patchRequest)
         {
             Log.Error(
                 "Invalid patch request type. Expected PatchRequest2. AppId: {AppId}, CorrelationID: {CorrelationID}",
-                appId, correlationID);
+                appId, correlationId);
             throw new ArgumentNullException(nameof(patchRequest));
         }
 
@@ -56,7 +56,8 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         var appConfig = await GetAppConfigAsync(appId);
 
         var integrationOp =
-            _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??
+            _integrationBaseFactory.GetIntegration(appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST,
+                appId) ??
             throw new NotSupportedException(
                 $"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
 
@@ -66,15 +67,15 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, user);
         Log.Information(
             "Payload mapped and prepared successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
-            user.Identifier, appId, correlationID);
+            user.Identifier, appId, correlationId);
 
         // Step 3: Update user
-        await integrationOp.UpdateAsync(payload, user, appConfig, correlationID);
+        await integrationOp.UpdateAsync(payload, user, appConfig, correlationId);
         Log.Information(
             "User updated successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
-            user.Identifier, appId, correlationID);
+            user.Identifier, appId, correlationId);
 
-        _ = CreateLogAsync(appConfig.AppId, user.Identifier, correlationID);
+        _ = CreateLogAsync(appConfig.AppId, user.Identifier, correlationId);
     }
 
     private IList<AttributeSchema> GetUserAttributes(ICollection<AttributeSchema> userAttributeSchemas,

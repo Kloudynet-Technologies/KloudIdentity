@@ -23,7 +23,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.SCIM;
-using Newtonsoft.Json.Linq;
 
 namespace KN.KloudIdentity.Mapper.Utils;
 
@@ -55,29 +54,32 @@ public static class ServiceExtension
         {
             return provider.GetServices<IIntegrationBase>().ToList();
         });
+                
+        var appSettingsSection = configuration.GetSection("KI");
+        var appSettings = appSettingsSection.Get<AppSettings>();
+        var connectionString = appSettings?.UserMigration?.AzureStorageConnectionString;
 
-        services.AddSingleton<IAzureStorageManager>(provider =>
+        if (!string.IsNullOrWhiteSpace(connectionString))
         {
-            var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
-            var connectionString = appSettings.UserMigration.AzureStorageConnectionString;
-            return new AzureStorageManager(connectionString, appSettings);
-        });
+            services.AddSingleton<IAzureStorageManager>(provider =>
+            {
+                var options = provider.GetRequiredService<IOptions<AppSettings>>().Value;
+                return new AzureStorageManager(connectionString, options);
+            });
+        }
 
         services.AddScoped<ICreateResourceV2, CreateUserV3>();
-        // Use configuration or feature flag to select the integration implementation
-        var useV2 = configuration.GetValue<bool>("Features:UseRESTIntegrationV2") || false;
-        if (useV2)
-        {
-            services.AddScoped<IIntegrationBase, RESTIntegrationV2>();
-        }
-        else
-        {
-            services.AddScoped<IIntegrationBase, RESTIntegration>();
-        }
-
+       
+        services.AddScoped<IIntegrationBase, RestIntegrationManageEngine>(); 
+        services.AddScoped<IIntegrationBase, RESTIntegrationV2>();
+        
+        services.AddScoped<IIntegrationBase, RESTIntegration>();
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
         services.AddScoped<IIntegrationBase, AS400Integration>();
         services.AddScoped<IIntegrationBase, SQLIntegration>();
+
+        services.AddScoped<IIntegrationBaseFactory, IntegrationBaseFactory>();
+
         services.AddScoped<IReqStagQueuePublisher, ReqStagQueuePublisherV1>();
         services.AddScoped<IGetResourceV2, GetUserV2>();
         services.AddScoped<IReplaceResourceV2, ReplaceUserV2>();

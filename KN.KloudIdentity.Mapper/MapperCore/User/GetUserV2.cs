@@ -2,6 +2,7 @@ using System;
 using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
+using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
@@ -13,16 +14,16 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
 public class GetUserV2 : ProvisioningBase, IGetResourceV2
 {
-    private readonly IList<IIntegrationBase> _integrations;
+    private readonly IIntegrationBaseFactory _integrationBaseFactory;
     private readonly IKloudIdentityLogger _logger;
 
     public GetUserV2(
         IGetFullAppConfigQuery getFullAppConfigQuery,
-        IList<IIntegrationBase> integrations,
+        IIntegrationBaseFactory integrationBaseFactory,
         IOutboundPayloadProcessor outboundPayloadProcessor,
         IKloudIdentityLogger logger) : base(getFullAppConfigQuery, outboundPayloadProcessor)
     {
-        _integrations = integrations;
+        _integrationBaseFactory = integrationBaseFactory;
         _logger = logger;
     }
 
@@ -42,10 +43,11 @@ public class GetUserV2 : ProvisioningBase, IGetResourceV2
 
         // Step 1: Get app config
         var appConfig = await GetAppConfigAsync(appId);
-        
+
         // Resolve integration method operations
         var integrationOp =
-            _integrations.FirstOrDefault(x => x.IntegrationMethod == appConfig.IntegrationMethodOutbound) ??
+            _integrationBaseFactory.GetIntegration(appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST,
+                appId) ??
             throw new NotSupportedException(
                 $"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
 
@@ -57,7 +59,7 @@ public class GetUserV2 : ProvisioningBase, IGetResourceV2
 
         // Log the operation.
         _ = CreateLogAsync(appConfig.AppId, identifier, correlationID);
-        
+
         return user;
     }
 
