@@ -93,4 +93,12 @@ public class RestIntegrationManageEngineV2 : RESTIntegration
 
         throw new InvalidOperationException("Unable to determine the generated identifier from ManageEngine response.");
     }
+
+    protected override string GetValueCaseInsensitive(JObject? jsonObject, string propertyName)
+    {
+        if (jsonObject == null)
+            throw new InvalidOperationException("JObject can't be null.");
+
+        return base.GetValueCaseInsensitive(jsonObject["user"] as JObject, propertyName);
+    }
 }

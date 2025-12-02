@@ -247,7 +247,7 @@ public class RESTIntegration : IIntegrationBase
         }
     }
 
-    protected string GetValueCaseInsensitive(JObject? jsonObject, string propertyName)
+    protected virtual string GetValueCaseInsensitive(JObject? jsonObject, string propertyName)
     {
         var property = jsonObject?.Properties()
             .FirstOrDefault(p => string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
@@ -300,9 +300,8 @@ public class RESTIntegration : IIntegrationBase
 
             // Log the operation.
             _ = Task.Run(() =>
-            {
-                var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
-                string? idVal = payload[idField]!.ToString();
+            {         
+                var idVal = GetGeneratedIdentifierAsync(payload, response, appConfig);
 
                 Log.Information(
                     "User replaced successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
@@ -333,9 +332,8 @@ public class RESTIntegration : IIntegrationBase
 
             // Log the operation.
             _ = Task.Run(() =>
-            {
-                var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
-                string? idVal = payload[idField].ToString();
+            {               
+                var idVal = GetGeneratedIdentifierAsync(payload, response, appConfig);
 
                 Log.Information(
                     "User replaced successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
@@ -414,9 +412,8 @@ public class RESTIntegration : IIntegrationBase
 
         // Log the operation.
         _ = Task.Run(() =>
-        {
-            var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
-            string? idVal = payload[idField]!.ToString();
+        {           
+            var idVal = GetGeneratedIdentifierAsync(payload, response, appConfig);
 
             Log.Information(
                 "User updated successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
