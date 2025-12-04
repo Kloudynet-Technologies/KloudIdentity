@@ -101,4 +101,26 @@ public class RESTIntegrationManageEngineOneApp : RESTIntegration
 
         return base.GetValueCaseInsensitive(jsonObject["user"] as JObject, propertyName);
     }
+
+    public override async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
+    {
+        if (resource.KIExtension.ExtensionAttribute1 == "False")
+        {
+            await base.DeleteAsync(resource.Identifier, appConfig, correlationId);
+            return;
+        }
+
+       await base.ReplaceAsync(payload as JObject, resource, appConfig, correlationId);       
+    }
+
+    public override async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
+    {
+        if (resource.KIExtension.ExtensionAttribute1 == "False")
+        {
+            await base.DeleteAsync(resource.Identifier, appConfig, correlationId);
+            return;
+        }
+
+        await base.UpdateAsync(payload as JObject, resource, appConfig, correlationId);
+    }
 }
