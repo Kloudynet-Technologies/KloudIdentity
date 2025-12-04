@@ -5,11 +5,13 @@ using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
+using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.SCIM;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
+using HttpClientExtensions = KN.KloudIdentity.Mapper.Utils.HttpClientExtensions;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
@@ -67,7 +69,7 @@ public class RESTIntegrationV4 : IIntegrationBase
         return await Task.FromResult(payload);
     }
 
-    public Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
+    public virtual async Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
     {
         Log.Information("Provisioning user for app: {AppId}, CorrelationId: {CorrelationId}", appConfig.AppId, correlationId);
 
@@ -76,6 +78,18 @@ public class RESTIntegrationV4 : IIntegrationBase
             .Select(a => a.ActionSteps)
             .OrderBy(s => s.Min(step => step.StepOrder))
             .ToList();
+        if (userUrisList == null || !userUrisList.Any())
+        {
+            Log.Error("No CREATE APIs configured for app: {AppId}. Please add at least one CREATE API.", appConfig.AppId);
+
+            throw new InvalidOperationException("No CREATE APIs configured. Please add at least one CREATE API.");
+        }
+
+        // Ensure the payload is JObject
+        JObject jPayload = payload as JObject ?? JObject.FromObject(payload);
+
+        // Get an auth token if required
+        var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
 
         throw new NotImplementedException();
     }
@@ -93,5 +107,23 @@ public class RESTIntegrationV4 : IIntegrationBase
     public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
+    }
+
+    protected virtual async Task<HttpClient> CreateHttpClientAsync(AppConfig appConfig, SCIMDirections direction,
+        CancellationToken cancellationToken = default)
+    {
+        var client = _httpClientFactory.CreateClient();
+        var token = await GetAuthenticationAsync(appConfig, direction, cancellationToken, client);
+
+        HttpClientExtensions.SetAuthenticationHeaders(client, appConfig.AuthenticationMethodOutbound,
+            appConfig.AuthenticationDetails, token);
+
+        var customHttpClient = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
+        if (customHttpClient?.HttpSettings?.Headers is { Count: > 0 })
+        {
+            client.SetCustomHeaders(customHttpClient.HttpSettings.Headers);
+        }
+
+        return client;
     }
 }
