@@ -67,7 +67,7 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
           ObjectTypes type,
           SCIMDirections direction,
           HttpRequestTypes method,
-          int stepId
+          int? stepId
 
       )
         {

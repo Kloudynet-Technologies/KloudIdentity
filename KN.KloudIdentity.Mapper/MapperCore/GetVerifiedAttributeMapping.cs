@@ -31,6 +31,14 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
                 $"Application configuration for App ID '{appId}' was not found. Please verify the App ID and try again.");
         }
 
+        if (stepId == null)
+        {
+            Log.Error("StepId is null. Cannot retrieve verified attributes for AppId: {AppId}", appId);
+            throw new InvalidOperationException(
+                $"The provided StepId is null. A valid StepId must be specified to retrieve verified attributes for AppId '{appId}'."
+);
+        }
+
         if (type == ObjectTypes.Group)
         {
             var groupAttributes = appConfig.GroupAttributeSchemas?.Where(x => x.ActionStepId == stepId)
