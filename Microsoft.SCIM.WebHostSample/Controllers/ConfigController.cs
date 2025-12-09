@@ -66,11 +66,12 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
           string appId,
           ObjectTypes type,
           SCIMDirections direction,
-          HttpRequestTypes method
+          HttpRequestTypes method,
+          int stepId
 
       )
         {
-            var json = await _getVerifiedAttributeMapping.GetVerifiedAsync(appId, type, method);
+            var json = await _getVerifiedAttributeMapping.GetVerifiedAsync(appId, type, method, stepId);
 
             return Ok(json);
         }

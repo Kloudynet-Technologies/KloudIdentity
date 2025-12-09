@@ -17,7 +17,7 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
         _getFullAppConfigQuery = getFullAppConfigQuery;
     }
 
-    public async Task<JObject> GetVerifiedAsync(string appId, ObjectTypes type, HttpRequestTypes httpRequestType)
+    public async Task<JObject> GetVerifiedAsync(string appId, ObjectTypes type, HttpRequestTypes httpRequestType, int? stepId)
     {
         Log.Information($"Getting verified attribute for {appId}");
 
@@ -33,7 +33,7 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
 
         if (type == ObjectTypes.Group)
         {
-            var groupAttributes = appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == httpRequestType)
+            var groupAttributes = appConfig.GroupAttributeSchemas?.Where(x => x.ActionStepId == stepId)
                 .ToList();
 
             if (groupAttributes == null)
@@ -46,12 +46,12 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
         }
         else if (type == ObjectTypes.User)
         {
-            var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == httpRequestType)
+            var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.ActionStepId == stepId)
                 .ToList();
 
             if (userAttributes == null)
             {
-                Log.Error($"User attributes not found for App ID: {appId} and HttpRequestType: {httpRequestType}");
+                Log.Error($"User attributes not found for App ID: {appId} and Step Id: {stepId}");
                 throw new NotFoundException("User attributes not found");
             }
 

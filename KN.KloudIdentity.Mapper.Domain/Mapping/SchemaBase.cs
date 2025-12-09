@@ -61,4 +61,9 @@ public record SchemaBase
     /// Http Request Method
     /// </summary>  
     public HttpRequestTypes HttpRequestType { get; init; }
+
+    /// <summary>
+    /// Action Step Id
+    /// </summary>
+    public int? ActionStepId { get; init; }
 }
