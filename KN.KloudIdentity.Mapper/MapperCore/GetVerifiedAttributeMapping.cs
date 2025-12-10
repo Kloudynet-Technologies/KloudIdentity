@@ -17,7 +17,7 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
         _getFullAppConfigQuery = getFullAppConfigQuery;
     }
 
-    public async Task<JObject> GetVerifiedAsync(string appId, ObjectTypes type, HttpRequestTypes httpRequestType, int? stepId)
+    public async Task<JObject> GetVerifiedAsync(string appId, ObjectTypes type, int stepId)
     {
         Log.Information($"Getting verified attribute for {appId}");
 
@@ -29,15 +29,7 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
                 $"Application configuration not found for the provided App ID: {appId}. Ensure the App ID is correct and properly configured.");
             throw new NotFoundException(
                 $"Application configuration for App ID '{appId}' was not found. Please verify the App ID and try again.");
-        }
-
-        if (stepId == null)
-        {
-            Log.Error("StepId is null. Cannot retrieve verified attributes for AppId: {AppId}", appId);
-            throw new InvalidOperationException(
-                $"The provided StepId is null. A valid StepId must be specified to retrieve verified attributes for AppId '{appId}'."
-);
-        }
+        }       
 
         if (type == ObjectTypes.Group)
         {
@@ -46,7 +38,7 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
 
             if (groupAttributes == null)
             {
-                Log.Error($"Group attributes not found for App ID: {appId} and HttpRequestType: {httpRequestType}");
+                Log.Error($"Group attributes not found for App ID: {appId} and Step Id: {stepId}");
                 throw new NotFoundException("Group attributes not found");
             }
 
