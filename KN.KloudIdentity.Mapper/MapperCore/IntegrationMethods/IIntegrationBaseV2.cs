@@ -10,7 +10,9 @@ public interface IIntegrationBaseV2 : IIntegrationBase
     /// Provisions the user asynchronously to LOB application.
     /// </summary>
     /// <param name="payload">Payload to be provisioned to LOB app</param>
+    /// <param name="appId">Application ID</param>
     /// <param name="appConfig">App configuration</param>
+    /// <param name="actionStep">Action step</param>
     /// <param name="correlationId">Correlation ID</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>

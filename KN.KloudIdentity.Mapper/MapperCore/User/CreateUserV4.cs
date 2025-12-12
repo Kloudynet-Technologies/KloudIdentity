@@ -64,14 +64,9 @@ public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
         }
 
         // Step 3: Handle multistep API calls if applicable
-        if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST)
-        {
-            resource = await ExecuteMultistepForRESTAsync(resource, appId, correlationID);
-        }
-        else
-        {
-            resource = await ExecuteGenericUserCreationLogicAsync(resource, appId, correlationID);
-        }
+        resource = _appConfig.IntegrationMethodOutbound == IntegrationMethods.REST
+            ? await ExecuteMultistepForRESTAsync(resource, appId, correlationID)
+            : await ExecuteGenericUserCreationLogicAsync(resource, appId, correlationID);
 
         // Step 4: Return the updated user.
         return resource;

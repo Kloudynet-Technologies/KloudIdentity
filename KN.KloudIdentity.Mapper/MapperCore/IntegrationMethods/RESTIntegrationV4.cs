@@ -47,12 +47,12 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         IntegrationMethod = IntegrationMethods.REST;
     }
 
-    public Task DeleteAsync(string identifier, AppConfig appConfig, string correlationId)
+    public virtual Task DeleteAsync(string identifier, AppConfig appConfig, string correlationId)
     {
         throw new NotImplementedException();
     }
 
-    public Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
+    public virtual Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
@@ -81,7 +81,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         JObject jPayload = payload as JObject ?? JObject.FromObject(payload);
 
         // Get an auth token if required
-        var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, CancellationToken.None);
+        var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
 
         var custom = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
         var content = PrepareHttpContent(jPayload, custom?.HttpSettings?.ContentType);
@@ -92,8 +92,9 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             HttpVerbs.PUT => HttpMethod.Put,
             _ => throw new NotSupportedException($"Action step with StepOrder {actionStep.StepOrder}, HttpVerb {actionStep.HttpVerb}, EndPoint '{actionStep.EndPoint}' is not supported for provisioning.")
         };
+        string formattedEndpoint = GenerateFormattedEndpoint(payload, appConfig, actionStep);
 
-        var request = new HttpRequestMessage(httpMethod, actionStep.EndPoint)
+        using var request = new HttpRequestMessage(httpMethod, formattedEndpoint)
         {
             Content = content
         };
@@ -145,25 +146,51 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         };
     }
 
+    protected virtual string GenerateFormattedEndpoint(dynamic payload, AppConfig appConfig, ActionStep actionStep)
+    {
+        string formattedEndpoint = actionStep.EndPoint;
+        if (actionStep.EndPoint != null && actionStep.EndPoint.Contains('{'))
+        {
+            // Attempt to extract values for placeholders from the payload
+            // For example, if endpoint is "/users/{0}/confirm", use the "Identifier" field
+            var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
+            var idVal = payload[idField]?.ToString();
+            // Add more fields as needed for additional placeholders
+            // For now, only support {0} -> idVal
+            formattedEndpoint = string.Format(actionStep.EndPoint, idVal);
+        }
+
+        return formattedEndpoint;
+    }
+
     [Obsolete("Use ProvisionAsync with ActionStep parameter instead.")]
     public Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
+    public virtual Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
     {
         throw new NotImplementedException();
     }
 
-    public Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
+    public virtual Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
     {
         throw new NotImplementedException();
     }
 
-    public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Validates the payload before provisioning.
+    /// Able to override in derived classes for custom validation logic.
+    /// </summary>
+    /// <param name="payload"></param>
+    /// <param name="appConfig"></param>
+    /// <param name="correlationId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public virtual Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return Task.FromResult((true, Array.Empty<string>()));
     }
 
     protected virtual async Task<HttpClient> CreateHttpClientAsync(AppConfig appConfig, SCIMDirections direction,
