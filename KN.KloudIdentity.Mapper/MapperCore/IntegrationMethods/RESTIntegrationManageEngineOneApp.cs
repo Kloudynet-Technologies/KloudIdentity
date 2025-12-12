@@ -110,7 +110,7 @@ public class RESTIntegrationManageEngineOneApp : RESTIntegration
             return;
         }
 
-       await base.ReplaceAsync(payload as JObject, resource, appConfig, correlationId);       
+       await base.ReplaceAsync((object)payload, resource, appConfig, correlationId);       
     }
 
     public override async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
@@ -121,6 +121,6 @@ public class RESTIntegrationManageEngineOneApp : RESTIntegration
             return;
         }
 
-        await base.UpdateAsync(payload as JObject, resource, appConfig, correlationId);
+        await base.UpdateAsync((object)payload, resource, appConfig, correlationId);
     }
 }
