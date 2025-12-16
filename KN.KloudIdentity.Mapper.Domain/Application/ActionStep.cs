@@ -23,25 +23,25 @@ public class ActionStep
     /// <summary>
     /// HttpVerb for step
     /// </summary>
-    public HttpVerbs HttpVerb { get; private set; }
+    public HttpVerbs HttpVerb { get; init; }
 
     /// <summary>
     /// Action's End Point
     /// </summary>
-    public string EndPoint { get; private set; } = null!;
+    public string EndPoint { get; init; } = null!;
 
     /// <summary>
     /// Action step Mandatory or not
     /// </summary>
-    public bool? IsMandatory { get; private set; } = true;
+    public bool? IsMandatory { get; init; } = true;
 
     /// <summary>
     /// List of User Attribute Schemas
     /// </summary>
-    public virtual ICollection<AttributeSchema>? UserAttributeSchemas { get; private set; }
+    public virtual ICollection<AttributeSchema>? UserAttributeSchemas { get; init; }
 
     /// <summary>
     /// List of Group Attribute Schemas
     /// </summary>
-    public virtual ICollection<AttributeSchema>? GroupAttributeSchema { get; private set; }
+    public virtual ICollection<AttributeSchema>? GroupAttributeSchema { get; init; }
 }

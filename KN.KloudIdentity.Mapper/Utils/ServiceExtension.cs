@@ -53,8 +53,8 @@ public static class ServiceExtension
         services.AddScoped<IList<IIntegrationBase>>(provider =>
         {
             return provider.GetServices<IIntegrationBase>().ToList();
-        });    
-                
+        });
+
         var appSettingsSection = configuration.GetSection("KI");
         var appSettings = appSettingsSection.Get<AppSettings>();
         var connectionString = appSettings?.UserMigration?.AzureStorageConnectionString;
@@ -68,11 +68,11 @@ public static class ServiceExtension
             });
         }
 
-        services.AddScoped<ICreateResourceV2, CreateUserV3>();
-       
-        services.AddScoped<IIntegrationBase, RestIntegrationManageEngine>(); 
-        services.AddScoped<IIntegrationBase, RESTIntegrationV2>();
-        
+        services.AddScoped<ICreateResourceV2, CreateUserV4>();
+
+        services.AddScoped<IIntegrationBase, RestIntegrationManageEngine>();
+        services.AddScoped<IIntegrationBase, RESTIntegrationV4>();
+
         services.AddScoped<IIntegrationBase, RESTIntegration>();
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
         services.AddScoped<IIntegrationBase, AS400Integration>();
