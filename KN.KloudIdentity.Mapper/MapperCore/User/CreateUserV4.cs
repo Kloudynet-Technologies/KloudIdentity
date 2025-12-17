@@ -105,7 +105,7 @@ public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
             payload = await ExecuteCustomLogicAsync(payload, _appConfig, correlationID);
 
             // Provisioning
-            var result = await integrationOp.ProvisionAsync(payload, _appConfig, correlationID);
+            var result = await integrationOp.ProvisionAsync(payload, appId, _appConfig, step, correlationID);
             if (result is not null)
                 resource.Identifier = result.Identifier;
         }
