@@ -11,6 +11,7 @@ using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.SCIM;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -29,14 +30,14 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
     private readonly IAuthContext _authContext;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
-    private readonly IKloudIdentityLogger _logger;
-    private readonly AppSettings _appSettings;
+    private readonly IKloudIdentityLogger _logger;    
     private readonly IEnumerable<IAuthStrategy> _authStrategies;
     public IntegrationMethods IntegrationMethod { get; init; }
+    private readonly IOptions<AppSettings> _appSettings;
 
     public RESTIntegrationV4(IAuthContext authContext, IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
-        IKloudIdentityLogger logger, AppSettings appSettings, IEnumerable<IAuthStrategy> authStrategies)
+        IKloudIdentityLogger logger, IOptions<AppSettings> appSettings, IEnumerable<IAuthStrategy> authStrategies)
     {
         _authContext = authContext;
         _httpClientFactory = httpClientFactory;
@@ -83,7 +84,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         // Get an auth token if required
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
 
-        var custom = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
+        var custom = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
         var content = PrepareHttpContent(jPayload, custom?.HttpSettings?.ContentType);
 
         HttpMethod httpMethod = actionStep.HttpVerb switch
@@ -202,7 +203,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         HttpClientExtensions.SetAuthenticationHeaders(client, appConfig.AuthenticationMethodOutbound,
             appConfig.AuthenticationDetails, token);
 
-        var customHttpClient = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
+        var customHttpClient = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
         if (customHttpClient?.HttpSettings?.Headers is { Count: > 0 })
         {
             client.SetCustomHeaders(customHttpClient.HttpSettings.Headers);
