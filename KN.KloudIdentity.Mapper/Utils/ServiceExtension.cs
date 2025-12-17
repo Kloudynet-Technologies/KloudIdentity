@@ -50,9 +50,9 @@ public static class ServiceExtension
 
         services.AddScoped<IConfigReader, ConfigReaderSQL>();
 
-        services.AddScoped<IList<IIntegrationBase>>(provider =>
+        services.AddScoped<IList<IIntegrationBaseV2>>(provider =>
         {
-            return provider.GetServices<IIntegrationBase>().ToList();
+            return provider.GetServices<IIntegrationBaseV2>().ToList();
         });
 
         var appSettingsSection = configuration.GetSection("KI");
