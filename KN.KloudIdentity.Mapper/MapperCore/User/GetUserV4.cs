@@ -69,7 +69,7 @@ public class GetUserV4 : ProvisioningBase, IGetResourceV2
 
             if (retrievedUser == null)
             {
-                Log.Warning("No user retrieved in ActionStep {StepOrder}. Ending process.", actionStep.StepOrder);
+                Log.Warning("No user retrieved in ActionStep {StepOrder}. Continuing to next action step.", actionStep.StepOrder);
                 continue;
             }
         }

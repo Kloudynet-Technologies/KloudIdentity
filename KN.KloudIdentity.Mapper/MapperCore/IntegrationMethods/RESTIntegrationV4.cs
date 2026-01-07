@@ -81,10 +81,12 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
 
         if (!response.IsSuccessStatusCode)
         {
+            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
             Log.Error(
                 "GET API for users failed. Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
-                identifier, appConfig.AppId, correlationId, response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken));
-            throw new HttpRequestException($"GET user failed: {response.StatusCode} - {await response.Content.ReadAsStringAsync(cancellationToken)}");
+                identifier, appConfig.AppId, correlationId, response.StatusCode, errorContent);
+
+            throw new HttpRequestException($"GET user failed: {response.StatusCode} - {errorContent}");
         }
 
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -93,7 +95,11 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             throw new NotFoundException($"User not found with identifier: {identifier}");
 
         var core2EntUsr = new Core2EnterpriseUser();
-        string urnPrefix = _configuration["urnPrefix"]!;
+
+        var urnPrefix = _configuration["urnPrefix"];
+        if (string.IsNullOrEmpty(urnPrefix))
+            throw new InvalidOperationException("Configuration value 'urnPrefix' is missing or empty.");
+
         string usernameField = GetFieldMapperValue(actionStep, appConfig.AppId, "UserName", urnPrefix);
 
         core2EntUsr.Identifier = identifier;
