@@ -30,7 +30,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
     private readonly IAuthContext _authContext;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
-    private readonly IKloudIdentityLogger _logger;    
+    private readonly IKloudIdentityLogger _logger;
     private readonly IEnumerable<IAuthStrategy> _authStrategies;
     public IntegrationMethods IntegrationMethod { get; init; }
     private readonly IOptions<AppSettings> _appSettings;
@@ -53,9 +53,91 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         throw new NotImplementedException();
     }
 
-    public virtual Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
+
+    /// <summary>
+    /// Retrieves a user by identifier using action-based configuration (multi-step, V4).
+    /// </summary>
+    /// <param name="identifier">Unique identifier of the user</param>
+    /// <param name="appConfig">App configuration</param>
+    /// <param name="actionStep">Action configuration containing steps</param>
+    /// <param name="correlationId">Correlation ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Retrieved user</returns>
+    public virtual async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        if (actionStep == null)
+            throw new ArgumentNullException(nameof(actionStep));
+
+        if (string.IsNullOrWhiteSpace(actionStep.EndPoint))
+            throw new ArgumentException("ActionStep endpoint must be provided for GET operation.");
+
+        // Format endpoint with identifier if needed
+        string endpoint = GenerateFormattedEndpoint(identifier, appConfig, actionStep);
+
+        var customConfig = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
+        var client = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
+
+        var response = await client.GetAsync(endpoint, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Log.Error(
+                "GET API for users failed. Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
+                identifier, appConfig.AppId, correlationId, response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken));
+            throw new HttpRequestException($"GET user failed: {response.StatusCode} - {await response.Content.ReadAsStringAsync(cancellationToken)}");
+        }
+
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        var user = JsonConvert.DeserializeObject<JObject>(content);
+        if (user == null)
+            throw new NotFoundException($"User not found with identifier: {identifier}");
+
+        var core2EntUsr = new Core2EnterpriseUser();
+        string urnPrefix = _configuration["urnPrefix"]!;
+        string usernameField = GetFieldMapperValue(actionStep, appConfig.AppId, "UserName", urnPrefix);
+
+        core2EntUsr.Identifier = identifier;
+
+        if (string.Equals(customConfig?.ClientType, "Navitaire", StringComparison.OrdinalIgnoreCase))
+        {
+            core2EntUsr.KIExtension.ExtensionAttribute1 = user["data"]?[0]?["userKey"]?.ToString() ?? string.Empty;
+            core2EntUsr.UserName = user["data"]?[0]?["username"]?.ToString() ?? string.Empty;
+        }
+        else
+        {
+            core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
+        }
+
+        // Create log for the operation.
+        _ = CreateLogAsync(appConfig.AppId,
+            "Get User",
+            $"User retrieved successfully for the id {identifier}",
+            LogType.Read,
+            LogSeverities.Information,
+            correlationId);
+
+        return core2EntUsr;
+    }
+
+    // Helper to format endpoint with identifier if needed
+    private string GenerateFormattedEndpoint(string identifier, AppConfig appConfig, ActionStep actionStep)
+    {
+        string formattedEndpoint = actionStep.EndPoint;
+        if (actionStep.EndPoint != null && actionStep.EndPoint.Contains('{'))
+        {
+            // For now, only support {0} -> identifier
+            formattedEndpoint = string.Format(actionStep.EndPoint, identifier);
+        }
+
+        return formattedEndpoint;
+    }
+
+    // Helper to get value case-insensitive from JObject
+    private string GetValueCaseInsensitive(JObject? jsonObject, string propertyName)
+    {
+        var property = jsonObject?.Properties()
+            .FirstOrDefault(p => string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
+        return property?.Value?.ToString() ?? string.Empty;
     }
 
     public virtual async Task<dynamic> GetAuthenticationAsync(AppConfig config, SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default, params dynamic[] args)
@@ -114,7 +196,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             throw new HttpRequestException($"Error creating user: {response.StatusCode} - {responseBody}");
         }
 
-        var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
+        var idField = GetFieldMapperValue(actionStep, appConfig.AppId, "Identifier", _configuration["urnPrefix"]!);
         var idVal = payload[idField]!.ToString();
 
         // Fire-and-forget success logging
@@ -154,7 +236,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         {
             // Attempt to extract values for placeholders from the payload
             // For example, if endpoint is "/users/{0}/confirm", use the "Identifier" field
-            var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
+            var idField = GetFieldMapperValue(actionStep, appConfig.AppId, "Identifier", _configuration["urnPrefix"]!);
             var idVal = payload[idField]?.ToString();
             // Add more fields as needed for additional placeholders
             // For now, only support {0} -> idVal
@@ -167,7 +249,13 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
     [Obsolete("Use ProvisionAsync with ActionStep parameter instead.")]
     public Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        throw new NotSupportedException("This method is obsolete and no longer supported. Use the overload that accepts an ActionStep parameter instead.");
+    }
+
+    [Obsolete("Use GetAsync with ActionStep parameter instead.")]
+    public Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("This method is obsolete and no longer supported. Use the overload that accepts an ActionStep parameter instead.");
     }
 
     public virtual Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
@@ -224,19 +312,17 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         return new StringContent(payload.ToString(Formatting.None), Encoding.UTF8, "application/json");
     }
 
-    protected virtual string GetFieldMapperValue(AppConfig appConfig, string fieldName, string urnPrefix)
+    protected virtual string GetFieldMapperValue(ActionStep actionStep, string appId, string fieldName, string urnPrefix)
     {
-        var field = appConfig.UserAttributeSchemas.FirstOrDefault(f => f.SourceValue == fieldName);
-        if (field != null)
-        {
-            return field.DestinationField.Remove(0, urnPrefix.Length);
-        }
-        else
+        var field = actionStep.UserAttributeSchemas?.FirstOrDefault(f => f.SourceValue == fieldName);
+        if (field == null)
         {
             Log.Error("Field not found in the user schema. FieldName: {FieldName}, AppId: {AppId}", fieldName,
-                appConfig.AppId);
+                appId);
             throw new NotFoundException(fieldName + " field not found in the user schema.");
         }
+
+        return field.DestinationField.Remove(0, urnPrefix.Length);
     }
 
     protected async Task CreateLogAsync(string appId, string eventInfo, string logMessage, LogType logType,
