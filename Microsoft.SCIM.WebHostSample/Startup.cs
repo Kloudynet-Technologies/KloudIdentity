@@ -2,7 +2,9 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //------------------------------------------------------------
 
+using Hangfire.SqlServer;
 using KN.KloudIdentity.Mapper.Common.License;
+using Microsoft.Data.SqlClient;
 using Serilog;
 
 namespace Microsoft.SCIM.WebHostSample
@@ -57,11 +59,12 @@ namespace Microsoft.SCIM.WebHostSample
             {
                 throw new InvalidOperationException("LoggingConfigs must be configured in appsettings.");
             }
+
             Log.Logger = LoggingConfigurator.ConfigureLogging(_appSettings!.LoggingConfigs[0], "SCIMConnector");
 
             this.MonitoringBehavior = new ConsoleMonitor();
             this.ProviderBehavior = new InMemoryProvider();
-        }        
+        }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
@@ -181,8 +184,42 @@ namespace Microsoft.SCIM.WebHostSample
 
             if (!string.IsNullOrWhiteSpace(configuration["ConnectionStrings:HangfireDBConnection"]))
             {
-                services.AddHangfire(x =>
-                    x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
+                if (configuration["Database:AuthMode"] == "Entra")
+                {
+                    services.AddHangfire((sp, cfg) =>
+                    {
+                        var config = sp.GetRequiredService<IConfiguration>();
+                        var connectionString = config["ConnectionStrings:HangfireDBConnection"];
+
+                        cfg.UseSqlServerStorage(
+                            () =>
+                            {
+                                var conn = new SqlConnection(connectionString);
+
+                                // Attach Entra token
+                                var token = AzureSqlTokenProvider
+                                    .GetTokenAsync(config)
+                                    .GetAwaiter()
+                                    .GetResult();
+
+                                conn.AccessToken = token;
+                                return conn;
+                            },
+                            new SqlServerStorageOptions
+                            {
+                                PrepareSchemaIfNecessary = true,
+                                CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+                                SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+                                QueuePollInterval = TimeSpan.FromSeconds(15)
+                            });
+                    });
+                }
+                else
+                {
+                    services.AddHangfire(x =>
+                        x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
+                }
+
                 services.AddHangfireServer();
             }
 
