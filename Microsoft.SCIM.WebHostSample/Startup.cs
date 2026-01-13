@@ -199,8 +199,7 @@ namespace Microsoft.SCIM.WebHostSample
                                 // Attach Entra token
                                 var token = AzureSqlTokenProvider
                                     .GetTokenAsync(config)
-                                    .GetAwaiter()
-                                    .GetResult();
+                                    .GetAwaiter().GetResult();
 
                                 conn.AccessToken = token;
                                 return conn;

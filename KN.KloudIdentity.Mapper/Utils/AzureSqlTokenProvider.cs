@@ -13,11 +13,7 @@ public static class AzureSqlTokenProvider
 
     public static async Task<string> GetTokenAsync(IConfiguration config)
     {
-        _credential ??= new ClientSecretCredential(
-            config["AZURE_TENANT_ID"],
-            config["AZURE_CLIENT_ID"],
-            config["AZURE_CLIENT_SECRET"]);
-
+        _credential ??= AzureCredentialHelper.CreateClientSecretCredential(config);
         var token = await _credential.GetTokenAsync(TokenContext);
         return token.Token;
     }
