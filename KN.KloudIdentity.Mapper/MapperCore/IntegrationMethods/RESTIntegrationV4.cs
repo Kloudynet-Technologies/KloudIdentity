@@ -53,6 +53,55 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         throw new NotImplementedException();
     }
 
+    public virtual async Task<Core2EnterpriseUser> ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
+    {
+        if (actionStep == null)
+            throw new ArgumentNullException(nameof(actionStep));
+
+        if (string.IsNullOrWhiteSpace(actionStep.EndPoint))
+            throw new ArgumentException("ActionStep endpoint must be provided for REPLACE operation.");
+
+        // Format endpoint with identifier if needed
+        string endpoint = GenerateFormattedEndpoint(payload, appConfig, actionStep);
+
+        var customConfig = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appId);
+        var client = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
+
+        var content = PrepareHttpContent(payload as JObject ?? JObject.FromObject(payload), customConfig?.HttpSettings?.ContentType);
+
+        HttpMethod httpMethod = actionStep.HttpVerb switch
+        {
+            HttpVerbs.PUT => HttpMethod.Put,
+            HttpVerbs.PATCH => new HttpMethod("PATCH"),
+            _ => throw new NotSupportedException("Unsupported HTTP verb for Replace operation.")
+        };
+
+        using var request = new HttpRequestMessage(httpMethod, endpoint)
+        {
+            Content = content
+        };
+
+        var response = await client.SendAsync(request, cancellationToken);
+        string responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Log.Error(
+                "[RESTIntegrationV4] ReplaceAsync failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
+                appConfig.AppId, correlationId, response.StatusCode, responseBody);
+            throw new HttpRequestException($"Error replacing user: {response.StatusCode} - {responseBody}");
+        }
+
+        // Optionally log success
+        _ = CreateLogAsync(appConfig.AppId,
+            $"Replace User (Step {actionStep.StepOrder})",
+            $"User replaced successfully for the id {resource.Identifier}",
+            LogType.Edit,
+            LogSeverities.Information,
+            correlationId);
+
+        return resource;
+    }
 
     /// <summary>
     /// Retrieves a user by identifier using action-based configuration (multi-step, V4).
@@ -264,9 +313,10 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         throw new NotSupportedException("This method is obsolete and no longer supported. Use the overload that accepts an ActionStep parameter instead.");
     }
 
+    [Obsolete("Use ReplaceAsync with ActionStep parameter instead.")]
     public virtual Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
     {
-        throw new NotImplementedException();
+        throw new NotSupportedException("This method is obsolete and no longer supported. Use the overload that accepts an ActionStep parameter instead.");
     }
 
     public virtual Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
