@@ -5,24 +5,34 @@ namespace KN.KloudIdentity.Mapper.Utils;
 
 public static class AzureCredentialHelper
 {
+
+    private const string TenantIdKey = "AZURE_TENANT_ID";
+    private const string ClientIdKey = "AZURE_CLIENT_ID";
+    private const string ClientSecretKey = "AZURE_CLIENT_SECRET";
+
     public static ClientSecretCredential CreateClientSecretCredential(IConfiguration configuration)
     {
-        var tenantId = configuration["AZURE_TENANT_ID"];
-        var clientId = configuration["AZURE_CLIENT_ID"];
-        var clientSecret = configuration["AZURE_CLIENT_SECRET"];
-        if (string.IsNullOrWhiteSpace(tenantId))
-        {
-            throw new InvalidOperationException("Configuration value 'AZURE_TENANT_ID' is missing or empty. It must be set to create a ClientSecretCredential for Azure App Configuration / Key Vault access.");
-        }
-        if (string.IsNullOrWhiteSpace(clientId))
-        {
-            throw new InvalidOperationException("Configuration value 'AZURE_CLIENT_ID' is missing or empty. It must be set to create a ClientSecretCredential for Azure App Configuration / Key Vault access.");
-        }
-        if (string.IsNullOrWhiteSpace(clientSecret))
-        {
-            throw new InvalidOperationException("Configuration value 'AZURE_CLIENT_SECRET' is missing or empty. It must be set to create a ClientSecretCredential for Azure App Configuration / Key Vault access.");
-        }
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        var tenantId = GetRequiredValue(configuration, TenantIdKey);
+        var clientId = GetRequiredValue(configuration, ClientIdKey);
+        var clientSecret = GetRequiredValue(configuration, ClientSecretKey);
 
         return new ClientSecretCredential(tenantId, clientId, clientSecret);
+    }
+
+    private static string GetRequiredValue(IConfiguration configuration, string key)
+    {
+        var value = configuration[key];
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new ArgumentNullException(
+                key,
+                $@"Configuration error: Required environment variable '{key}' is missing or empty. " +
+                $@"Please set '{key}' in your environment variables, Kubernetes Secret, or app settings configuration.");
+        }
+
+        return value;
     }
 }
