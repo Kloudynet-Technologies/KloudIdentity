@@ -7,10 +7,10 @@ namespace KN.KloudIdentity.Mapper.MapperCore;
 public class IntegrationBaseFactory : IIntegrationBaseFactory
 {
     private readonly AppSettings _appSettings;
-    private readonly IList<IIntegrationBase> _integrations;
-    private readonly Dictionary<string, IIntegrationBase> _integrationTypeDict;
+    private readonly IList<IIntegrationBaseV2> _integrations;
+    private readonly Dictionary<string, IIntegrationBaseV2> _integrationTypeDict;
 
-    public IntegrationBaseFactory(IList<IIntegrationBase> integrations,
+    public IntegrationBaseFactory(IList<IIntegrationBaseV2> integrations,
         IOptions<AppSettings> appSettings)
     {
         _integrations = integrations;
@@ -18,11 +18,11 @@ public class IntegrationBaseFactory : IIntegrationBaseFactory
         _appSettings = appSettings.Value;
     }
 
-    public IIntegrationBase GetIntegration(IntegrationMethods integrationMethod, string appId = "")
+    public IIntegrationBaseV2 GetIntegration(IntegrationMethods integrationMethod, string appId = "")
     {
         // Filter integrations by the specified integration method
         var integrations = _integrations.Where(i => i.IntegrationMethod == integrationMethod);
-        var integrationBases = integrations as IIntegrationBase[] ?? integrations.ToArray();
+        var integrationBases = integrations as IIntegrationBaseV2[] ?? integrations.ToArray();
         if (integrationBases.Length == 0)
         {
             throw new InvalidOperationException(
@@ -30,7 +30,7 @@ public class IntegrationBaseFactory : IIntegrationBaseFactory
         }
 
         var integrationMapping = _appSettings.IntegrationMappings;
-        
+
         // Check for specific appId mapping in configuration
         if (!string.IsNullOrEmpty(appId))
         {
@@ -51,7 +51,7 @@ public class IntegrationBaseFactory : IIntegrationBaseFactory
                 return defaultIntegration;
             }
         }
-        
+
         throw new InvalidOperationException($"No integrations registered for integration method: {integrationMethod}");
     }
 }
