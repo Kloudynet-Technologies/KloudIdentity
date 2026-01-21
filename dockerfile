@@ -10,6 +10,11 @@ COPY . .
 # Navigate to the API project folder
 WORKDIR /src/Microsoft.SCIM.WebHostSample
 
+# 🔐 Apply OS security patches (fix CVEs)
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 # Restore dependencies
 RUN dotnet restore
 
@@ -20,11 +25,17 @@ RUN dotnet build -c Debug --no-restore
 RUN dotnet publish -c Debug -o /app --no-restore
 
 # Use the official Microsoft .NET runtime image for running the application
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim AS runtime
 
 # Set the working directory in the image to '/app'
 WORKDIR /app
 
+# 🔐 Apply OS security patches (runtime CVEs)
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+    
 # Copy the build output from the 'publish' folder to '/app' in the image
 COPY --from=build /app .
 
