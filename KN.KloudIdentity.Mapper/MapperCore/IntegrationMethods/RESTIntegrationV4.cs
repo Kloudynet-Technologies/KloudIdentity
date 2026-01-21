@@ -319,7 +319,13 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         throw new NotSupportedException("This method is obsolete and no longer supported. Use the overload that accepts an ActionStep parameter instead.");
     }
 
+    [Obsolete("Use UpdateAsync with ActionStep parameter instead.")]
     public virtual Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
+    {
+        throw new NotSupportedException("This method is obsolete and no longer supported. Use the overload that accepts an ActionStep parameter instead.");
+    }
+
+    public virtual Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
