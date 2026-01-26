@@ -119,9 +119,8 @@ public class RESTIntegration : IIntegrationBase
 
             throw new HttpRequestException($"Error creating user: {response.StatusCode} - {responseBody}");
         }
-        
-        var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
-        var idVal = payload[idField]!.ToString();
+
+        dynamic idVal = GetIDValue(payload, appConfig, correlationId, HttpRequestTypes.POST);
 
         // Fire-and-forget success logging
         _ = Task.Run(async () =>
@@ -151,6 +150,46 @@ public class RESTIntegration : IIntegrationBase
         {
             Identifier = idVal
         };
+    }
+
+    protected virtual dynamic GetIDValue(dynamic payload, AppConfig appConfig, string correlationId, HttpRequestTypes? requestType = HttpRequestTypes.POST)
+    {
+        var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!, requestType);
+        if (string.IsNullOrEmpty(idField))
+        {
+            // Try to find a property like "id", "identifier", "key", etc.
+            var possibleKeys = new[] { "id", "identifier", "key", "userKey", "user_id", "userId" };
+            foreach (var key in possibleKeys)
+            {
+                // Try to find the key at any depth in the payload (recursive search)
+                var token = payload.SelectToken($"$..{key}", false);
+                if (token != null)
+                {
+                    Log.Warning(
+                        "Identifier field not mapped, but found '{Key}' in payload. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                        key, appConfig.AppId, correlationId);
+
+                    return token.ToString();
+                }
+            }
+
+            Log.Error(
+                "Identifier field not configured and no fallback found in payload. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                appConfig.AppId, correlationId);
+            throw new InvalidOperationException("Identifier field not configured and no fallback found in payload.");
+        }
+
+        var idFieldPath = payload.SelectToken(idField);
+        if (idFieldPath == null)
+        {
+            Log.Error(
+                "Identifier field not found in the response payload. AppId: {AppId}, CorrelationID: {CorrelationID}, Field: {Field}",
+                appConfig.AppId, correlationId, idField);
+            throw new InvalidOperationException("Identifier field not found in the response payload.");
+        }
+
+        var idVal = idFieldPath.ToString();
+        return idVal;
     }
 
     /// <summary>
@@ -201,7 +240,8 @@ public class RESTIntegration : IIntegrationBase
 
             string urnPrefix = _configuration["urnPrefix"]!;
 
-            string usernameField = GetFieldMapperValue(appConfig, "UserName", urnPrefix);
+            string usernameField = GetFieldMapperValue(appConfig, "UserName", urnPrefix, HttpRequestTypes.GET)
+                                   ?? "username";
 
             core2EntUsr.Identifier = identifier;
 
@@ -232,18 +272,24 @@ public class RESTIntegration : IIntegrationBase
         throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
     }
 
-    protected string GetFieldMapperValue(AppConfig appConfig, string fieldName, string urnPrefix)
+    protected string? GetFieldMapperValue(AppConfig appConfig, string fieldName, string urnPrefix, HttpRequestTypes? requestType = HttpRequestTypes.POST)
     {
-        var field = appConfig.UserAttributeSchemas.FirstOrDefault(f => f.SourceValue == fieldName);
+        var field = appConfig.UserAttributeSchemas.FirstOrDefault(f => f.SourceValue == fieldName &&
+                                                                        f.HttpRequestType == requestType);
+        field ??= appConfig.UserAttributeSchemas
+            .SelectMany(s => s.ChildSchemas ?? Array.Empty<AttributeSchema>())
+            .FirstOrDefault(f => f.SourceValue == fieldName &&
+                                 f.HttpRequestType == requestType);
         if (field != null)
         {
             return field.DestinationField.Remove(0, urnPrefix.Length);
         }
         else
         {
-            Log.Error("Field not found in the user schema. FieldName: {FieldName}, AppId: {AppId}", fieldName,
+            Log.Warning("Field not found in the user schema. FieldName: {FieldName}, AppId: {AppId}", fieldName,
                 appConfig.AppId);
-            throw new NotFoundException(fieldName + " field not found in the user schema.");
+
+            return string.Empty;
         }
     }
 
@@ -325,7 +371,7 @@ public class RESTIntegration : IIntegrationBase
             if (!response.IsSuccessStatusCode)
             {
                 Log.Error(
-                    "Updatting failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
+                    "Updating failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
                     appConfig.AppId, correlationId, response.StatusCode, responseBody);
 
                 throw new HttpRequestException($"Error creating user: {response.StatusCode} - {responseBody}");
