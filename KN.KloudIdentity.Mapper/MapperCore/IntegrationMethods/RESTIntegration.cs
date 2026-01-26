@@ -289,7 +289,7 @@ public class RESTIntegration : IIntegrationBase
             Log.Warning("Field not found in the user schema. FieldName: {FieldName}, AppId: {AppId}", fieldName,
                 appConfig.AppId);
 
-            return string.Empty;
+            return null;
         }
     }
 
@@ -347,8 +347,7 @@ public class RESTIntegration : IIntegrationBase
             // Log the operation.
             _ = Task.Run(() =>
             {
-                var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
-                string? idVal = payload[idField]!.ToString();
+                string? idVal = GetIDValue(payload, appConfig, correlationId, HttpRequestTypes.PUT);
 
                 Log.Information(
                     "User replaced successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
@@ -461,8 +460,7 @@ public class RESTIntegration : IIntegrationBase
         // Log the operation.
         _ = Task.Run(() =>
         {
-            var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!);
-            string? idVal = payload[idField]!.ToString();
+            string? idVal = GetIDValue(payload, appConfig, correlationId, HttpRequestTypes.PATCH);
 
             Log.Information(
                 "User updated successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
