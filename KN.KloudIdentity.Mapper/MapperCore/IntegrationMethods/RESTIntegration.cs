@@ -298,7 +298,10 @@ public class RESTIntegration : IIntegrationBase
         var property = jsonObject?.Properties()
             .FirstOrDefault(p => string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
 
-        return property!.Value.ToString();
+        if (property == null)
+            return string.Empty;
+
+        return property.Value.ToString();
     }
 
     /// <summary>
