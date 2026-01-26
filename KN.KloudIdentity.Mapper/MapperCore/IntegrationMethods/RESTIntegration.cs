@@ -252,7 +252,7 @@ public class RESTIntegration : IIntegrationBase
             }
             else
             {
-                core2EntUsr.UserName = GetValueCaseInsensitive(user, usernameField);
+                core2EntUsr.UserName = usernameField == null ? string.Empty : GetValueCaseInsensitive(user, usernameField);
             }
 
             // Create log for the operation.
