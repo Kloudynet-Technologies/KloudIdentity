@@ -120,7 +120,7 @@ public class RESTIntegration : IIntegrationBase
             throw new HttpRequestException($"Error creating user: {response.StatusCode} - {responseBody}");
         }
 
-        dynamic idVal = GetIDValue(payload, appConfig, correlationId, HttpRequestTypes.POST);
+        dynamic idVal = GetIDValue(JObject.Parse(responseBody), appConfig, correlationId, HttpRequestTypes.POST);
 
         // Fire-and-forget success logging
         _ = Task.Run(async () =>
@@ -152,7 +152,7 @@ public class RESTIntegration : IIntegrationBase
         };
     }
 
-    protected virtual dynamic GetIDValue(dynamic payload, AppConfig appConfig, string correlationId, HttpRequestTypes? requestType = HttpRequestTypes.POST)
+    protected virtual dynamic GetIDValue(JObject response, AppConfig appConfig, string correlationId, HttpRequestTypes? requestType = HttpRequestTypes.POST)
     {
         var idField = GetFieldMapperValue(appConfig, "Identifier", _configuration["urnPrefix"]!, requestType);
         if (string.IsNullOrEmpty(idField))
@@ -162,7 +162,7 @@ public class RESTIntegration : IIntegrationBase
             foreach (var key in possibleKeys)
             {
                 // Try to find the key at any depth in the payload (recursive search)
-                var token = payload.SelectToken($"$..{key}", false);
+                var token = response.SelectToken($"$..{key}", false);
                 if (token != null)
                 {
                     Log.Warning(
@@ -179,7 +179,7 @@ public class RESTIntegration : IIntegrationBase
             throw new InvalidOperationException("Identifier field not configured and no fallback found in payload.");
         }
 
-        var idFieldPath = payload.SelectToken(idField);
+        var idFieldPath = response.SelectToken(idField);
         if (idFieldPath == null)
         {
             Log.Error(
@@ -350,7 +350,7 @@ public class RESTIntegration : IIntegrationBase
             // Log the operation.
             _ = Task.Run(() =>
             {
-                string? idVal = GetIDValue(payload, appConfig, correlationId, HttpRequestTypes.PUT);
+                string? idVal = GetIDValue(JObject.Parse(responseBody), appConfig, correlationId, HttpRequestTypes.PUT);
 
                 Log.Information(
                     "User replaced successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",
@@ -461,9 +461,10 @@ public class RESTIntegration : IIntegrationBase
         }
 
         // Log the operation.
-        _ = Task.Run(() =>
+        _ = Task.Run(async () =>
         {
-            string? idVal = GetIDValue(payload, appConfig, correlationId, HttpRequestTypes.PATCH);
+            var responseBody = await response!.Content.ReadAsStringAsync();
+            string? idVal = GetIDValue(JObject.Parse(responseBody), appConfig, correlationId, HttpRequestTypes.PATCH);
 
             Log.Information(
                 "User updated successfully for the id {IdVal}. AppId: {AppId}, CorrelationID: {CorrelationID}",

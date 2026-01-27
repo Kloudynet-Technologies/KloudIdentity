@@ -69,11 +69,22 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
             "Payload mapped and prepared successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
             user.Identifier, appId, correlationId);
 
-        // Step 3: Update user
-        await integrationOp.UpdateAsync(payload, user, appConfig, correlationId);
-        Log.Information(
-            "User updated successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
-            user.Identifier, appId, correlationId);
+        // Step 3: Update or delete user
+        if (!user.Active)
+        {
+            // Custom logic for deprovisioning
+            await integrationOp.DeleteAsync(user.Identifier, appConfig, correlationId);
+            Log.Information(
+                "Deprovisioning logic applied successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
+                user.Identifier, appId, correlationId);
+        }
+        else
+        {
+            await integrationOp.UpdateAsync(payload, user, appConfig, correlationId);
+            Log.Information(
+                "User updated successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
+                user.Identifier, appId, correlationId);
+        }
 
         _ = CreateLogAsync(appConfig.AppId, user.Identifier, correlationId);
     }
