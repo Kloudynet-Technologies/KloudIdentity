@@ -29,4 +29,8 @@
     <ProjectReference Include="..\KN.KloudIdentity.Mapper.Domain\KN.KloudIdentity.Mapper.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="RESTIntegration\" />
+  </ItemGroup>
+
 </Project>

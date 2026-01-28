@@ -1,4 +1,6 @@
-﻿namespace KN.KloudIdentity.Mapper.Domain;
+﻿using KN.KI.LogAggregator.SerilogInitializer.Common;
+
+namespace KN.KloudIdentity.Mapper.Domain;
 
 public class AppSettings
 {
@@ -9,7 +11,8 @@ public class AppSettings
     public UserMigrationOptions UserMigration { get; set; } = new UserMigrationOptions();
     public LicenseValidationOptions LicenseValidation { get; set; } = new LicenseValidationOptions();
     public List<AppIntegrationConfig> AppIntegrationConfigs { get; set; } = [];
-    public IntegrationMappings IntegrationMappings { get; set; } = new IntegrationMappings();
+    public IntegrationMappings IntegrationMappings { get; set; } = new IntegrationMappings();    
+    public List<LoggingConfigs> LoggingConfigs { get; set; } = new List<LoggingConfigs>();
 }
 
 public class RabbitMQOptions
@@ -51,9 +54,7 @@ public class AppIntegrationConfig
 {
     public string AppId { get; set; } = string.Empty;
     public HttpSettings? HttpSettings { get; set; }
-    
     public string ClientType { get; set; } = string.Empty;
-    public string? TechnicianUrl { get; set; }
 }   
 
 public class HttpSettings

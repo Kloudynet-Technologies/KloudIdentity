@@ -3,6 +3,7 @@
 //------------------------------------------------------------
 
 using Azure.Identity;
+using KN.KloudIdentity.Mapper.Utils;
 
 namespace Microsoft.SCIM.WebHostSample
 {
@@ -27,9 +28,10 @@ namespace Microsoft.SCIM.WebHostSample
                     config.AddAzureAppConfiguration(options =>
                     {
                         var appConfigLabel = settings["AppConfigLabel"];
+                        var credential = AzureCredentialHelper.CreateClientSecretCredential(settings);
                         options.Connect(settings["ConnectionStrings:AppConfig"])
                             .Select("KI:*", appConfigLabel)
-                            .ConfigureKeyVault(kv => { kv.SetCredential(new DefaultAzureCredential()); })
+                            .ConfigureKeyVault(kv => { kv.SetCredential(credential); })
                             .ConfigureRefresh(refresh =>
                             {
                                 refresh.Register("KI:RefreshOption", refreshAll: true)
