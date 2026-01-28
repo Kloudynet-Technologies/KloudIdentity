@@ -2,7 +2,9 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //------------------------------------------------------------
 
+using Hangfire.SqlServer;
 using KN.KloudIdentity.Mapper.Common.License;
+using Microsoft.Data.SqlClient;
 using Serilog;
 
 namespace Microsoft.SCIM.WebHostSample
@@ -34,6 +36,7 @@ namespace Microsoft.SCIM.WebHostSample
     using KN.KI.RabbitMQ.MessageContracts;
     using KN.KloudIdentity.Mapper.Masstransit;
     using Hangfire;
+    using KN.KI.LogAggregator.SerilogInitializer;
 
     public class Startup
     {
@@ -42,27 +45,25 @@ namespace Microsoft.SCIM.WebHostSample
 
         public IMonitor MonitoringBehavior { get; set; }
         public IProvider ProviderBehavior { get; set; }
+        private readonly AppSettings _appSettings;
 
         public Startup(IWebHostEnvironment env, IConfiguration configuration)
         {
             this.environment = env;
             this.configuration = configuration;
+            _appSettings = configuration.GetSection("KI").Get<AppSettings>();
 
-            ConfigureSerilog(configuration);
+            // Ensure that at least one primary logging method is configured.
+            // If no logging configuration is found, the application cannot proceed and will throw an exception.
+            if (_appSettings?.LoggingConfigs == null || _appSettings.LoggingConfigs.Count == 0)
+            {
+                throw new InvalidOperationException("LoggingConfigs must be configured in appsettings.");
+            }
+
+            Log.Logger = LoggingConfigurator.ConfigureLogging(_appSettings!.LoggingConfigs[0], "SCIMConnector");
 
             this.MonitoringBehavior = new ConsoleMonitor();
             this.ProviderBehavior = new InMemoryProvider();
-        }
-
-        private void ConfigureSerilog(IConfiguration config)
-        {
-            var logLevel = config.GetValue<string>("Logging:LogLevel:Default") ?? "Information";
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Is(Enum.Parse<Serilog.Events.LogEventLevel>(logLevel, true))
-                .WriteTo.Console()
-                .WriteTo.File("logs/log.txt", rollingInterval: RollingInterval.Day)
-                .Enrich.FromLogContext()
-                .CreateLogger();
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -183,8 +184,41 @@ namespace Microsoft.SCIM.WebHostSample
 
             if (!string.IsNullOrWhiteSpace(configuration["ConnectionStrings:HangfireDBConnection"]))
             {
-                services.AddHangfire(x =>
-                    x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
+                if (configuration["Database:AuthMode"] == "Entra")
+                {
+                    services.AddHangfire((sp, cfg) =>
+                    {
+                        var config = sp.GetRequiredService<IConfiguration>();
+                        var connectionString = config["ConnectionStrings:HangfireDBConnection"];
+
+                        cfg.UseSqlServerStorage(
+                            () =>
+                            {
+                                var conn = new SqlConnection(connectionString);
+
+                                // Attach Entra token
+                                var token = AzureSqlTokenProvider
+                                    .GetTokenAsync(config)
+                                    .GetAwaiter().GetResult();
+
+                                conn.AccessToken = token;
+                                return conn;
+                            },
+                            new SqlServerStorageOptions
+                            {
+                                PrepareSchemaIfNecessary = true,
+                                CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+                                SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+                                QueuePollInterval = TimeSpan.FromSeconds(15)
+                            });
+                    });
+                }
+                else
+                {
+                    services.AddHangfire(x =>
+                        x.UseSqlServerStorage(configuration["ConnectionStrings:HangfireDBConnection"]));
+                }
+
                 services.AddHangfireServer();
             }
 
