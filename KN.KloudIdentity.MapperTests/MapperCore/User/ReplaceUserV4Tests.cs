@@ -62,7 +62,7 @@ public class ReplaceUserV4Tests
         var user = new Core2EnterpriseUser { Identifier = "user1" };
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Xunit.Assert.ThrowsAsync<InvalidOperationException>(() =>
             sut.ReplaceAsync(user, "app1", "corr1"));
     }
 
@@ -77,7 +77,7 @@ public class ReplaceUserV4Tests
             {
                 new  Mapper.Domain.Application.Action
                 {
-                    ActionName = ActionNames.PATCH,
+                    ActionName = ActionNames.EDIT,
                     ActionTarget = ActionTargets.USER,
                     ActionSteps = new List<ActionStep> { new ActionStep { StepOrder = 1 } }
                 }
@@ -91,7 +91,7 @@ public class ReplaceUserV4Tests
         var user = new Core2EnterpriseUser { Identifier = "user1" };
 
         // Act & Assert
-        await Assert.ThrowsAsync<NotSupportedException>(() =>
+        await Xunit.Assert.ThrowsAsync<NotSupportedException>(() =>
             sut.ReplaceAsync(user, "app1", "corr1"));
     }
 
@@ -108,7 +108,7 @@ public class ReplaceUserV4Tests
             {
                 new  Mapper.Domain.Application.Action
                 {
-                    ActionName = ActionNames.PATCH,
+                    ActionName = ActionNames.EDIT,
                     ActionTarget = ActionTargets.USER,
                     ActionSteps = new List<ActionStep> { actionStep }
                 }
@@ -135,7 +135,7 @@ public class ReplaceUserV4Tests
         var user = new Core2EnterpriseUser { Identifier = "user1" };
 
         // Act & Assert
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Xunit.Assert.ThrowsAsync<InvalidOperationException>(() =>
             sut.ReplaceAsync(user, "app1", "corr1"));
         Assert.Contains("Payload validation failed", ex.Message);
     }
@@ -153,7 +153,7 @@ public class ReplaceUserV4Tests
             {
                 new  Mapper.Domain.Application.Action
                 {
-                    ActionName = ActionNames.PATCH,
+                    ActionName = ActionNames.EDIT,
                     ActionTarget = ActionTargets.USER,
                     ActionSteps = new List<ActionStep> { actionStep }
                 }
@@ -201,7 +201,7 @@ public class ReplaceUserV4Tests
             {
                 new  Mapper.Domain.Application.Action
                 {
-                    ActionName = ActionNames.PATCH,
+                    ActionName = ActionNames.EDIT,
                     ActionTarget = ActionTargets.USER,
                     ActionSteps = new List<ActionStep> { actionStep1, actionStep2 }
                 }
@@ -244,8 +244,8 @@ public class ReplaceUserV4Tests
         var user = new Core2EnterpriseUser { Identifier = "user1" };
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => sut.ReplaceAsync(user, null!, "corr1"));
-        await Assert.ThrowsAsync<ArgumentException>(() => sut.ReplaceAsync(user, string.Empty, "corr1"));
+        await Xunit.Assert.ThrowsAsync<ArgumentNullException>(() => sut.ReplaceAsync(user, null!, "corr1"));
+        await Xunit.Assert.ThrowsAsync<ArgumentException>(() => sut.ReplaceAsync(user, string.Empty, "corr1"));
     }
 
     [Fact]
@@ -256,8 +256,8 @@ public class ReplaceUserV4Tests
         var user = new Core2EnterpriseUser { Identifier = "user1" };
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => sut.ReplaceAsync(user, "app1", null!));
-        await Assert.ThrowsAsync<ArgumentException>(() => sut.ReplaceAsync(user, "app1", string.Empty));
+        await Xunit.Assert.ThrowsAsync<ArgumentNullException>(() => sut.ReplaceAsync(user, "app1", null!));
+        await Xunit.Assert.ThrowsAsync<ArgumentException>(() => sut.ReplaceAsync(user, "app1", string.Empty));
     }
 
     [Fact]
@@ -289,7 +289,7 @@ public class ReplaceUserV4Tests
         var user = new Core2EnterpriseUser { Identifier = "user1" };
 
         // Act & Assert
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ReplaceAsync(user, "app1", "corr1"));
+        var ex = await Xunit.Assert.ThrowsAsync<InvalidOperationException>(() => sut.ReplaceAsync(user, "app1", "corr1"));
         Assert.Contains("No", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -306,7 +306,7 @@ public class ReplaceUserV4Tests
             {
                 new  Mapper.Domain.Application.Action
                 {
-                    ActionName = ActionNames.PATCH,
+                    ActionName = ActionNames.EDIT,
                     ActionTarget = ActionTargets.USER,
                     ActionSteps = new List<ActionStep> { actionStep }
                 }
