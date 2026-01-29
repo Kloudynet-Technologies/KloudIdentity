@@ -231,6 +231,12 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             _ => throw new NotSupportedException($"Action step with StepOrder {actionStep.StepOrder}, HttpVerb {actionStep.HttpVerb}, EndPoint '{actionStep.EndPoint}' is not supported for provisioning.")
         };
 
+        if (string.IsNullOrWhiteSpace(actionStep.EndPoint))
+        {
+            Log.Error("ActionStep endpoint is missing for PROVISION operation. AppId: {AppId}, CorrelationID: {CorrelationID}", appConfig.AppId, correlationId);
+            throw new ArgumentException("ActionStep endpoint must be provided for PROVISION operation.");
+        }
+
         string formattedEndpoint = actionStep.EndPoint.Contains('{')
                     ? GenerateFormattedEndpoint(GetIDValue(jPayload, actionStep, appConfig, correlationId, HttpRequestTypes.POST), actionStep)
                     : actionStep.EndPoint;
@@ -365,22 +371,36 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         return new StringContent(payload.ToString(Formatting.None), Encoding.UTF8, "application/json");
     }
 
-    protected virtual string GetFieldMapperValue(ActionStep actionStep, string appId, string fieldName, string urnPrefix)
+    protected virtual string? GetFieldMapperValue(ActionStep actionStep, string appId, string fieldName, string urnPrefix, HttpRequestTypes? requestType = HttpRequestTypes.POST)
     {
-        var field = actionStep.UserAttributeSchemas?.FirstOrDefault(f => f.SourceValue == fieldName);
-        if (field == null)
+        if (actionStep == null || actionStep.UserAttributeSchemas == null)
         {
-            Log.Error("Field not found in the user schema. FieldName: {FieldName}, AppId: {AppId}", fieldName,
-                appId);
-            throw new NotFoundException(fieldName + " field not found in the user schema.");
+            Log.Error("ActionStep or UserAttributeSchemas is null. AppId: {AppId}", appId);
+            return null;
         }
 
-        return field.DestinationField.Remove(0, urnPrefix.Length);
+        var field = actionStep.UserAttributeSchemas.FirstOrDefault(f => f.SourceValue == fieldName &&
+                                                                        f.HttpRequestType == requestType);
+        field ??= actionStep.UserAttributeSchemas
+            .SelectMany(s => s.ChildSchemas ?? Array.Empty<AttributeSchema>())
+            .FirstOrDefault(f => f.SourceValue == fieldName &&
+                                 f.HttpRequestType == requestType);
+        if (field != null)
+        {
+            return field.DestinationField.Remove(0, urnPrefix.Length);
+        }
+        else
+        {
+            Log.Warning("Field not found in the user schema. FieldName: {FieldName}, AppId: {AppId}", fieldName,
+                appId);
+
+            return null;
+        }
     }
 
     protected virtual dynamic GetIDValue(JObject response, ActionStep actionStep, AppConfig appConfig, string correlationId, HttpRequestTypes? requestType = HttpRequestTypes.POST)
     {
-        var idField = GetFieldMapperValue(actionStep, appConfig.AppId, "Identifier", _configuration["urnPrefix"]!);
+        var idField = GetFieldMapperValue(actionStep, appConfig.AppId, "Identifier", _configuration["urnPrefix"]!, requestType);
         if (string.IsNullOrEmpty(idField))
         {
             // Try to find a property like "id", "identifier", "key", etc.
