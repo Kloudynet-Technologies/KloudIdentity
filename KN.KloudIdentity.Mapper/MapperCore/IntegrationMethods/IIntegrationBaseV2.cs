@@ -41,4 +41,17 @@ public interface IIntegrationBaseV2 : IIntegrationBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Replaced user</returns>
     Task<Core2EnterpriseUser> ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates the user asynchronously in LOB application.
+    /// </summary>
+    /// <param name="payload">Payload to be sent for update</param>
+    /// <param name="resource">User resource to be updated</param>
+    /// <param name="appId">Application ID</param>
+    /// <param name="appConfig">App configuration</param>
+    /// <param name="actionStep">Action step</param>
+    /// <param name="correlationId">Correlation ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns></returns>
+    Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default);
 }

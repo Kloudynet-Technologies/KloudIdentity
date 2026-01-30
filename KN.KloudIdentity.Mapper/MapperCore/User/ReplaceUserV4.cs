@@ -45,14 +45,14 @@ public class ReplaceUserV4 : ProvisioningBase, IReplaceResourceV2
 
         // Step 2: Find the Replace actions (multi-step)
         var actionSteps = appConfig.Actions
-            .Where(a => a.ActionName == ActionNames.PATCH && a.ActionTarget == ActionTargets.USER)
+            .Where(a => a.ActionName == ActionNames.EDIT && a.ActionTarget == ActionTargets.USER)
             .SelectMany(a => a.ActionSteps)
             .OrderBy(s => s.StepOrder)
             .ToList();
 
         if (!actionSteps.Any())
         {
-            throw new InvalidOperationException($"No PATCH actions for USER target found for AppId: {appId}");
+            throw new InvalidOperationException($"No EDIT actions for USER target found for AppId: {appId}");
         }
 
         // Step 3: Get integration operator

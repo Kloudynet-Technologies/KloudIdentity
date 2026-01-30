@@ -62,7 +62,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             throw new ArgumentException("ActionStep endpoint must be provided for REPLACE operation.");
 
         // Format endpoint with identifier if needed
-        string endpoint = GenerateFormattedEndpoint(payload, appConfig, actionStep);
+        string endpoint = GenerateFormattedEndpoint(resource.Identifier, actionStep);
 
         var customConfig = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appId);
         var client = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
@@ -72,7 +72,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         HttpMethod httpMethod = actionStep.HttpVerb switch
         {
             HttpVerbs.PUT => HttpMethod.Put,
-            HttpVerbs.PATCH => new HttpMethod("PATCH"),
+            HttpVerbs.PATCH => HttpMethod.Patch,
             _ => throw new NotSupportedException("Unsupported HTTP verb for Replace operation.")
         };
 
@@ -121,7 +121,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             throw new ArgumentException("ActionStep endpoint must be provided for GET operation.");
 
         // Format endpoint with identifier if needed
-        string endpoint = GenerateFormattedEndpoint(identifier, appConfig, actionStep);
+        string endpoint = GenerateFormattedEndpoint(identifier, actionStep);
 
         var customConfig = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
         var client = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
@@ -175,7 +175,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
     }
 
     // Helper to format endpoint with identifier if needed
-    private string GenerateFormattedEndpoint(string identifier, AppConfig appConfig, ActionStep actionStep)
+    private string GenerateFormattedEndpoint(string identifier, ActionStep actionStep)
     {
         string formattedEndpoint = actionStep.EndPoint;
         if (actionStep.EndPoint != null && actionStep.EndPoint.Contains('{'))
@@ -230,7 +230,16 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             HttpVerbs.PUT => HttpMethod.Put,
             _ => throw new NotSupportedException($"Action step with StepOrder {actionStep.StepOrder}, HttpVerb {actionStep.HttpVerb}, EndPoint '{actionStep.EndPoint}' is not supported for provisioning.")
         };
-        string formattedEndpoint = GenerateFormattedEndpoint(payload, appConfig, actionStep);
+
+        if (string.IsNullOrWhiteSpace(actionStep.EndPoint))
+        {
+            Log.Error("ActionStep endpoint is missing for PROVISION operation. AppId: {AppId}, CorrelationID: {CorrelationID}", appConfig.AppId, correlationId);
+            throw new ArgumentException("ActionStep endpoint must be provided for PROVISION operation.");
+        }
+
+        string formattedEndpoint = actionStep.EndPoint.Contains('{')
+                    ? GenerateFormattedEndpoint(GetIDValue(jPayload, actionStep, appConfig, correlationId, HttpRequestTypes.POST), actionStep)
+                    : actionStep.EndPoint;
 
         using var request = new HttpRequestMessage(httpMethod, formattedEndpoint)
         {
@@ -251,8 +260,13 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             throw new HttpRequestException($"Error creating user: {response.StatusCode} - {responseBody}");
         }
 
-        var idField = GetFieldMapperValue(actionStep, appConfig.AppId, "Identifier", _configuration["urnPrefix"]!);
-        var idVal = payload[idField]!.ToString();
+        var requestType = httpMethod == HttpMethod.Post ? HttpRequestTypes.POST
+            : httpMethod == HttpMethod.Put ? HttpRequestTypes.PUT
+            : httpMethod == HttpMethod.Patch ? HttpRequestTypes.PATCH
+            : HttpRequestTypes.POST;
+
+        var responseJson = JObject.Parse(responseBody);
+        var idVal = GetIDValue(responseJson, actionStep, appConfig, correlationId, requestType);
 
         // Fire-and-forget success logging
         _ = Task.Run(async () =>
@@ -284,23 +298,6 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         };
     }
 
-    protected virtual string GenerateFormattedEndpoint(dynamic payload, AppConfig appConfig, ActionStep actionStep)
-    {
-        string formattedEndpoint = actionStep.EndPoint;
-        if (actionStep.EndPoint != null && actionStep.EndPoint.Contains('{'))
-        {
-            // Attempt to extract values for placeholders from the payload
-            // For example, if endpoint is "/users/{0}/confirm", use the "Identifier" field
-            var idField = GetFieldMapperValue(actionStep, appConfig.AppId, "Identifier", _configuration["urnPrefix"]!);
-            var idVal = payload[idField]?.ToString();
-            // Add more fields as needed for additional placeholders
-            // For now, only support {0} -> idVal
-            formattedEndpoint = string.Format(actionStep.EndPoint, idVal);
-        }
-
-        return formattedEndpoint;
-    }
-
     [Obsolete("Use ProvisionAsync with ActionStep parameter instead.")]
     public Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
     {
@@ -319,7 +316,13 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         throw new NotSupportedException("This method is obsolete and no longer supported. Use the overload that accepts an ActionStep parameter instead.");
     }
 
+    [Obsolete("Use UpdateAsync with ActionStep parameter instead.")]
     public virtual Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig, string correlationId)
+    {
+        throw new NotSupportedException("This method is obsolete and no longer supported. Use the overload that accepts an ActionStep parameter instead.");
+    }
+
+    public virtual Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
@@ -368,17 +371,71 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         return new StringContent(payload.ToString(Formatting.None), Encoding.UTF8, "application/json");
     }
 
-    protected virtual string GetFieldMapperValue(ActionStep actionStep, string appId, string fieldName, string urnPrefix)
+    protected virtual string? GetFieldMapperValue(ActionStep actionStep, string appId, string fieldName, string urnPrefix, HttpRequestTypes? requestType = HttpRequestTypes.POST)
     {
-        var field = actionStep.UserAttributeSchemas?.FirstOrDefault(f => f.SourceValue == fieldName);
-        if (field == null)
+        if (actionStep == null || actionStep.UserAttributeSchemas == null)
         {
-            Log.Error("Field not found in the user schema. FieldName: {FieldName}, AppId: {AppId}", fieldName,
-                appId);
-            throw new NotFoundException(fieldName + " field not found in the user schema.");
+            Log.Error("ActionStep or UserAttributeSchemas is null. AppId: {AppId}", appId);
+            return null;
         }
 
-        return field.DestinationField.Remove(0, urnPrefix.Length);
+        var field = actionStep.UserAttributeSchemas.FirstOrDefault(f => f.SourceValue == fieldName &&
+                                                                        f.HttpRequestType == requestType);
+        field ??= actionStep.UserAttributeSchemas
+            .SelectMany(s => s.ChildSchemas ?? Array.Empty<AttributeSchema>())
+            .FirstOrDefault(f => f.SourceValue == fieldName &&
+                                 f.HttpRequestType == requestType);
+        if (field != null)
+        {
+            return field.DestinationField.Remove(0, urnPrefix.Length);
+        }
+        else
+        {
+            Log.Warning("Field not found in the user schema. FieldName: {FieldName}, AppId: {AppId}", fieldName,
+                appId);
+
+            return null;
+        }
+    }
+
+    protected virtual dynamic GetIDValue(JObject response, ActionStep actionStep, AppConfig appConfig, string correlationId, HttpRequestTypes? requestType = HttpRequestTypes.POST)
+    {
+        var idField = GetFieldMapperValue(actionStep, appConfig.AppId, "Identifier", _configuration["urnPrefix"]!, requestType);
+        if (string.IsNullOrEmpty(idField))
+        {
+            // Try to find a property like "id", "identifier", "key", etc.
+            var possibleKeys = new[] { "id", "identifier", "key", "userKey", "user_id", "userId" };
+            foreach (var key in possibleKeys)
+            {
+                // Try to find the key at any depth in the payload (recursive search)
+                var token = response.SelectToken($"$..{key}", false);
+                if (token != null)
+                {
+                    Log.Warning(
+                        "Identifier field not mapped, but found '{Key}' in payload. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                        key, appConfig.AppId, correlationId);
+
+                    return token.ToString();
+                }
+            }
+
+            Log.Error(
+                "Identifier field not configured and no fallback found in payload. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                appConfig.AppId, correlationId);
+            throw new InvalidOperationException("Identifier field not configured and no fallback found in payload.");
+        }
+
+        var idFieldPath = response.SelectToken(idField);
+        if (idFieldPath == null)
+        {
+            Log.Error(
+                "Identifier field not found in the response payload. AppId: {AppId}, CorrelationID: {CorrelationID}, Field: {Field}",
+                appConfig.AppId, correlationId, idField);
+            throw new InvalidOperationException("Identifier field not found in the response payload.");
+        }
+
+        var idVal = idFieldPath.ToString();
+        return idVal;
     }
 
     protected async Task CreateLogAsync(string appId, string eventInfo, string logMessage, LogType logType,
