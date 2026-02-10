@@ -47,7 +47,7 @@ public class UpdateUserV4(
         
         // Step 2: Find the Update actions (multistep)
         var actionSteps = appConfig.Actions
-            .Where(a => a is { ActionName: ActionNames.PATCH, ActionTarget: ActionTargets.USER })
+            .Where(a => a is { ActionName: ActionNames.EDIT, ActionTarget: ActionTargets.USER })
             .SelectMany(a => a.ActionSteps)
             .OrderBy(s => s.StepOrder)
             .ToList();

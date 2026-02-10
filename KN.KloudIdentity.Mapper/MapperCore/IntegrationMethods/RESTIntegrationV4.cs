@@ -341,6 +341,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
 
         HttpMethod httpMethod = actionStep.HttpVerb switch
         {
+            HttpVerbs.POST => HttpMethod.Post,
             HttpVerbs.PUT => HttpMethod.Put,
             HttpVerbs.PATCH => HttpMethod.Patch,
             _ => throw new NotSupportedException("Unsupported HTTP verb for Replace operation.")

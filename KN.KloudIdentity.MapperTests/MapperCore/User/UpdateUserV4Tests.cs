@@ -135,7 +135,7 @@ public class UpdateUserV4Tests
             {
                 new Mapper.Domain.Application.Action
                 {
-                    ActionName = ActionNames.PATCH,
+                    ActionName = ActionNames.EDIT,
                     ActionTarget = ActionTargets.USER,
                     ActionSteps = new List<ActionStep> { actionStep }
                 }
@@ -198,7 +198,7 @@ public class UpdateUserV4Tests
             {
                 new Mapper.Domain.Application.Action
                 {
-                    ActionName = ActionNames.PATCH,
+                    ActionName = ActionNames.EDIT,
                     ActionTarget = ActionTargets.USER,
                     ActionSteps = new List<ActionStep> { actionStep }
                 }
@@ -267,7 +267,7 @@ public class UpdateUserV4Tests
             {
                 new  Mapper.Domain.Application.Action
                 {
-                    ActionName = ActionNames.PATCH,
+                    ActionName = ActionNames.EDIT,
                     ActionTarget = ActionTargets.USER,
                     ActionSteps = new List<ActionStep> { actionStep1, actionStep2 }
                 }
@@ -329,7 +329,7 @@ public class UpdateUserV4Tests
             {
                 new  Mapper.Domain.Application.Action
                 {
-                    ActionName = ActionNames.PATCH,
+                    ActionName = ActionNames.EDIT,
                     ActionTarget = ActionTargets.USER,
                     ActionSteps = new List<ActionStep> { actionStep }
                 }
