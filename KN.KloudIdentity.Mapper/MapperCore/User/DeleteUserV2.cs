@@ -85,7 +85,7 @@ public class DeleteUserV2 : ProvisioningBase, IDeleteResourceV2
     {
         var logEntity = new CreateLogEntity(
             appId,
-            LogType.Deprovision.ToString(),
+            nameof(LogType.Deprovision),
             LogSeverities.Information,
             "User Deprovision",
             $"User deleted successfully for the id {identifier}",

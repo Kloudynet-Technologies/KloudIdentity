@@ -1,8 +1,11 @@
+using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
+using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 using Serilog;
 
@@ -80,5 +83,25 @@ public class UpdateUserV4(
                 user.Identifier, appId, correlationId);
             
         }
+        _ = CreateLogAsync(appConfig.AppId, user.Identifier, correlationId);
+    }
+    
+    private async Task CreateLogAsync(string appId, string identifier, string correlationId)
+    {
+        var logEntity = new CreateLogEntity(
+            appId,
+            nameof(LogType.Edit),
+            LogSeverities.Information,
+            "Update user (V4)",
+            $"User update successfully for the id {identifier}",
+            correlationId,
+            AppConstant.LoggerName,
+            DateTime.UtcNow,
+            AppConstant.User,
+            null,
+            null
+        );
+
+        await _logger.CreateLogAsync(logEntity);
     }
 }
