@@ -15,13 +15,9 @@ public class UpdateUserV4(
     IGetFullAppConfigQuery getFullAppConfigQuery,
     IOutboundPayloadProcessor outboundPayloadProcessor,
     IKloudIdentityLogger logger,
-    IHttpClientFactory httpClientFactory,
     IIntegrationBaseFactory integrationBaseFactory)
     : ProvisioningBase(getFullAppConfigQuery, outboundPayloadProcessor), IUpdateResourceV2
 {
-    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
-    private readonly IKloudIdentityLogger _logger = logger;
-
     public async Task UpdateAsync(IPatch patch, string appId, string correlationId)
     {
         ArgumentNullException.ThrowIfNull(patch);
@@ -36,10 +32,13 @@ public class UpdateUserV4(
             appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST,
             appId) ?? throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
         
-        if (patch.PatchRequest is not PatchRequest2 patchRequest)        {
-            Log.Error($"[UpdateUserV4] Invalid patch request type. Expected PatchRequest2. AppId: {appId}, CorrelationID: {correlationId}");
-            throw new ArgumentNullException(nameof(patchRequest));
-        }   
+        if (patch.PatchRequest is not PatchRequest2 patchRequest)
+        {
+            var actualType = patch.PatchRequest?.GetType().FullName ?? "null";
+            Log.Error($"[UpdateUserV4] Invalid edit request type. Expected {nameof(PatchRequest2)} but received {actualType}. AppId: {appId}, CorrelationID: {correlationId}");
+            throw new NotSupportedException(
+                $"Unsupported patch request type '{actualType}' for argument '{nameof(patch)}'. Expected '{typeof(PatchRequest2).FullName}'.");
+        }
         
         Core2EnterpriseUser user = new Core2EnterpriseUser();
         user.Apply(patchRequest);
@@ -102,6 +101,6 @@ public class UpdateUserV4(
             null
         );
 
-        await _logger.CreateLogAsync(logEntity);
+        await logger.CreateLogAsync(logEntity);
     }
 }
