@@ -49,7 +49,7 @@ public class DeleteUserV4(
         {
             Log.Information("Processing ActionStep {StepOrder} with HttpVerb {HttpVerb}", actionStep.StepOrder,
                 actionStep.HttpVerb);
-            await integrationOp.DeleteAsync(resourceIdentifier.Identifier, appConfig, correlationId);
+            await integrationOp.DeleteAsync(resourceIdentifier.Identifier, appId, appConfig, actionStep, correlationId);
         }
 
         Log.Information(

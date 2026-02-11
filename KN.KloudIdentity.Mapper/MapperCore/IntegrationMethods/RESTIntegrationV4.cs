@@ -318,7 +318,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
     }
 
     [Obsolete("Use DeleteAsync with ActionStep parameter instead.")]    
-    public Task DeleteAsync(string identifier, AppConfig appConfig, string correlationId)
+    public virtual Task DeleteAsync(string identifier, AppConfig appConfig, string correlationId)
     {
         throw new NotImplementedException();
     }
@@ -372,7 +372,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             correlationId);
     }
 
-    public async Task  DeleteAsync(string identifier, string appId, AppConfig appConfig, ActionStep actionStep,
+    public virtual async Task  DeleteAsync(string identifier, string appId, AppConfig appConfig, ActionStep actionStep,
         string correlationId,
         CancellationToken cancellationToken = default)
     {
