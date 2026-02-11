@@ -14,8 +14,6 @@ namespace KN.KloudIdentity.MapperTests.MapperCore.User;
 
 public class UpdateUserV4Tests
 {
-    private readonly Mock<IAuthContext> _authContextMock = new();
-    private readonly Mock<IHttpClientFactory> _httpClientFactoryMock = new();
     private readonly Mock<IGetFullAppConfigQuery> _getFullAppConfigQueryMock = new();
     private readonly Mock<IKloudIdentityLogger> _loggerMock = new();
     private readonly Mock<IIntegrationBaseFactory> _integrationBaseFactoryMock = new();
@@ -34,7 +32,6 @@ public class UpdateUserV4Tests
             _getFullAppConfigQueryMock.Object,
             _outboundPayloadProcessorMock.Object,
             _loggerMock.Object,
-            _httpClientFactoryMock.Object,
             _integrationBaseFactoryMock.Object
         );
     }
