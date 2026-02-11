@@ -251,7 +251,7 @@ public class UpdateUserV4Tests
     }
     
     [Fact]
-    public async Task ReplaceAsync_ProcessesMultipleActionSteps()
+    public async Task UpdateAsync_ProcessesMultipleActionSteps()
     {
         // Arrange
         var actionStep1 = new ActionStep { StepOrder = 1, UserAttributeSchemas = new List<AttributeSchema>() };

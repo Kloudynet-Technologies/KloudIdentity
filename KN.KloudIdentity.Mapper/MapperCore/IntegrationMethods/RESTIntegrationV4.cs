@@ -329,7 +329,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             throw new ArgumentNullException(nameof(actionStep));
 
         if (string.IsNullOrWhiteSpace(actionStep.EndPoint))
-            throw new ArgumentException("ActionStep endpoint must be provided for REPLACE operation.");
+            throw new ArgumentException("ActionStep endpoint must be provided for update operation.");
 
         // Format endpoint with identifier if needed
         string endpoint = GenerateFormattedEndpoint(resource.Identifier, actionStep);
@@ -344,7 +344,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             HttpVerbs.POST => HttpMethod.Post,
             HttpVerbs.PUT => HttpMethod.Put,
             HttpVerbs.PATCH => HttpMethod.Patch,
-            _ => throw new NotSupportedException("Unsupported HTTP verb for Replace operation.")
+            _ => throw new NotSupportedException("Unsupported HTTP verb for update operation.")
         };
 
         using var request = new HttpRequestMessage(httpMethod, endpoint)
@@ -358,9 +358,9 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         if (!response.IsSuccessStatusCode)
         {
             Log.Error(
-                "[RESTIntegrationV4] ReplaceAsync failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
+                "[RESTIntegrationV4] UpdateAsync failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
                 appConfig.AppId, correlationId, response.StatusCode, responseBody);
-            throw new HttpRequestException($"Error replacing user: {response.StatusCode} - {responseBody}");
+            throw new HttpRequestException($"Error updating user: {response.StatusCode} - {responseBody}");
         }
 
         // Optionally log success

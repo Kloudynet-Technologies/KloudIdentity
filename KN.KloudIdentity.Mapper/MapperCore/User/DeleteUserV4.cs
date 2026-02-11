@@ -54,7 +54,7 @@ public class DeleteUserV4(
 
         Log.Information(
             $"User deleted successfully for the id {resourceIdentifier.Identifier}. AppId: {appId}, CorrelationID: {correlationId}");
-        _ = CreateLogAsync(resourceIdentifier.Identifier, appId, correlationId);
+        _ = CreateLogAsync(appId, resourceIdentifier.Identifier, correlationId);
     }
 
     private async Task CreateLogAsync(string appId, string identifier, string correlationId)

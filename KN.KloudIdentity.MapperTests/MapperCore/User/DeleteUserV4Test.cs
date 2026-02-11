@@ -85,7 +85,7 @@ public class DeleteUserV4Test
     }
 
     [Fact]
-    public async Task ReplaceAsync_ProcessesMultipleActionSteps()
+    public async Task DeleteAsync_ProcessesMultipleActionSteps()
     {
         // Arrange
         var actionStep1 = new ActionStep { StepOrder = 1, UserAttributeSchemas = new List<AttributeSchema>() };
