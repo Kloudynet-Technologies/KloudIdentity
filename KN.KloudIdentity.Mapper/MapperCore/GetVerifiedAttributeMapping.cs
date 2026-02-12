@@ -29,12 +29,23 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
                 $"Application configuration not found for the provided App ID: {appId}. Ensure the App ID is correct and properly configured.");
             throw new NotFoundException(
                 $"Application configuration for App ID '{appId}' was not found. Please verify the App ID and try again.");
-        }       
+        }
+
+        // Find the step by stepId from all actions
+        var step = appConfig.Actions?
+            .SelectMany(a => a.ActionSteps ?? Enumerable.Empty<ActionStep>())
+            .FirstOrDefault(s => s.Id == stepId);
+
+        if (step == null)
+        {
+            Log.Error("Action step not found for App ID: {AppId} and Step ID: {StepId}", appId, stepId);
+            throw new NotFoundException($"Action step not found for App ID: {appId} and Step ID: {stepId}");
+        }
+
 
         if (type == ObjectTypes.Group)
         {
-            var groupAttributes = appConfig.GroupAttributeSchemas?.Where(x => x.ActionStepId == stepId)
-                .ToList();
+            var groupAttributes = step.GroupAttributeSchema?.ToList();
 
             if (groupAttributes == null)
             {
@@ -46,8 +57,7 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
         }
         else if (type == ObjectTypes.User)
         {
-            var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.ActionStepId == stepId)
-                .ToList();
+            var userAttributes = step.UserAttributeSchemas?.ToList();
 
             if (userAttributes == null)
             {
