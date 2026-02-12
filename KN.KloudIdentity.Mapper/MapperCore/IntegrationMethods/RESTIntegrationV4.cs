@@ -48,11 +48,6 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         IntegrationMethod = IntegrationMethods.REST;
     }
 
-    public virtual Task DeleteAsync(string identifier, AppConfig appConfig, string correlationId)
-    {
-        throw new NotImplementedException();
-    }
-
     public virtual async Task<Core2EnterpriseUser> ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
     {
         if (actionStep == null)
@@ -178,7 +173,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
     private string GenerateFormattedEndpoint(string identifier, ActionStep actionStep)
     {
         string formattedEndpoint = actionStep.EndPoint;
-        if (actionStep.EndPoint != null && actionStep.EndPoint.Contains('{'))
+        if (actionStep.EndPoint.Contains('{'))
         {
             // For now, only support {0} -> identifier
             formattedEndpoint = string.Format(actionStep.EndPoint, identifier);
@@ -322,9 +317,90 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         throw new NotSupportedException("This method is obsolete and no longer supported. Use the overload that accepts an ActionStep parameter instead.");
     }
 
-    public virtual Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
+    [Obsolete("Use DeleteAsync with ActionStep parameter instead.")]    
+    public virtual Task DeleteAsync(string identifier, AppConfig appConfig, string correlationId)
     {
-        throw new NotImplementedException();
+        throw new NotSupportedException("This method is obsolete and no longer supported. Use the overload that accepts an ActionStep parameter instead.");
+    }
+
+    public virtual async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
+    {
+        if (actionStep == null)
+            throw new ArgumentNullException(nameof(actionStep));
+
+        if (string.IsNullOrWhiteSpace(actionStep.EndPoint))
+            throw new ArgumentException("ActionStep endpoint must be provided for update operation.");
+
+        // Format endpoint with identifier if needed
+        string endpoint = GenerateFormattedEndpoint(resource.Identifier, actionStep);
+
+        var customConfig = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appId);
+        var client = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
+
+        var content = PrepareHttpContent(payload as JObject ?? JObject.FromObject(payload), customConfig?.HttpSettings?.ContentType);
+
+        HttpMethod httpMethod = actionStep.HttpVerb switch
+        {
+            HttpVerbs.POST => HttpMethod.Post,
+            HttpVerbs.PUT => HttpMethod.Put,
+            HttpVerbs.PATCH => HttpMethod.Patch,
+            _ => throw new NotSupportedException("Unsupported HTTP verb for update operation.")
+        };
+
+        using var request = new HttpRequestMessage(httpMethod, endpoint)
+        {
+            Content = content
+        };
+
+        var response = await client.SendAsync(request, cancellationToken);
+        string responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Log.Error(
+                "[RESTIntegrationV4] UpdateAsync failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
+                appConfig.AppId, correlationId, response.StatusCode, responseBody);
+            throw new HttpRequestException($"Error updating user: {response.StatusCode} - {responseBody}");
+        }
+
+        // Optionally log success
+        _ = CreateLogAsync(appConfig.AppId,
+            $"Update User (Step {actionStep.StepOrder})",
+            $"User update successfully for the id {resource.Identifier}",
+            LogType.Edit,
+            LogSeverities.Information,
+            correlationId);
+    }
+
+    public virtual async Task  DeleteAsync(string identifier, string appId, AppConfig appConfig, ActionStep actionStep,
+        string correlationId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(actionStep);
+        ArgumentException.ThrowIfNullOrWhiteSpace((actionStep.EndPoint));
+        
+        if(actionStep.HttpVerb != HttpVerbs.DELETE)
+            throw new NotSupportedException($"Right now action step with StepOrder {actionStep.StepOrder}, HttpVerb {actionStep.HttpVerb}, EndPoint '{actionStep.EndPoint}' is not supported for delete operation. Expected HttpVerb: DELETE.");
+        
+        var endpoint = GenerateFormattedEndpoint(identifier, actionStep);
+        var client = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
+        var response = await client.DeleteAsync(endpoint, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            Log.Error(
+                "Deprovisioning failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
+                appConfig.AppId, correlationId, response.StatusCode, responseBody);
+
+            throw new HttpRequestException($"Error deleting user: {response.StatusCode} - {responseBody}");
+        }
+        _ = CreateLogAsync(appConfig.AppId,
+            $"Delete User",
+            $"User deleted successfully for the id {identifier}",
+            LogType.Deprovision,
+            LogSeverities.Information,
+            correlationId);
     }
 
     /// <summary>
