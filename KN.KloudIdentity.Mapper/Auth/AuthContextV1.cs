@@ -3,6 +3,7 @@
 //------------------------------------------------------------
 
 using System.Security.Authentication;
+using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using Newtonsoft.Json;
 
@@ -45,5 +46,10 @@ public class AuthContextV1 : IAuthContext
         var authDetails = JsonConvert.DeserializeObject<dynamic>(appConfig.AuthenticationDetails.ToString());
 
         return await _authStrategy.GetTokenAsync(authDetails);
+    }
+
+    Task<Dictionary<AuthenticationMethods, string>> IAuthContext.GetTokenListAsync(dynamic appConfig, SCIMDirections direction)
+    {
+        throw new NotImplementedException();
     }
 }

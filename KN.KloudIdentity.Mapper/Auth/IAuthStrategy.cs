@@ -2,8 +2,7 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using KN.KloudIdentity.Mapper.Auth;
-using KN.KloudIdentity.Mapper.Config;
+
 using KN.KloudIdentity.Mapper.Domain.Authentication;
 
 namespace KN.KloudIdentity.Mapper;

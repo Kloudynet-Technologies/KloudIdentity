@@ -199,7 +199,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
     {
         Log.Information($"Getting authentication token for direction: {direction} for app: {config.AppId}");
 
-        return await _authContext.GetTokenAsync(config, direction);
+        return await _authContext.GetTokenListAsync(config, direction);
     }
 
     public virtual async Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource, CancellationToken cancellationToken = default)
@@ -347,8 +347,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         var client = _httpClientFactory.CreateClient();
         var token = await GetAuthenticationAsync(appConfig, direction, cancellationToken, client);
 
-        HttpClientExtensions.SetAuthenticationHeaders(client, appConfig.AuthenticationMethodOutbound,
-            appConfig.AuthenticationDetails, token);
+        HttpClientExtensionsV2.SetAuthenticationHeaders(client, appConfig.AuthenticationDetails, token);
 
         var customHttpClient = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
         if (customHttpClient?.HttpSettings?.Headers is { Count: > 0 })
