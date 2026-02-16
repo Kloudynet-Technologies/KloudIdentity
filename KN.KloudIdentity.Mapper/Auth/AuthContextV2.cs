@@ -40,9 +40,9 @@ public class AuthContextV2 : IAuthContext
     /// <param name="direction">SCIM direction : Inbound or Outbound</param>
     /// <returns>Dictionary with Authentication Method and relavent Token</returns>
     /// <exception cref="AuthenticationException">Thrown when authentication fails.</exception>
-    public async Task<Dictionary<AuthenticationMethods, string>> GetTokenListAsync(dynamic appConfig, SCIMDirections direction)
+    public async Task<Dictionary<int, string>> GetTokenListAsync(dynamic appConfig, SCIMDirections direction)
     {
-        var tokens = new Dictionary<AuthenticationMethods, string>();
+        var tokens = new Dictionary<int, string>();
 
         var authFlow = direction == SCIMDirections.Inbound ? appConfig.AuthenticationMethodInbound : appConfig.AuthenticationFlow;
 
@@ -65,10 +65,7 @@ public class AuthContextV2 : IAuthContext
                 throw new AuthenticationException($"Authentication step '{step.StepTitle}' failed to produce a token.");
             }
 
-            if (!tokens.ContainsKey(method))
-                tokens.Add(method, token);
-            else
-                tokens[method] = token; ;
+            tokens[step.StepOrder] = token; ;
         }
 
         return tokens;

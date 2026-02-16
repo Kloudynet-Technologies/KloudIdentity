@@ -48,7 +48,7 @@ public class AuthContextV1 : IAuthContext
         return await _authStrategy.GetTokenAsync(authDetails);
     }
 
-    Task<Dictionary<AuthenticationMethods, string>> IAuthContext.GetTokenListAsync(dynamic appConfig, SCIMDirections direction)
+    public Task<Dictionary<int, string>> GetTokenListAsync(dynamic appConfig, SCIMDirections direction)
     {
         throw new NotImplementedException();
     }
