@@ -178,7 +178,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
     private string GenerateFormattedEndpoint(string identifier, ActionStep actionStep)
     {
         string formattedEndpoint = actionStep.EndPoint;
-        if (actionStep.EndPoint != null && actionStep.EndPoint.Contains('{'))
+        if (actionStep.EndPoint.Contains('{'))
         {
             // For now, only support {0} -> identifier
             formattedEndpoint = string.Format(actionStep.EndPoint, identifier);
@@ -347,7 +347,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         var client = _httpClientFactory.CreateClient();
         var token = await GetAuthenticationAsync(appConfig, direction, cancellationToken, client);
 
-        HttpClientExtensionsV2.SetAuthenticationHeaders(client, appConfig.AuthenticationDetails, token);
+        HttpClientExtensionsV2.SetAuthenticationHeaders(client,AuthenticationMethods.APIKey, appConfig.AuthenticationDetails, token);
 
         var customHttpClient = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
         if (customHttpClient?.HttpSettings?.Headers is { Count: > 0 })

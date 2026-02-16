@@ -1,4 +1,4 @@
-﻿//------------------------------------------------------------
+//------------------------------------------------------------
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
@@ -8,7 +8,7 @@ using System.Net.Http.Headers;
 
 namespace KN.KloudIdentity.Mapper.Utils
 {
-    public static class HttpClientExtensions
+    public static class HttpClientExtensionsV2
     {
         /// <summary>
         /// Extension method to set authentication headers based on the provided configuration.
@@ -74,7 +74,7 @@ namespace KN.KloudIdentity.Mapper.Utils
             }
         }
 
-        public static void SetCustomHeaders(this HttpClient httpClient, Dictionary<string, string>? headers)
+        public static void SetCustomHeadersV2(this HttpClient httpClient, Dictionary<string, string>? headers)
         {
             if (headers == null)
                 return;
