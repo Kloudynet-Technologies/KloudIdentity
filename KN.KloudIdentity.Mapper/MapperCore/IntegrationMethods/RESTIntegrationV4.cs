@@ -426,7 +426,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             var step = appConfig?.AuthenticationFlow?.Steps.FirstOrDefault(x => x.StepOrder == authToken.Key);
             if(step == null)
             {
-                Log.Warning("No matching authentication step found for token with key {TokenKey} in app {AppId}. Skipping setting authentication header for this token.", authToken.Key, appConfig.AppId);
+                Log.Error("No matching authentication step found for token with key {TokenKey} in app {AppId}. Skipping setting authentication header for this token.", authToken.Key, appConfig.AppId);
                 throw new NotFoundException($"No matching authentication step found for token with step {authToken.Key} in app {appConfig.AppId}. Cannot set authentication header for this token.");
             }
             

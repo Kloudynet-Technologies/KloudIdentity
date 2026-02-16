@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace KN.KloudIdentity.Mapper.Domain.Authentication;
+﻿namespace KN.KloudIdentity.Mapper.Domain.Authentication;
 
 public class AuthenticationFlowStep
 {
