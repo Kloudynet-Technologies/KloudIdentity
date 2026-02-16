@@ -54,4 +54,15 @@ public interface IIntegrationBaseV2 : IIntegrationBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns></returns>
     Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes the user asynchronously in LOB application.
+    /// </summary>
+    /// <param name="identifier">Unique identifier of the user to be deleted</param>
+    /// <param name="appId">Application ID</param>
+    /// <param name="appConfig">App configuration</param>
+    /// <param name="actionStep"></param>
+    /// <param name="correlationId"></param>
+    /// <param name="cancellationToken"></param>
+    Task DeleteAsync(string identifier, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default);
 }

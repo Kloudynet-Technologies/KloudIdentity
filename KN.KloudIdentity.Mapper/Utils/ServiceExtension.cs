@@ -71,7 +71,7 @@ public static class ServiceExtension
         services.AddScoped<ICreateResourceV2, CreateUserV4>();
 
         services.AddScoped<IIntegrationBase, RestIntegrationManageEngine>();
-        services.AddScoped<IIntegrationBase, RESTIntegrationV4>();
+        services.AddScoped<IIntegrationBaseV2, RESTIntegrationV4>();
 
         services.AddScoped<IIntegrationBase, RESTIntegration>();
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
@@ -81,10 +81,11 @@ public static class ServiceExtension
         services.AddScoped<IIntegrationBaseFactory, IntegrationBaseFactory>();
 
         services.AddScoped<IReqStagQueuePublisher, ReqStagQueuePublisherV1>();
-        services.AddScoped<IGetResourceV2, GetUserV2>();
-        services.AddScoped<IReplaceResourceV2, ReplaceUserV2>();
-        services.AddScoped<IUpdateResourceV2, UpdateUserV2>();
-        services.AddScoped<IDeleteResourceV2, DeleteUserV2>();
+        services.AddScoped<IGetResourceV2, GetUserV4>();
+        services.AddScoped<IReplaceResourceV2, ReplaceUserV4>();
+        
+        services.AddScoped<IUpdateResourceV2, UpdateUserV4>();
+        services.AddScoped<IDeleteResourceV2, DeleteUserV4>();
 
         services.AddScoped<ICreateResource<Core2Group>, CreateGroup>();
         services.AddScoped<IDeleteResource<Core2Group>, DeleteGroup>();
