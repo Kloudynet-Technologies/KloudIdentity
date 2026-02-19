@@ -1,7 +1,4 @@
-using System;
-using Xunit;
 using Moq;
-using System.Threading.Tasks;
 using KN.KloudIdentity.Mapper.MapperCore.User;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore;
@@ -10,7 +7,6 @@ using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using Microsoft.Extensions.Options;
 using KN.KloudIdentity.Mapper.Domain;
-using Xunit.Sdk;
 using Microsoft.SCIM;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper;
@@ -28,8 +24,6 @@ public class GetUserV4Tests
     private readonly Mock<IOutboundPayloadProcessor> _mockOutboundPayloadProcessor = new();
     private readonly Mock<IKloudIdentityLogger> _mockLogger = new();
     private readonly Mock<IOptions<AppSettings>> _mockOptions = new();
-    private readonly Mock<IServiceProvider> _mockServiceProvider = new();
-    private readonly Mock<IAuthContext> _mockAuthContext = new();
 
     private GetUserV4 CreateSut()
     {

@@ -48,8 +48,9 @@ public class AuthContextV1 : IAuthContext
         return await _authStrategy.GetTokenAsync(authDetails);
     }
 
+    [Obsolete("GetTokenListAsync is not implemented in AuthContextV1. Use AuthContextV2 with Authentication Flow instead.")]
     public Task<Dictionary<int, string>> GetTokenListAsync(dynamic appConfig, SCIMDirections direction)
     {
-        throw new NotImplementedException();
+        throw new NotImplementedException("GetTokenListAsync is not implemented in AuthContextV1. Use AuthContextV2 with Authentication Flow instead.");
     }
 }

@@ -5,6 +5,7 @@
 using System.Security.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
+using Newtonsoft.Json;
 
 namespace KN.KloudIdentity.Mapper;
 
@@ -24,11 +25,24 @@ public class AuthContextV2 : IAuthContext
         _authStrategies = authStrategies;
     }
 
-
-    [Obsolete("Use GetTokenListAsync with Authentication Flow instead.")]
-    Task<string> IAuthContext.GetTokenAsync(dynamic appConfig, SCIMDirections direction)
+    [Obsolete("Use GetTokenListAsync with Authentication Flow instead. This method use only for inbound authentication. It will be removed in future versions.")]
+    public async Task<string> GetTokenAsync(dynamic appConfig, SCIMDirections direction)
     {
-        throw new NotImplementedException();
+        if(direction != SCIMDirections.Inbound)
+        {
+            throw new AuthenticationException("GetTokenAsync is only supported for Inbound direction. Use GetTokenListAsync with Authentication Flow for Outbound direction.");
+        }
+
+        var authStrategy = _authStrategies.FirstOrDefault(x => x.AuthenticationMethod == appConfig.AuthenticationMethodInbound);
+
+        if (authStrategy == null)
+        {
+            throw new AuthenticationException($"Authentication method {appConfig.AuthenticationMethod} is not supported.");
+        }
+
+        var authDetails = JsonConvert.DeserializeObject<dynamic>(appConfig.AuthenticationDetails.ToString());
+
+        return await authStrategy.GetTokenAsync(authDetails);
     }
 
     /// <summary>
@@ -41,12 +55,7 @@ public class AuthContextV2 : IAuthContext
     public async Task<Dictionary<int, string>> GetTokenListAsync(dynamic appConfig, SCIMDirections direction)
     {
         var tokens = new Dictionary<int, string>();
-
-        var authFlow = direction == SCIMDirections.Inbound
-            ? appConfig.AuthenticationMethodInbound
-            : appConfig.AuthenticationFlow;
-
-        var flow = authFlow as AuthenticationFlow;
+        var flow = appConfig.AuthenticationFlow as AuthenticationFlow;
 
         if (flow?.Steps == null || flow.Steps.Count == 0)
             throw new AuthenticationException("No authentication flow or steps found for this application.");

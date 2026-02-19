@@ -21,6 +21,6 @@ public interface IAuthContext
     /// Gets the authentication tokens list using the provided authentication flow configuration.</summary>
     /// <param name="appConfig">The authentication configuration model</param>
     /// <param name="direction">SCIM direction : Inbound or Outbound</param>
-    /// <returns>Dictionary with Authentication Method and relevant Token</returns>
+    /// <returns>Dictionary where the key is the authentication step order and the value is the corresponding token.</returns>
     Task<Dictionary<int, string>> GetTokenListAsync(dynamic appConfig, SCIMDirections direction);
 }
