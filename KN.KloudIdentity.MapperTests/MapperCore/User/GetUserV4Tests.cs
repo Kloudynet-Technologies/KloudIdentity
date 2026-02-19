@@ -1,7 +1,4 @@
-using System;
-using Xunit;
 using Moq;
-using System.Threading.Tasks;
 using KN.KloudIdentity.Mapper.MapperCore.User;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore;
@@ -10,10 +7,10 @@ using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using Microsoft.Extensions.Options;
 using KN.KloudIdentity.Mapper.Domain;
-using Xunit.Sdk;
 using Microsoft.SCIM;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper;
+using KN.KloudIdentity.Mapper.Domain.Authentication;
 using Microsoft.Extensions.Configuration;
 using Moq.Protected;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
@@ -27,7 +24,6 @@ public class GetUserV4Tests
     private readonly Mock<IOutboundPayloadProcessor> _mockOutboundPayloadProcessor = new();
     private readonly Mock<IKloudIdentityLogger> _mockLogger = new();
     private readonly Mock<IOptions<AppSettings>> _mockOptions = new();
-    private readonly Mock<IServiceProvider> _mockServiceProvider = new();
 
     private GetUserV4 CreateSut()
     {
@@ -38,7 +34,8 @@ public class GetUserV4Tests
             _mockLogger.Object);
     }
 
-    private RESTIntegrationV4 CreateRestIntegrationV4Sut(Func<HttpRequestMessage, HttpResponseMessage>? httpHandlerFunc = null)
+    private RESTIntegrationV4 CreateRestIntegrationV4Sut(
+        Func<HttpRequestMessage, HttpResponseMessage>? httpHandlerFunc = null)
     {
         var mockAuthContext = new Mock<IAuthContext>();
 
@@ -95,6 +92,8 @@ public class GetUserV4Tests
             }
         };
         _mockOptions.Setup(x => x.Value).Returns(appSettings);
+        mockAuthContext.Setup(x => x.GetTokenListAsync(It.IsAny<object>(), It.IsAny<SCIMDirections>()))
+            .ReturnsAsync(new Dictionary<int, string> { { 1, "test-token" } });
 
         var mockAuthStrategies = new List<IAuthStrategy>();
         var mockAppSettings = _mockOptions;
@@ -246,7 +245,8 @@ public class GetUserV4Tests
         var mockIntegrationMethod = new Mock<IIntegrationBaseV2>();
 #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
         mockIntegrationMethod
-            .Setup(x => x.GetAsync(identifier, It.IsAny<AppConfig>(), It.IsAny<ActionStep>(), correlationID, CancellationToken.None))
+            .Setup(x => x.GetAsync(identifier, It.IsAny<AppConfig>(), It.IsAny<ActionStep>(), correlationID,
+                CancellationToken.None))
             .ReturnsAsync((Core2EnterpriseUser?)null); // Simulate user not found
 #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
 
@@ -304,7 +304,8 @@ public class GetUserV4Tests
 
         var mockIntegrationMethod = new Mock<IIntegrationBaseV2>();
         mockIntegrationMethod
-            .Setup(x => x.GetAsync(identifier, It.IsAny<AppConfig>(), It.IsAny<ActionStep>(), correlationID, CancellationToken.None))
+            .Setup(x => x.GetAsync(identifier, It.IsAny<AppConfig>(), It.IsAny<ActionStep>(), correlationID,
+                CancellationToken.None))
             .ReturnsAsync(expectedUser); // Simulate user found
 
         _mockIntegrationFactory
@@ -370,7 +371,8 @@ public class GetUserV4Tests
         var mockIntegrationMethod = new Mock<IIntegrationBaseV2>();
 #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
         mockIntegrationMethod
-            .SetupSequence(x => x.GetAsync(identifier, It.IsAny<AppConfig>(), It.IsAny<ActionStep>(), correlationID, CancellationToken.None))
+            .SetupSequence(x => x.GetAsync(identifier, It.IsAny<AppConfig>(), It.IsAny<ActionStep>(), correlationID,
+                CancellationToken.None))
             .ReturnsAsync((Core2EnterpriseUser?)null) // First step: user not found
             .ReturnsAsync(expectedUser); // Second step: user found
 #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
@@ -413,7 +415,6 @@ public class GetUserV4Tests
     [Fact]
     public async Task Should_Throw_When_Endpoint_Is_Null_Or_Empty()
     {
-
         // Arrange
         var restIntegrationV4 = CreateRestIntegrationV4Sut();
         var appConfig = new AppConfig()
@@ -435,7 +436,8 @@ public class GetUserV4Tests
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(async () =>
         {
-            await restIntegrationV4.GetAsync(identifier, appConfig, actionStep, correlationID, CancellationToken.None);
+            await restIntegrationV4.GetAsync(identifier, appConfig, actionStep, correlationID,
+                CancellationToken.None);
         });
     }
 
@@ -447,7 +449,20 @@ public class GetUserV4Tests
         var appConfig = new AppConfig()
         {
             AppId = "test-app-id",
-            AuthenticationDetails = default!
+            AuthenticationDetails = default!,
+            AuthenticationFlow = new AuthenticationFlow
+            {
+                Steps =
+                [
+                    new AuthenticationFlowStep
+                    {
+                        StepTitle = "Step 1",
+                        StepOrder = 1,
+                        AuthenticationMethod = AuthenticationMethods.Basic,
+                        AuthenticationDetails = new { }
+                    }
+                ]
+            }
         };
         var identifier = "test-identifier";
         var correlationID = "test-correlation-id";
@@ -476,7 +491,8 @@ public class GetUserV4Tests
         // For brevity, this part is omitted.
 
         // Act
-        var result = await restIntegrationV4.GetAsync(identifier, appConfig, actionStep, correlationID, CancellationToken.None);
+        var result =
+            await restIntegrationV4.GetAsync(identifier, appConfig, actionStep, correlationID, CancellationToken.None);
 
         // Assert
         Assert.NotNull(result);
@@ -488,9 +504,22 @@ public class GetUserV4Tests
     {
         // Arrange
         var restIntegrationV4 = CreateRestIntegrationV4Sut();
-        var appConfig = new AppConfig()
+        var appConfig = new AppConfig
         {
             AppId = "test-app-id",
+            AuthenticationFlow = new AuthenticationFlow
+            {
+                Steps =
+                [
+                    new AuthenticationFlowStep
+                    {
+                        StepTitle = "Step 1",
+                        StepOrder = 1,
+                        AuthenticationMethod = AuthenticationMethods.Basic,
+                        AuthenticationDetails = new { }
+                    }
+                ]
+            },
             AuthenticationDetails = default!
         };
         var identifier = "test-identifier";
@@ -520,7 +549,8 @@ public class GetUserV4Tests
         // For brevity, this part is omitted.
 
         // Act
-        var result = await restIntegrationV4.GetAsync(identifier, appConfig, actionStep, correlationID, CancellationToken.None);
+        var result =
+            await restIntegrationV4.GetAsync(identifier, appConfig, actionStep, correlationID, CancellationToken.None);
 
         // Assert
         Assert.NotNull(result);

@@ -15,7 +15,7 @@ namespace KN.KloudIdentity.Mapper;
 /// </summary>
 public class OAuth2Strategy : IAuthStrategy
 {
-    public AuthenticationMethods AuthenticationMethod => AuthenticationMethods.OIDC_ClientCrd;
+    public AuthenticationMethods AuthenticationMethod => AuthenticationMethods.OAuth2;
 
     /// <summary>
     /// Gets the auth token for OAuth2.

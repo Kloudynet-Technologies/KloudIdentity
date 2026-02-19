@@ -7,7 +7,6 @@ using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
-using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Configuration;
@@ -194,7 +193,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
     {
         Log.Information($"Getting authentication token for direction: {direction} for app: {config.AppId}");
 
-        return await _authContext.GetTokenAsync(config, direction);
+        return await _authContext.GetTokenListAsync(config, direction);
     }
 
     public virtual async Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource, CancellationToken cancellationToken = default)
@@ -421,10 +420,18 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         CancellationToken cancellationToken = default)
     {
         var client = _httpClientFactory.CreateClient();
-        var token = await GetAuthenticationAsync(appConfig, direction, cancellationToken, client);
-
-        HttpClientExtensions.SetAuthenticationHeaders(client, appConfig.AuthenticationMethodOutbound,
-            appConfig.AuthenticationDetails, token);
+        var tokens = await GetAuthenticationAsync(appConfig, direction, cancellationToken, client);
+        foreach (var authToken in tokens)
+        {
+            var step = appConfig?.AuthenticationFlow?.Steps.FirstOrDefault(x => x.StepOrder == authToken.Key);
+            if(step == null)
+            {
+                Log.Error("No matching authentication step found for token with key {TokenKey} in app {AppId}. Skipping setting authentication header for this token.", authToken.Key, appConfig.AppId);
+                throw new NotFoundException($"No matching authentication step found for token with step {authToken.Key} in app {appConfig.AppId}. Cannot set authentication header for this token.");
+            }
+            
+            HttpClientExtensions.SetAuthenticationHeaders(client, step.AuthenticationMethod,step.AuthenticationDetails, authToken.Value);
+        }
 
         var customHttpClient = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
         if (customHttpClient?.HttpSettings?.Headers is { Count: > 0 })
@@ -513,7 +520,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         var idVal = idFieldPath.ToString();
         return idVal;
     }
-
+    
     protected async Task CreateLogAsync(string appId, string eventInfo, string logMessage, LogType logType,
         LogSeverities logSeverity, string correlationId)
     {

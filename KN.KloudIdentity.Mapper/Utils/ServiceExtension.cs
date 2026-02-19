@@ -42,7 +42,7 @@ public static class ServiceExtension
         services.AddScoped<Context>();
 
         services.AddScoped<AutoMapperConfig>();
-        services.AddScoped<IAuthContext, AuthContextV1>();
+        services.AddScoped<IAuthContext, AuthContextV2>();
         services.AddScoped<IAuthStrategy, ApiKeyStrategy>();
         services.AddScoped<IAuthStrategy, BasicAuthStrategy>();
         services.AddScoped<IAuthStrategy, OAuth2Strategy>();
@@ -50,10 +50,7 @@ public static class ServiceExtension
 
         services.AddScoped<IConfigReader, ConfigReaderSQL>();
 
-        services.AddScoped<IList<IIntegrationBaseV2>>(provider =>
-        {
-            return provider.GetServices<IIntegrationBaseV2>().ToList();
-        });
+        services.AddScoped<IList<IIntegrationBaseV2>>(provider => provider.GetServices<IIntegrationBaseV2>().ToList());
 
         var appSettingsSection = configuration.GetSection("KI");
         var appSettings = appSettingsSection.Get<AppSettings>();

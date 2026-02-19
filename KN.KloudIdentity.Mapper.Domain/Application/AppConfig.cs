@@ -24,6 +24,8 @@ public record AppConfig
     public dynamic? IntegrationDetails { get; set; }
 
     public ICollection<Action> Actions { get; set; } = [];
+    public AuthenticationFlow? AuthenticationFlow { get; set; }
+
 
     /// <summary>
     /// Validates that UserURIs is set when IntegrationMethodOutbound is REST.

@@ -38,7 +38,7 @@ namespace KN.KloudIdentity.Mapper.Utils
 
                 httpClient.DefaultRequestHeaders.Add(authConfig.AuthHeaderName.ToString(), token);
             }
-            else if (method == AuthenticationMethods.OIDC_ClientCrd)
+            else if (method == AuthenticationMethods.OAuth2)
             {
                 var auth = JsonConvert.DeserializeObject<OAuth2Authentication>(authConfig.ToString());
                 var tokenPrefix = string.IsNullOrWhiteSpace(auth.TokenPrefix)
