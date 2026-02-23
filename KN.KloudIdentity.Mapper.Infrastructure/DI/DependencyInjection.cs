@@ -1,3 +1,5 @@
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Repositories;
 using KN.KloudIdentity.Mapper.Infrastructure.Persistence.SQLServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -20,6 +22,8 @@ public static class DependencyInjection
                 connection,
                 b => b.MigrationsAssembly("KN.KloudIdentity.Mapper.Infrastructure"));
         }, ServiceLifetime.Transient, ServiceLifetime.Transient);
+        
+        services.AddScoped<IAppConfigSnapshotRepository, AppConfigSnapshotRepository>();
         
         return services;
     }
