@@ -4,6 +4,7 @@
 
 using Hangfire.SqlServer;
 using KN.KloudIdentity.Mapper.Common.License;
+using KN.KloudIdentity.Mapper.Infrastructure.DI;
 using Microsoft.Data.SqlClient;
 using Serilog;
 
@@ -148,6 +149,7 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddSingleton(typeof(IMonitor), this.MonitoringBehavior);
 
             services.ConfigureMapperServices(configuration);
+            services.AddInfrastructure(configuration);
 
             services.AddHttpClient();
 
@@ -157,6 +159,7 @@ namespace Microsoft.SCIM.WebHostSample
                 x.AddRequestClient<IMgtPortalServiceRequestMsg>(new Uri("queue:mgtportal_in"));
                 x.AddRequestClient<IMetaverseServiceRequestMsg>(new Uri("queue:metaverse_in"));
                 x.AddConsumer<InterserviceConsumer>();
+                x.AddConsumer<AppConfigSnapshotUpdatedConsumer>(); // ✅ add this
                 x.UsingRabbitMq((context, cfg) =>
                 {
                     var options = context.GetRequiredService<IOptions<AppSettings>>().Value;
