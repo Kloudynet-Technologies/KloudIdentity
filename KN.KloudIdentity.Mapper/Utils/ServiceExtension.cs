@@ -3,8 +3,6 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.BackgroundJobs;
-using KN.KloudIdentity.Mapper.Config;
-using KN.KloudIdentity.Mapper.Config.Db;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Commands;
@@ -39,16 +37,11 @@ public static class ServiceExtension
     {
         services.AddHttpClient();
         services.AddMemoryCache();
-        services.AddScoped<Context>();
-
-        services.AddScoped<AutoMapperConfig>();
         services.AddScoped<IAuthContext, AuthContextV2>();
         services.AddScoped<IAuthStrategy, ApiKeyStrategy>();
         services.AddScoped<IAuthStrategy, BasicAuthStrategy>();
         services.AddScoped<IAuthStrategy, OAuth2Strategy>();
         services.AddScoped<IAuthStrategy, DotRezAuthStrategy>();
-
-        services.AddScoped<IConfigReader, ConfigReaderSQL>();
 
         services.AddScoped<IList<IIntegrationBaseV2>>(provider => provider.GetServices<IIntegrationBaseV2>().ToList());
 

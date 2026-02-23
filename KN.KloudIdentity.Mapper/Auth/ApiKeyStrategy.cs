@@ -2,9 +2,6 @@
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
 
-using System.Dynamic;
-using KN.KloudIdentity.Mapper.Auth;
-using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
 using Newtonsoft.Json;
 

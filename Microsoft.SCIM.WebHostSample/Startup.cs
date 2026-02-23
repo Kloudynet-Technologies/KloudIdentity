@@ -14,7 +14,6 @@ namespace Microsoft.SCIM.WebHostSample
     using System.Threading.Tasks;
     using KN.KloudIdentity.Mapper.Utils;
     using KN.KloudIdentity.Mapper.Common.Exceptions;
-    using KN.KloudIdentity.Mapper.Config.Db;
     using Microsoft.AspNetCore.Authentication;
     using Microsoft.AspNetCore.Authentication.JwtBearer;
     using Microsoft.AspNetCore.Builder;
@@ -71,8 +70,6 @@ namespace Microsoft.SCIM.WebHostSample
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<Context>();
-
             void ConfigureMvcNewtonsoftJsonOptions(MvcNewtonsoftJsonOptions options) =>
                 options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
 
