@@ -166,6 +166,18 @@ namespace Microsoft.SCIM.WebHostSample
                         h.Username(options.RabbitMQ.UserName);
                         h.Password(options.RabbitMQ.Password);
                     });
+                    
+                    cfg.UseMessageRetry(r =>
+                    {
+                        r.Exponential(
+                            retryLimit: 5,
+                            minInterval: TimeSpan.FromSeconds(1),
+                            maxInterval: TimeSpan.FromSeconds(30),
+                            intervalDelta: TimeSpan.FromSeconds(5));
+
+                        r.Ignore<ArgumentException>();
+                    });
+                    
                     cfg.ReceiveEndpoint("scimservice_in", e => { e.ConfigureConsumer<InterserviceConsumer>(context); });
 
                     cfg.ConfigureEndpoints(context);

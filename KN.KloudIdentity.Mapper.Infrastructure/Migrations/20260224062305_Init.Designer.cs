@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KN.KloudIdentity.Mapper.Infrastructure.Migrations
 {
     [DbContext(typeof(KNContext))]
-    [Migration("20260223091543_Init")]
+    [Migration("20260224062305_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -51,6 +51,9 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.Migrations
                     b.Property<string>("Etag")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("GeneratedDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("nvarchar(max)");

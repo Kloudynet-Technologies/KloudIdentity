@@ -20,6 +20,7 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.Migrations
                     AppId = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Etag = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ConfigJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    GeneratedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),

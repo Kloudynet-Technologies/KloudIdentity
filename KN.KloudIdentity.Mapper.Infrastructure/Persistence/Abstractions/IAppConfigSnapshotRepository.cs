@@ -4,5 +4,5 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 
 public interface IAppConfigSnapshotRepository: IRepository<AppConfigSnapshot>
 {
-    Task<AppConfigSnapshot> GetByAppIdAsync(string appId);
+    Task<AppConfigSnapshot?> GetByAppIdAsync(string appId);
 }

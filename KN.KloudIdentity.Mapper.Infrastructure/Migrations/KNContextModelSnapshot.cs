@@ -49,6 +49,9 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("GeneratedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("nvarchar(max)");
 

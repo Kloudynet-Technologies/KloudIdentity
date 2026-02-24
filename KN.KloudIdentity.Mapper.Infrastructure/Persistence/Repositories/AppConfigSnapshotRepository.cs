@@ -47,14 +47,10 @@ public class AppConfigSnapshotRepository(KNContext dbContext) : RepositoryBase(d
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<AppConfigSnapshot> GetByAppIdAsync(string appId)
+    public async Task<AppConfigSnapshot?> GetByAppIdAsync(string appId)
     {
         var entity = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId);
-        if (entity == null)
-        {
-            throw new KeyNotFoundException($"AppConfigSnapshot with AppId {appId} not found.");
-        }
-
+        
         return entity;
     }
 }

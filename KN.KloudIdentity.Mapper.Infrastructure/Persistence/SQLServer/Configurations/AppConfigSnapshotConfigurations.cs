@@ -20,9 +20,11 @@ public class AppConfigSnapshotConfigurations : IEntityTypeConfiguration<AppConfi
             .HasColumnType("nvarchar(50)")
             .IsRequired();
         
+        builder.HasIndex(x => x.AppId).IsUnique();
+        
         builder.Property(x => x.Etag)
             .HasColumnName("Etag")
-            .HasColumnType("nvarchar(512)")
+            .HasColumnType("nvarchar(128)")
             .IsRequired();
         
         builder.Property(x => x.ConfigJson)

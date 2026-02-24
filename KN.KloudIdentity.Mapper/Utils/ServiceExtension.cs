@@ -3,6 +3,7 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.BackgroundJobs;
+using KN.KloudIdentity.Mapper.Common.AppConfig;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Commands;
@@ -103,5 +104,7 @@ public static class ServiceExtension
         services.AddScoped<IListAs400GroupsQuery, ListAs400GroupsQuery>();
 
         services.AddScoped<ILicenseValidationQuery, LicenseValidationQuery>();
+        
+        services.AddScoped<IAddOrEditAppConfig, AddOrEditAppConfig>();
     }
 }
