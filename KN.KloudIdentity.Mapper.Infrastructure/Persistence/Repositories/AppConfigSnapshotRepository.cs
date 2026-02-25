@@ -50,7 +50,17 @@ public class AppConfigSnapshotRepository(KNContext dbContext) : RepositoryBase(d
     public async Task<AppConfigSnapshot?> GetByAppIdAsync(string appId)
     {
         var entity = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId);
-        
+
         return entity;
+    }
+
+    public async Task DeleteByAppIdAsync(string appId)
+    {
+        var entity = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId);
+        if (entity != null)
+        {
+            dbContext.AppConfigSnapshots.Remove(entity);
+            await dbContext.SaveChangesAsync();
+        }
     }
 }

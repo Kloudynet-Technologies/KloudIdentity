@@ -9,4 +9,5 @@ public enum ActionType
     GetInboundConfigurations,
     ListAs400Groups,
     LicenseStatusCheck,
+    ListApplicationConfigs
 }

@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KI.RabbitMQ.MessageContracts;
@@ -13,10 +16,12 @@ public class AddOrEditAppConfig(
 ) : IAddOrEditAppConfig
 {
     public async Task AddOrEditAsync(IAppConfigSnapshotUpdated appConfigSnapshot)
-    {
-        var etag = appConfigSnapshot.ETag;
+    { 
         var generatedAt = appConfigSnapshot.GeneratedAtUtc;
-
+        var appConfig = JsonSerializer.Deserialize<Domain.Application.AppConfig>(appConfigSnapshot.Message);
+        var json = JsonSerializer.Serialize(appConfig);
+        var etag = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(json)));
+        
         var existingSnapshot = await configSnapshotRepository.GetByAppIdAsync(appConfigSnapshot.AppId);
 
         // INSERT
@@ -26,7 +31,7 @@ public class AddOrEditAppConfig(
                 id: 0,
                 appId: appConfigSnapshot.AppId,
                 etag: etag,
-                configJson: appConfigSnapshot.Message,
+                configJson: json,
                 generatedDate: generatedAt,
                 createdDate: DateTime.UtcNow,
                 createdBy: appConfigSnapshot.PerformedBy ?? "system",
@@ -54,7 +59,7 @@ public class AddOrEditAppConfig(
         // UPDATE (preferred: update tracked entity)
         existingSnapshot.UpdateSnapshot(
             etag: etag,
-            configJson: appConfigSnapshot.Message,
+            configJson: json,
             generatedDate: generatedAt,
             modifiedBy: appConfigSnapshot.PerformedBy ?? "system"
         );
@@ -76,9 +81,9 @@ public class AddOrEditAppConfig(
             Type: nameof(LogType.Edit),
             Severity: LogSeverities.Information,
             EventInfo:
-            $"Processed AppConfigSnapshotUpdated for CorrelationId: {appConfigSnapshot.CorrelationId} AppId: {appConfigSnapshot.AppId}, ETag: {appConfigSnapshot.ETag}",
+            $"Processed AppConfigSnapshotUpdated for CorrelationId: {appConfigSnapshot.CorrelationId} AppId: {appConfigSnapshot.AppId}",
             Message:
-            $"Processed AppConfigSnapshotUpdated for CorrelationId: {appConfigSnapshot.CorrelationId} AppId: {appConfigSnapshot.AppId}, ETag: {appConfigSnapshot.ETag}",
+            $"Processed AppConfigSnapshotUpdated for CorrelationId: {appConfigSnapshot.CorrelationId} AppId: {appConfigSnapshot.AppId}",
             CorrelationId: appConfigSnapshot.CorrelationId!,
             LoggerName: "KN.KloudIdentity.Mapper",
             CreatedAt: DateTime.UtcNow,

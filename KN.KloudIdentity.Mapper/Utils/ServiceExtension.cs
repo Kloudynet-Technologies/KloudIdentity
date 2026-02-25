@@ -106,5 +106,6 @@ public static class ServiceExtension
         services.AddScoped<ILicenseValidationQuery, LicenseValidationQuery>();
         
         services.AddScoped<IAddOrEditAppConfig, AddOrEditAppConfig>();
+        services.AddScoped<IDeleteAppConfig, DeleteAppConfig>();
     }
 }

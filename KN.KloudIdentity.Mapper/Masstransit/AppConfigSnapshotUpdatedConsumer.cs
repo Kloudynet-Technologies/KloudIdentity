@@ -5,30 +5,42 @@ using Serilog;
 
 namespace KN.KloudIdentity.Mapper.Masstransit;
 
-public class AppConfigSnapshotUpdatedConsumer(IAddOrEditAppConfig addOrEditAppConfig)
+public class AppConfigSnapshotUpdatedConsumer(
+    IAddOrEditAppConfig addOrEditAppConfig,
+    IDeleteAppConfig deleteAppConfig
+    )
     : IConsumer<IAppConfigSnapshotUpdated>
 {
     public async Task Consume(ConsumeContext<IAppConfigSnapshotUpdated> context)
     {
         var appConfigSnapshot = context.Message;
-        ValidateMessage(appConfigSnapshot);
-        await addOrEditAppConfig.AddOrEditAsync(appConfigSnapshot);
-        
-        Log.Information("Processed AppConfigSnapshotUpdated for CorrelationId: {CorrelationId} AppId: {AppId}, ETag: {ETag}", appConfigSnapshot.CorrelationId, appConfigSnapshot.AppId, appConfigSnapshot.ETag);
+        switch (appConfigSnapshot.Action)
+        {
+            case "Add":
+            case "Edit":
+                ValidateMessage(appConfigSnapshot);
+                await addOrEditAppConfig.AddOrEditAsync(appConfigSnapshot);
+                break;
+            case "Delete":
+                if(string.IsNullOrWhiteSpace(appConfigSnapshot.AppId))
+                {
+                    Log.Error("For CorrelationId: {CorrelationId} AppId: {appId} cannot be null or empty for delete action.", appConfigSnapshot.CorrelationId, appConfigSnapshot.AppId);
+                    throw new ArgumentException("AppId cannot be null or empty for delete action.");
+                }
+                await deleteAppConfig.DeleteAsync(appConfigSnapshot);
+                break;
+            default:
+                Log.Error("For CorrelationId: {CorrelationId} AppId: {AppId} received invalid action: {Action}", appConfigSnapshot.CorrelationId, appConfigSnapshot.AppId, appConfigSnapshot.Action);
+                throw new ArgumentException($"Invalid action: {appConfigSnapshot.Action}");
+        }
     }
 
-    private void ValidateMessage(IAppConfigSnapshotUpdated message)
+    private static void ValidateMessage(IAppConfigSnapshotUpdated message)
     {
         if (string.IsNullOrWhiteSpace(message.AppId))
         {
             Log.Error("For CorrelationId: {CorrelationId} AppId: {appId} cannot be null or empty.", message.CorrelationId, message.AppId);
             throw new ArgumentException("AppId cannot be null or empty.");
-        }
-
-        if (string.IsNullOrWhiteSpace(message.ETag))
-        {
-            Log.Error("For CorrelationId: {CorrelationId} AppId: {appId} ETag cannot be null or empty.", message.CorrelationId, message.AppId);
-            throw new ArgumentException("ETag cannot be null or empty.");
         }
 
         if (string.IsNullOrWhiteSpace(message.Message))

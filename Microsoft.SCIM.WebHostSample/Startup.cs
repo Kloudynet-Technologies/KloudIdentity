@@ -3,6 +3,7 @@
 //------------------------------------------------------------
 
 using Hangfire.SqlServer;
+using KN.KloudIdentity.Mapper.Common.AppConfig;
 using KN.KloudIdentity.Mapper.Common.License;
 using KN.KloudIdentity.Mapper.Infrastructure.DI;
 using Microsoft.Data.SqlClient;
@@ -240,6 +241,7 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();
             services.AddScoped<ExtractAppIdFilter>();
+            services.AddHostedService<AppConfigStartupSync>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -1,3 +1,5 @@
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Repositories;
 using KN.KloudIdentity.Mapper.Infrastructure.Persistence.SQLServer;
@@ -24,6 +26,7 @@ public static class DependencyInjection
         }, ServiceLifetime.Transient, ServiceLifetime.Transient);
         
         services.AddScoped<IAppConfigSnapshotRepository, AppConfigSnapshotRepository>();
+        services.AddScoped<IListApplicationConfigsQuery, ListApplicationConfigsQuery>();
         
         return services;
     }
