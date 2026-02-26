@@ -2,7 +2,7 @@ using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
-using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
@@ -12,11 +12,11 @@ using Serilog;
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
 public class UpdateUserV4(
-    IGetFullAppConfigQuery getFullAppConfigQuery,
+    IAppConfigSnapshotRepository snapshotRepository,
     IOutboundPayloadProcessor outboundPayloadProcessor,
     IKloudIdentityLogger logger,
     IIntegrationBaseFactory integrationBaseFactory)
-    : ProvisioningBase(getFullAppConfigQuery, outboundPayloadProcessor), IUpdateResourceV2
+    : ProvisioningBase(snapshotRepository, outboundPayloadProcessor), IUpdateResourceV2
 {
     public async Task UpdateAsync(IPatch patch, string appId, string correlationId)
     {

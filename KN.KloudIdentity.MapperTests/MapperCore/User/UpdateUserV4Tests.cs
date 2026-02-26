@@ -1,9 +1,8 @@
 using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
-using KN.KloudIdentity.Mapper;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
-using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.MapperCore.User;
@@ -14,7 +13,7 @@ namespace KN.KloudIdentity.MapperTests.MapperCore.User;
 
 public class UpdateUserV4Tests
 {
-    private readonly Mock<IGetFullAppConfigQuery> _getFullAppConfigQueryMock = new();
+    private readonly Mock<IAppConfigSnapshotRepository> _getFullAppConfigQueryMock = new();
     private readonly Mock<IKloudIdentityLogger> _loggerMock = new();
     private readonly Mock<IIntegrationBaseFactory> _integrationBaseFactoryMock = new();
     private readonly Mock<IOutboundPayloadProcessor> _outboundPayloadProcessorMock = new();
@@ -24,7 +23,7 @@ public class UpdateUserV4Tests
     {
         if (appConfig != null)
         {
-            _getFullAppConfigQueryMock.Setup(q => q.GetAsync(It.IsAny<string>(), CancellationToken.None))
+            _getFullAppConfigQueryMock.Setup(q => q.GetAppConfigByAppIdAsync(It.IsAny<string>()))
                 .ReturnsAsync(appConfig);
         }
 

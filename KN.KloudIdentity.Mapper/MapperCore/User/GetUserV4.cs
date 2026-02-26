@@ -1,15 +1,9 @@
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Application;
-using KN.KloudIdentity.Mapper.Domain.Messaging;
-using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
-using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Queries;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
@@ -24,10 +18,10 @@ public class GetUserV4 : ProvisioningBase, IGetResourceV2
     private readonly IKloudIdentityLogger _logger;
 
     public GetUserV4(
-        IGetFullAppConfigQuery getFullAppConfigQuery,
+        IAppConfigSnapshotRepository snapshotRepository,
         IIntegrationBaseFactory integrationBaseFactory,
         IOutboundPayloadProcessor outboundPayloadProcessor,
-        IKloudIdentityLogger logger) : base(getFullAppConfigQuery, outboundPayloadProcessor)
+        IKloudIdentityLogger logger) : base(snapshotRepository, outboundPayloadProcessor)
     {
         _integrationBaseFactory = integrationBaseFactory;
         _logger = logger;

@@ -8,5 +8,5 @@ public class AuthenticationFlowStep
     public Guid? CredentialId { get; init; }
     public AuthOnFailureAction OnFailureAction { get; init; }
     public bool IsRequired { get; init; }
-    public required object AuthenticationDetails { get; init; }
+    public required dynamic AuthenticationDetails { get; init; }
 }

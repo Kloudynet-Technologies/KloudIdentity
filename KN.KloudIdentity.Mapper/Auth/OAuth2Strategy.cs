@@ -4,7 +4,9 @@
 
 using System.Net;
 using System.Security.Authentication;
+using KN.KloudIdentity.Mapper.Common.Encryption;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
+using Microsoft.Extensions.Configuration;
 using Microsoft.SCIM;
 using Newtonsoft.Json;
 
@@ -13,7 +15,7 @@ namespace KN.KloudIdentity.Mapper;
 /// <summary>
 /// OAuth2 authentication strategy.
 /// </summary>
-public class OAuth2Strategy : IAuthStrategy
+public class OAuth2Strategy(IConfiguration configuration) : IAuthStrategy
 {
     public AuthenticationMethods AuthenticationMethod => AuthenticationMethods.OAuth2;
 
@@ -60,7 +62,7 @@ public class OAuth2Strategy : IAuthStrategy
         return tokenResponse?.AccessToken;
     }
 
-    public virtual async Task<string> GetAuthorizationCodeTokenAsync(OAuth2Authentication oauth2Auth)
+    public virtual Task<string> GetAuthorizationCodeTokenAsync(OAuth2Authentication oauth2Auth)
     {
         // Implementation for Authorization Code grant type
         throw new NotImplementedException();
@@ -192,12 +194,7 @@ public class OAuth2Strategy : IAuthStrategy
         {
             throw new ArgumentNullException(nameof(oauth2Auth.ClientId));
         }
-
-        if (string.IsNullOrWhiteSpace(oauth2Auth.ClientSecret))
-        {
-            throw new ArgumentNullException(nameof(oauth2Auth.ClientSecret));
-        }
-
+        
         if (string.IsNullOrWhiteSpace(oauth2Auth.Authority))
         {
             throw new ArgumentNullException(nameof(oauth2Auth.Authority));
@@ -217,5 +214,12 @@ public class OAuth2Strategy : IAuthStrategy
             if (string.IsNullOrWhiteSpace(oauth2Auth.RefreshToken))
                 throw new ArgumentNullException(nameof(oauth2Auth.RefreshToken));
         }
+        
+        var encryptedData = oauth2Auth.EncryptedData;
+        var encryptionKey = configuration["EncryptionKey"];
+        if (encryptedData == null || string.IsNullOrWhiteSpace(encryptionKey))
+            throw new ArgumentException("EncryptedData or EncryptionKey is missing in configuration.");
+        
+        oauth2Auth.ClientSecret = EncryptionHelper.Decrypt(encryptedData.EncryptedValue, encryptionKey, encryptedData.IV);
     }
 }

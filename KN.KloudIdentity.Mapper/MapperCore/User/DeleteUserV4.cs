@@ -3,6 +3,7 @@ using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
@@ -12,12 +13,12 @@ using Serilog;
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
 public class DeleteUserV4(
-    IGetFullAppConfigQuery getFullAppConfigQuery,
+    IAppConfigSnapshotRepository snapshotRepository,
     IOutboundPayloadProcessor outboundPayloadProcessor,
     IIntegrationBaseFactory integrationBaseFactory,
     IKloudIdentityLogger logger
 )
-    : ProvisioningBase(getFullAppConfigQuery, outboundPayloadProcessor), IDeleteResourceV2
+    : ProvisioningBase(snapshotRepository, outboundPayloadProcessor), IDeleteResourceV2
 {
     public async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string appId, string correlationId)
     {

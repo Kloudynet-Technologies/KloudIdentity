@@ -9,6 +9,7 @@ using KN.KloudIdentity.Mapper;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.MapperCore.User;
@@ -22,9 +23,7 @@ namespace KN.KloudIdentity.MapperTests.MapperCore.User;
 
 public class ReplaceUserV4Tests
 {
-    private readonly Mock<IAuthContext> _authContextMock = new();
-    private readonly Mock<IHttpClientFactory> _httpClientFactoryMock = new();
-    private readonly Mock<IGetFullAppConfigQuery> _getFullAppConfigQueryMock = new();
+    private readonly Mock<IAppConfigSnapshotRepository> _getFullAppConfigQueryMock = new();
     private readonly Mock<IKloudIdentityLogger> _loggerMock = new();
     private readonly Mock<IIntegrationBaseFactory> _integrationBaseFactoryMock = new();
     private readonly Mock<IOutboundPayloadProcessor> _outboundPayloadProcessorMock = new();
@@ -34,12 +33,10 @@ public class ReplaceUserV4Tests
     {
         if (appConfig != null)
         {
-            _getFullAppConfigQueryMock.Setup(q => q.GetAsync(It.IsAny<string>(), CancellationToken.None))
+            _getFullAppConfigQueryMock.Setup(q => q.GetAppConfigByAppIdAsync(It.IsAny<string>()))
                 .ReturnsAsync(appConfig);
         }
         return new ReplaceUserV4(
-            _authContextMock.Object,
-            _httpClientFactoryMock.Object,
             _getFullAppConfigQueryMock.Object,
             _loggerMock.Object,
             _integrationBaseFactoryMock.Object,

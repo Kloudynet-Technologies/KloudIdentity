@@ -56,5 +56,7 @@
         /// Token Prefix
         /// </summary>
         public string? TokenPrefix { get; set;}
+        
+        public EncryptedData EncryptedData { get; set; }
     }
 }

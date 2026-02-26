@@ -5,6 +5,7 @@ using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
@@ -17,20 +18,16 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
 public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
 {
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IKloudIdentityLogger _logger;
     private readonly IIntegrationBaseFactory _integrationBaseFactory;
 
-    public ReplaceUserV2(IAuthContext authContext,
-        IHttpClientFactory httpClientFactory,
-        IGetFullAppConfigQuery getFullAppConfigQuery,
+    public ReplaceUserV2(IAppConfigSnapshotRepository snapshotRepository,
         IKloudIdentityLogger logger,
         IIntegrationBaseFactory integrationBaseFactory,
         IOutboundPayloadProcessor outboundPayloadProcessor
     )
-        : base(getFullAppConfigQuery, outboundPayloadProcessor)
+        : base(snapshotRepository, outboundPayloadProcessor)
     {
-        _httpClientFactory = httpClientFactory;
         _logger = logger;
         _integrationBaseFactory = integrationBaseFactory;
     }

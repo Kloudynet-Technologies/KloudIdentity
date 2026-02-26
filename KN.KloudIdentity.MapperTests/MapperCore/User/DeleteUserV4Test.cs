@@ -3,6 +3,7 @@ using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.MapperCore.User;
@@ -13,7 +14,7 @@ namespace KN.KloudIdentity.MapperTests.MapperCore.User;
 
 public class DeleteUserV4Test
 {
-    private readonly Mock<IGetFullAppConfigQuery> _mockGetFullAppConfigQuery = new();
+    private readonly Mock<IAppConfigSnapshotRepository> _mockGetFullAppConfigQuery = new();
     private readonly Mock<IIntegrationBaseFactory> _integrationBaseFactoryMock = new();
     private readonly Mock<IOutboundPayloadProcessor> _mockOutboundPayloadProcessor = new();
     private readonly Mock<IKloudIdentityLogger> _mockLogger = new();
@@ -22,7 +23,7 @@ public class DeleteUserV4Test
     {
         if (appConfig != null)
         {
-            _mockGetFullAppConfigQuery.Setup(q => q.GetAsync(It.IsAny<string>(), CancellationToken.None))
+            _mockGetFullAppConfigQuery.Setup(q => q.GetAppConfigByAppIdAsync(It.IsAny<string>()))
                 .ReturnsAsync(appConfig);
         }
 

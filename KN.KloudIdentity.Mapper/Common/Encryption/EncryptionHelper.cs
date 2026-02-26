@@ -50,26 +50,18 @@ namespace KN.KloudIdentity.Mapper.Common.Encryption
         /// <returns>The decrypted text.</returns>
         public static string Decrypt(string cipherText, string key, string iv)
         {
-            using (Aes aes = Aes.Create())
-            {
-                aes.Key = Encoding.UTF8.GetBytes(key);
-                aes.IV = Encoding.UTF8.GetBytes(iv);
+            using Aes aes = Aes.Create();
+            aes.Key = Encoding.UTF8.GetBytes(key);
+            aes.IV = Convert.FromBase64String(iv);
 
-                ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+            ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
 
-                byte[] cipherBytes = Convert.FromBase64String(cipherText);
+            byte[] cipherBytes = Convert.FromBase64String(cipherText);
 
-                using (MemoryStream memoryStream = new MemoryStream(cipherBytes))
-                {
-                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
-                    {
-                        using (StreamReader reader = new StreamReader(cryptoStream))
-                        {
-                            return reader.ReadToEnd();
-                        }
-                    }
-                }
-            }
+            using MemoryStream memoryStream = new MemoryStream(cipherBytes);
+            using CryptoStream cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read);
+            using StreamReader reader = new StreamReader(cryptoStream);
+            return reader.ReadToEnd();
         }
     }
 }

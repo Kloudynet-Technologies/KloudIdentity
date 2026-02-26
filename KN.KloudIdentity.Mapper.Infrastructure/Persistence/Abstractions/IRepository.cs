@@ -4,7 +4,7 @@ public interface IRepository<T> where T : class
 {
     void Add(T entity);
 
-    Task<T> GetAsync(string id);
+    Task<T> GetAsync(string id, CancellationToken none);
 
     Task<IEnumerable<T>> GetAllAsync();
 

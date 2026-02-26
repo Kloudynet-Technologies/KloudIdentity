@@ -1,5 +1,3 @@
-using System;
-using System.Security.Authentication;
 using System.Text;
 using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
@@ -30,20 +28,18 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private readonly IKloudIdentityLogger _logger;
-    private readonly IEnumerable<IAuthStrategy> _authStrategies;
     public IntegrationMethods IntegrationMethod { get; init; }
     private readonly IOptions<AppSettings> _appSettings;
 
     public RESTIntegrationV4(IAuthContext authContext, IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
-        IKloudIdentityLogger logger, IOptions<AppSettings> appSettings, IEnumerable<IAuthStrategy> authStrategies)
+        IKloudIdentityLogger logger, IOptions<AppSettings> appSettings)
     {
         _authContext = authContext;
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
         _logger = logger;
         _appSettings = appSettings;
-        _authStrategies = authStrategies;
         IntegrationMethod = IntegrationMethods.REST;
     }
 

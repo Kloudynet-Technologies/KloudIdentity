@@ -1,3 +1,4 @@
+using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Entities;
 using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.Persistence.SQLServer;
@@ -14,7 +15,7 @@ public class AppConfigSnapshotRepository(KNContext dbContext) : RepositoryBase(d
         dbContext.Add(entity);
     }
 
-    public async Task<AppConfigSnapshot> GetAsync(string id)
+    public async Task<AppConfigSnapshot> GetAsync(string id, CancellationToken none)
     {
         var entity = await dbContext.FindAsync<AppConfigSnapshot>(id);
         if (entity == null)
@@ -61,6 +62,25 @@ public class AppConfigSnapshotRepository(KNContext dbContext) : RepositoryBase(d
         {
             dbContext.AppConfigSnapshots.Remove(entity);
             await dbContext.SaveChangesAsync();
+        }
+    }
+
+    public async Task<AppConfig?> GetAppConfigByAppIdAsync(string appId)
+    {
+        var snapshot = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId);
+        if (snapshot == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var appConfig = System.Text.Json.JsonSerializer.Deserialize<AppConfig>(snapshot.ConfigJson);
+            return appConfig;
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            throw new InvalidOperationException($"Failed to deserialize AppConfig for AppId {appId}.", ex);
         }
     }
 }
