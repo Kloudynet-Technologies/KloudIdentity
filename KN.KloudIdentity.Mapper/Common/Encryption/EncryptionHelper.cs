@@ -24,7 +24,7 @@ namespace KN.KloudIdentity.Mapper.Common.Encryption
             using (Aes aes = Aes.Create())
             {
                 aes.Key = Encoding.UTF8.GetBytes(key);
-                aes.IV = Encoding.UTF8.GetBytes(iv);
+                aes.IV = Convert.FromBase64String(iv);
 
                 ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
 
