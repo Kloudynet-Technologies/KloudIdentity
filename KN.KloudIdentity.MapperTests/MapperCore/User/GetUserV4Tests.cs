@@ -116,7 +116,7 @@ public class GetUserV4Tests
         var correlationID = "test-correlation-id";
 
         _mockGetFullAppConfigQuery
-            .Setup(x => x.GetAppConfigByAppIdAsync(appId))
+            .Setup(x => x.GetAppConfigByAppIdAsync(appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AppConfig
             {
                 AppId = appId,
@@ -141,7 +141,7 @@ public class GetUserV4Tests
         var correlationID = "test-correlation-id";
 
         _mockGetFullAppConfigQuery
-            .Setup(x => x.GetAppConfigByAppIdAsync(appId))
+            .Setup(x => x.GetAppConfigByAppIdAsync(appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AppConfig
             {
                 AppId = appId,
@@ -173,7 +173,7 @@ public class GetUserV4Tests
         var correlationID = "test-correlation-id";
 
         _mockGetFullAppConfigQuery
-            .Setup(x => x.GetAppConfigByAppIdAsync(appId))
+            .Setup(x => x.GetAppConfigByAppIdAsync(appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AppConfig
             {
                 AppId = appId,
@@ -215,7 +215,7 @@ public class GetUserV4Tests
         var correlationID = "test-correlation-id";
 
         _mockGetFullAppConfigQuery
-            .Setup(x => x.GetAppConfigByAppIdAsync(appId))
+            .Setup(x => x.GetAppConfigByAppIdAsync(appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AppConfig
             {
                 AppId = appId,
@@ -275,7 +275,7 @@ public class GetUserV4Tests
         };
 
         _mockGetFullAppConfigQuery
-            .Setup(x => x.GetAppConfigByAppIdAsync(appId))
+            .Setup(x => x.GetAppConfigByAppIdAsync(appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AppConfig
             {
                 AppId = appId,
@@ -335,7 +335,7 @@ public class GetUserV4Tests
         };
 
         _mockGetFullAppConfigQuery
-            .Setup(x => x.GetAppConfigByAppIdAsync(appId))
+            .Setup(x => x.GetAppConfigByAppIdAsync(appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AppConfig
             {
                 AppId = appId,

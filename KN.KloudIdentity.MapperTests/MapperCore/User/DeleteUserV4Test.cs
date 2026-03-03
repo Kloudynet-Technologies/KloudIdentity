@@ -23,7 +23,7 @@ public class DeleteUserV4Test
     {
         if (appConfig != null)
         {
-            _mockGetFullAppConfigQuery.Setup(q => q.GetAppConfigByAppIdAsync(It.IsAny<string>()))
+            _mockGetFullAppConfigQuery.Setup(q => q.GetAppConfigByAppIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(appConfig);
         }
 

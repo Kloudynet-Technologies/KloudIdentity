@@ -15,15 +15,10 @@ public class AppConfigSnapshotRepository(KNContext dbContext) : RepositoryBase(d
         dbContext.Add(entity);
     }
 
-    public async Task<AppConfigSnapshot> GetAsync(string id, CancellationToken none)
+    public async Task<AppConfigSnapshot> GetAsync(int id, CancellationToken cancellationToken = default)
     {
-        var entity = await dbContext.FindAsync<AppConfigSnapshot>(id);
-        if (entity == null)
-        {
-            throw new KeyNotFoundException($"AppConfigSnapshot with id {id} not found.");
-        }
-
-        return entity;
+        var entity = await dbContext.FindAsync<AppConfigSnapshot>(id, cancellationToken);
+        return entity ?? throw new KeyNotFoundException($"AppConfigSnapshot with id {id} not found.");
     }
 
     public async Task<IEnumerable<AppConfigSnapshot>> GetAllAsync()
@@ -48,26 +43,26 @@ public class AppConfigSnapshotRepository(KNContext dbContext) : RepositoryBase(d
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<AppConfigSnapshot?> GetByAppIdAsync(string appId)
+    public async Task<AppConfigSnapshot?> GetByAppIdAsync(string appId, CancellationToken cancellationToken = default)
     {
-        var entity = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId);
+        var entity = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId, cancellationToken);
 
         return entity;
     }
 
-    public async Task DeleteByAppIdAsync(string appId)
+    public async Task DeleteByAppIdAsync(string appId, CancellationToken cancellationToken = default)
     {
-        var entity = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId);
+        var entity = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId, cancellationToken);
         if (entity != null)
         {
             dbContext.AppConfigSnapshots.Remove(entity);
-            await dbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
     }
 
-    public async Task<AppConfig?> GetAppConfigByAppIdAsync(string appId)
+    public async Task<AppConfig?> GetAppConfigByAppIdAsync(string appId, CancellationToken cancellationToken = default)
     {
-        var snapshot = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId);
+        var snapshot = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId, cancellationToken);
         if (snapshot == null)
         {
             return null;

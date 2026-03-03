@@ -19,7 +19,7 @@ public class AppConfigSnapshotUpdatedConsumer(
             case "Add":
             case "Edit":
                 ValidateMessage(appConfigSnapshot);
-                await addOrEditAppConfig.AddOrEditAsync(appConfigSnapshot);
+                await addOrEditAppConfig.AddOrEditAsync(appConfigSnapshot, context.CancellationToken);
                 break;
             case "Delete":
                 if(string.IsNullOrWhiteSpace(appConfigSnapshot.AppId))
@@ -27,7 +27,7 @@ public class AppConfigSnapshotUpdatedConsumer(
                     Log.Error("For CorrelationId: {CorrelationId} AppId: {appId} cannot be null or empty for delete action.", appConfigSnapshot.CorrelationId, appConfigSnapshot.AppId);
                     throw new ArgumentException("AppId cannot be null or empty for delete action.");
                 }
-                await deleteAppConfig.DeleteAsync(appConfigSnapshot);
+                await deleteAppConfig.DeleteAsync(appConfigSnapshot, context.CancellationToken);
                 break;
             default:
                 Log.Error("For CorrelationId: {CorrelationId} AppId: {AppId} received invalid action: {Action}", appConfigSnapshot.CorrelationId, appConfigSnapshot.AppId, appConfigSnapshot.Action);

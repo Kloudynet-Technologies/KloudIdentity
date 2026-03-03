@@ -23,7 +23,7 @@ public class UpdateUserV4Tests
     {
         if (appConfig != null)
         {
-            _getFullAppConfigQueryMock.Setup(q => q.GetAppConfigByAppIdAsync(It.IsAny<string>()))
+            _getFullAppConfigQueryMock.Setup(q => q.GetAppConfigByAppIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(appConfig);
         }
 

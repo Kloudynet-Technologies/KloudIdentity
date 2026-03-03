@@ -1,10 +1,10 @@
 namespace KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 
-public interface IRepository<T> where T : class
+public interface IRepository<TKey, T> where T : class
 {
     void Add(T entity);
 
-    Task<T> GetAsync(string id, CancellationToken none);
+    Task<T> GetAsync(TKey id, CancellationToken cancellationToken = default);
 
     Task<IEnumerable<T>> GetAllAsync();
 

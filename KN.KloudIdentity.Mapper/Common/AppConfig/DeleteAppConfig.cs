@@ -14,7 +14,7 @@ public class DeleteAppConfig(
 {
     public async Task DeleteAsync(IAppConfigSnapshotUpdated snapshotUpdated, CancellationToken cancellationToken = default)
     {
-        await appConfigSnapshotRepository.DeleteByAppIdAsync(snapshotUpdated.AppId);
+        await appConfigSnapshotRepository.DeleteByAppIdAsync(snapshotUpdated.AppId, cancellationToken);
         Log.Information("Deleted AppConfigSnapshot for appId {AppId}", snapshotUpdated.AppId);
         
         _= CreateLogAsync(snapshotUpdated);

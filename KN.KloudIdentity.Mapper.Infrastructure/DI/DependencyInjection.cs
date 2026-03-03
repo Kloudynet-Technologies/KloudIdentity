@@ -23,7 +23,7 @@ public static class DependencyInjection
             options.UseSqlServer(
                 connection,
                 b => b.MigrationsAssembly("KN.KloudIdentity.Mapper.Infrastructure"));
-        }, ServiceLifetime.Transient, ServiceLifetime.Transient);
+        });
         
         services.AddScoped<IAppConfigSnapshotRepository, AppConfigSnapshotRepository>();
         services.AddScoped<IListApplicationConfigsQuery, ListApplicationConfigsQuery>();

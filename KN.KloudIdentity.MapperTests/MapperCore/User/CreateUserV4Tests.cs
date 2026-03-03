@@ -1,5 +1,3 @@
-
-
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -43,10 +41,12 @@ public class CreateUserV4Tests
     private CreateUserV4 CreateSut(bool withAzureStorageManager = false)
     {
         _mockOptions.Setup(x => x.Value).Returns(_appSettings);
-        _mockAzureStorageManager.Setup(x => x.GetUserMigrationDataAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(new UserMigrationData("partition", "migratedId", "testuser"));
+        _mockAzureStorageManager.Setup(x => x.GetUserMigrationDataAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new UserMigrationData("partition", "migratedId", "testuser"));
         if (withAzureStorageManager)
         {
-            _mockServiceProvider.Setup(x => x.GetService(typeof(IAzureStorageManager))).Returns(_mockAzureStorageManager.Object);
+            _mockServiceProvider.Setup(x => x.GetService(typeof(IAzureStorageManager)))
+                .Returns(_mockAzureStorageManager.Object);
         }
         else
         {
@@ -55,8 +55,10 @@ public class CreateUserV4Tests
 
         var mockIntegration = new Mock<IIntegrationBaseV2>();
         mockIntegration
-            .Setup(x => x.ValidatePayloadAsync(It.IsAny<object>(), It.IsAny<AppConfig>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns((object obj, AppConfig config, string s, CancellationToken ct) => Task.FromResult<(bool, string[])>((true, Array.Empty<string>())));
+            .Setup(x => x.ValidatePayloadAsync(It.IsAny<object>(), It.IsAny<AppConfig>(), It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((object obj, AppConfig config, string s, CancellationToken ct) =>
+                Task.FromResult<(bool, string[])>((true, Array.Empty<string>())));
 
         _mockIntegrationFactory
             .Setup(x => x.GetIntegration(It.IsAny<IntegrationMethods>(), It.IsAny<string>()))
@@ -117,7 +119,7 @@ public class CreateUserV4Tests
             AuthenticationDetails = new { }
         };
 
-        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId)).ReturnsAsync(appConfig);
+        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId, CancellationToken.None)).ReturnsAsync(appConfig);
         _mockOptions.Setup(x => x.Value).Returns(new AppSettings
         {
             UserMigration = new UserMigrationOptions
@@ -127,7 +129,8 @@ public class CreateUserV4Tests
         });
         var sut = CreateSut(true);
         // Set _appConfig field via reflection
-        var appConfigField = typeof(CreateUserV4).GetField("_appConfig", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var appConfigField = typeof(CreateUserV4).GetField("_appConfig",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         if (appConfigField != null) appConfigField.SetValue(sut, appConfig);
         // Act
         var result = await sut.ExecuteAsync(user, appId, correlationId);
@@ -150,11 +153,18 @@ public class CreateUserV4Tests
             AppName = "TestApp",
             IsEnabled = true,
             IntegrationMethodOutbound = IntegrationMethods.SQL,
-            UserURIs = new List<UserURIs> { new UserURIs { AppId = appId, BaseUrl = "http://localhost", Post = new Uri("http://localhost/post"), Get = new Uri("http://localhost/get") } },
+            UserURIs = new List<UserURIs>
+            {
+                new UserURIs
+                {
+                    AppId = appId, BaseUrl = "http://localhost", Post = new Uri("http://localhost/post"),
+                    Get = new Uri("http://localhost/get")
+                }
+            },
             AuthenticationDetails = new { },
             UserAttributeSchemas = new List<KN.KloudIdentity.Mapper.Domain.Mapping.AttributeSchema>()
         };
-        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId)).ReturnsAsync(appConfig);
+        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId, CancellationToken.None)).ReturnsAsync(appConfig);
         _mockOptions.Setup(x => x.Value).Returns(new AppSettings
         {
             UserMigration = new UserMigrationOptions
@@ -163,7 +173,8 @@ public class CreateUserV4Tests
             }
         });
         var sut = CreateSut();
-        var appConfigField = typeof(CreateUserV4).GetField("_appConfig", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var appConfigField = typeof(CreateUserV4).GetField("_appConfig",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         appConfigField.SetValue(sut, appConfig);
         // Act
         var result = await sut.ExecuteAsync(user, appId, correlationId);
@@ -186,15 +197,24 @@ public class CreateUserV4Tests
             AppName = "TestApp",
             IsEnabled = true,
             IntegrationMethodOutbound = IntegrationMethods.SQL,
-            UserURIs = new List<UserURIs> { new UserURIs { AppId = appId, BaseUrl = "http://localhost", Post = new Uri("http://localhost/post"), Get = new Uri("http://localhost/get") } },
+            UserURIs = new List<UserURIs>
+            {
+                new UserURIs
+                {
+                    AppId = appId, BaseUrl = "http://localhost", Post = new Uri("http://localhost/post"),
+                    Get = new Uri("http://localhost/get")
+                }
+            },
             AuthenticationDetails = new { },
             UserAttributeSchemas = new List<KN.KloudIdentity.Mapper.Domain.Mapping.AttributeSchema>()
         };
-        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId)).ReturnsAsync(appConfig);
+        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId, CancellationToken.None)).ReturnsAsync(appConfig);
         _mockOptions.Setup(x => x.Value).Returns(_appSettings);
-        _mockAzureStorageManager.Setup(x => x.GetUserMigrationDataAsync(appId, It.IsAny<string>())).ReturnsAsync((UserMigrationData)null);
+        _mockAzureStorageManager.Setup(x => x.GetUserMigrationDataAsync(appId, It.IsAny<string>()))
+            .ReturnsAsync((UserMigrationData)null);
         var sut = CreateSut(withAzureStorageManager: true);
-        var appConfigField = typeof(CreateUserV4).GetField("_appConfig", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var appConfigField = typeof(CreateUserV4).GetField("_appConfig",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         appConfigField.SetValue(sut, appConfig);
         // Act
         var result = await sut.ExecuteAsync(user, appId, correlationId);
@@ -215,17 +235,27 @@ public class CreateUserV4Tests
             AppName = "TestApp",
             IsEnabled = true,
             IntegrationMethodOutbound = IntegrationMethods.SQL,
-            UserURIs = new List<UserURIs> { new UserURIs { AppId = appId, BaseUrl = "http://localhost", Post = new Uri("http://localhost/post"), Get = new Uri("http://localhost/get") } },
+            UserURIs = new List<UserURIs>
+            {
+                new UserURIs
+                {
+                    AppId = appId, BaseUrl = "http://localhost", Post = new Uri("http://localhost/post"),
+                    Get = new Uri("http://localhost/get")
+                }
+            },
             AuthenticationDetails = new { },
             UserAttributeSchemas = new List<KN.KloudIdentity.Mapper.Domain.Mapping.AttributeSchema>()
         };
-        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId)).ReturnsAsync(appConfig);
+        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId, CancellationToken.None)).ReturnsAsync(appConfig);
         _mockOptions.Setup(x => x.Value).Returns(_appSettings);
         var migrationData = new UserMigrationData("partition", "migratedId", "corr");
-        _mockAzureStorageManager.Setup(x => x.GetUserMigrationDataAsync(appId, It.IsAny<string>())).ReturnsAsync(migrationData);
-        _mockReplaceResourceV2.Setup(x => x.ReplaceAsync(It.IsAny<Core2EnterpriseUser>(), appId, correlationId)).Returns(Task.CompletedTask);
+        _mockAzureStorageManager.Setup(x => x.GetUserMigrationDataAsync(appId, It.IsAny<string>()))
+            .ReturnsAsync(migrationData);
+        _mockReplaceResourceV2.Setup(x => x.ReplaceAsync(It.IsAny<Core2EnterpriseUser>(), appId, correlationId))
+            .Returns(Task.CompletedTask);
         var sut = CreateSut(withAzureStorageManager: true);
-        var appConfigField = typeof(CreateUserV4).GetField("_appConfig", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var appConfigField = typeof(CreateUserV4).GetField("_appConfig",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         appConfigField.SetValue(sut, appConfig);
         // Act
         var result = await sut.ExecuteAsync(user, appId, correlationId);
@@ -247,15 +277,24 @@ public class CreateUserV4Tests
             AppName = "TestApp",
             IsEnabled = true,
             IntegrationMethodOutbound = IntegrationMethods.SQL,
-            UserURIs = new List<UserURIs> { new UserURIs { AppId = appId, BaseUrl = "http://localhost", Post = new Uri("http://localhost/post"), Get = new Uri("http://localhost/get") } },
+            UserURIs = new List<UserURIs>
+            {
+                new UserURIs
+                {
+                    AppId = appId, BaseUrl = "http://localhost", Post = new Uri("http://localhost/post"),
+                    Get = new Uri("http://localhost/get")
+                }
+            },
             AuthenticationDetails = new { },
             UserAttributeSchemas = new List<KN.KloudIdentity.Mapper.Domain.Mapping.AttributeSchema>()
         };
-        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId)).ReturnsAsync(appConfig);
+        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId, CancellationToken.None))
+            .ReturnsAsync(appConfig);
         _mockOptions.Setup(x => x.Value).Returns(_appSettings);
         var sut = CreateSut(withAzureStorageManager: false);
-        var appConfigField = typeof(CreateUserV4).GetField("_appConfig", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        appConfigField.SetValue(sut, appConfig);
+        var appConfigField = typeof(CreateUserV4).GetField("_appConfig",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        appConfigField?.SetValue(sut, appConfig);
         // Act
         var result = await sut.ExecuteAsync(user, appId, correlationId);
         // Assert
@@ -275,14 +314,23 @@ public class CreateUserV4Tests
             AppName = "TestApp",
             IsEnabled = true,
             IntegrationMethodOutbound = IntegrationMethods.SQL,
-            UserURIs = new List<UserURIs> { new UserURIs { AppId = appId, BaseUrl = "http://localhost", Post = new Uri("http://localhost/post"), Get = new Uri("http://localhost/get") } },
+            UserURIs = new List<UserURIs>
+            {
+                new UserURIs
+                {
+                    AppId = appId, BaseUrl = "http://localhost", Post = new Uri("http://localhost/post"),
+                    Get = new Uri("http://localhost/get")
+                }
+            },
             AuthenticationDetails = new { },
             UserAttributeSchemas = new List<KN.KloudIdentity.Mapper.Domain.Mapping.AttributeSchema>()
         };
-        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId)).ReturnsAsync(appConfig);
+        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId, CancellationToken.None))
+            .ReturnsAsync(appConfig);
         _mockOptions.Setup(x => x.Value).Returns(_appSettings);
         var sut = CreateSut(withAzureStorageManager: true);
-        var appConfigField = typeof(CreateUserV4).GetField("_appConfig", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var appConfigField = typeof(CreateUserV4).GetField("_appConfig",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         appConfigField.SetValue(sut, appConfig);
         // Simulate PropertyAccessorCacheUtil.GetPropertyValue returns null by not setting the property on user
         // Act & Assert

@@ -1,9 +1,6 @@
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using KN.KI.RabbitMQ.MessageContracts;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Serilog;
@@ -11,12 +8,14 @@ using Serilog;
 namespace KN.KloudIdentity.Mapper.Common.AppConfig;
 
 public class AppConfigStartupSync(
-    IAddOrEditAppConfig addOrEditAppConfig,
-    IListApplicationConfigsQuery listApplicationConfigsQuery
+    IServiceScopeFactory serviceScopeFactory
 ) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        using var scope = serviceScopeFactory.CreateScope();
+        var addOrEditAppConfig = scope.ServiceProvider.GetRequiredService<IAddOrEditAppConfig>();
+        var listApplicationConfigsQuery = scope.ServiceProvider.GetRequiredService<IListApplicationConfigsQuery>();
         const int maxAttempts = 10;
 
         // Small delay helps when SCIM starts before RabbitMQ/MgtPortal is ready
@@ -36,7 +35,7 @@ public class AppConfigStartupSync(
                         {
                             NullValueHandling = NullValueHandling.Ignore,
                             Formatting = Formatting.None
-                        }); 
+                        });
                         var update = new AppConfigSnapshotUpdated
                         {
                             AppId = appConfig.AppId,
@@ -44,8 +43,7 @@ public class AppConfigStartupSync(
                             Message = json,
                             PerformedBy = "system-startup-sync"
                         };
-
-                        await addOrEditAppConfig.AddOrEditAsync(update);
+                        await addOrEditAppConfig.AddOrEditAsync(update, cancellationToken);
                     }
                     catch (Exception exOne)
                     {
