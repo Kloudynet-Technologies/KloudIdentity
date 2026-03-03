@@ -32,35 +32,45 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.Migrations
 
                     b.Property<string>("AppId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("AppId");
 
                     b.Property<string>("ConfigJson")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ConfigJson");
 
                     b.Property<string>("CreatedBy")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("CreatedBy");
 
                     b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreatedDate");
 
                     b.Property<string>("Etag")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("Etag");
 
                     b.Property<DateTime>("GeneratedDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("ModifiedBy");
 
                     b.Property<DateTime?>("ModifiedDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ModifiedDate");
 
                     b.HasKey("Id");
 
-                    b.ToTable("AppConfigSnapshots");
+                    b.HasIndex("AppId")
+                        .IsUnique();
+
+                    b.ToTable("AppConfigSnapshots", (string)null);
                 });
 #pragma warning restore 612, 618
         }
