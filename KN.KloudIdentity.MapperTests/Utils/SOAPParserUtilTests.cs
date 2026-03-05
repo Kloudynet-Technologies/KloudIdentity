@@ -34,11 +34,11 @@ public class SOAPParserUtilTests
 	{
 		var resource = new TestResource();
 		var template = "<User><UserName>{{UserName}}</UserName><Email>{{Email}}</Email><IsActive>{{IsActive}}</IsActive></User>";
-		var mapping = new List<SOAPAttributeMapping>
+		var mapping = new List<AttributeSchema>
 		{
-			new() { Placeholder = "UserName", SourceValue = "UserName", MappingType = MappingTypes.Direct },
-			new() { Placeholder = "Email", SourceValue = "Email", MappingType = MappingTypes.Direct },
-			new() { Placeholder = "IsActive", SourceValue = "IsActive", MappingType = MappingTypes.Direct }
+			new() { DestinationField = "UserName", SourceValue = "UserName", MappingType = MappingTypes.Direct },
+			new() { DestinationField = "Email", SourceValue = "Email", MappingType = MappingTypes.Direct },
+			new() { DestinationField = "IsActive", SourceValue = "IsActive", MappingType = MappingTypes.Direct }
 		};
 		var result = SOAPParserUtil<TestResource>.BuildPayload(template, mapping, resource);
 		Assert.Contains("<UserName>TestUser</UserName>", result);
@@ -51,9 +51,9 @@ public class SOAPParserUtilTests
 	{
 		var resource = new TestResource();
 		var template = "<User><Role>{{Role}}</Role></User>";
-		var mapping = new List<SOAPAttributeMapping>
+		var mapping = new List<AttributeSchema>
 		{
-			new() { Placeholder = "Role", SourceValue = "Admin", MappingType = MappingTypes.Constant }
+			new() { DestinationField = "Role", SourceValue = "Admin", MappingType = MappingTypes.Constant }
 		};
 		var result = SOAPParserUtil<TestResource>.BuildPayload(template, mapping, resource);
 		Assert.Contains("<Role>Admin</Role>", result);
@@ -64,9 +64,9 @@ public class SOAPParserUtilTests
 	{
 		var resource = new TestResource();
 		var template = "<User><Inner>{{Nested.InnerValue}}</Inner></User>";
-		var mapping = new List<SOAPAttributeMapping>
+		var mapping = new List<AttributeSchema>
 		{
-			new() { Placeholder = "Nested.InnerValue", SourceValue = "Nested.InnerValue", MappingType = MappingTypes.Direct }
+			new() { DestinationField = "Nested.InnerValue", SourceValue = "Nested.InnerValue", MappingType = MappingTypes.Direct }
 		};
 		var result = SOAPParserUtil<TestResource>.BuildPayload(template, mapping, resource);
 		Assert.Contains("<Inner>Inner</Inner>", result);
@@ -77,10 +77,10 @@ public class SOAPParserUtilTests
 	{
 		var resource = new TestResource();
 		var template = "<User><PrimaryEmail>{{Emails[0].Value}}</PrimaryEmail><SecondaryEmail>{{Emails[1].Value}}</SecondaryEmail></User>";
-		var mapping = new List<SOAPAttributeMapping>
+		var mapping = new List<AttributeSchema>
 		{
-			new() { Placeholder = "Emails[0].Value", SourceValue = "Emails[0].Value", MappingType = MappingTypes.Direct },
-			new() { Placeholder = "Emails[1].Value", SourceValue = "Emails[1].Value", MappingType = MappingTypes.Direct }
+			new() { DestinationField = "Emails[0].Value", SourceValue = "Emails[0].Value", MappingType = MappingTypes.Direct },
+			new() { DestinationField = "Emails[1].Value", SourceValue = "Emails[1].Value", MappingType = MappingTypes.Direct }
 		};
 		var result = SOAPParserUtil<TestResource>.BuildPayload(template, mapping, resource);
 		Assert.Contains("<PrimaryEmail>primary@example.com</PrimaryEmail>", result);
@@ -92,9 +92,9 @@ public class SOAPParserUtilTests
 	{
 		var resource = new TestResource();
 		var template = "<User><Missing>{{MissingProp}}</Missing></User>";
-		var mapping = new List<SOAPAttributeMapping>
+		var mapping = new List<AttributeSchema>
 		{
-			new() { Placeholder = "MissingProp", SourceValue = "MissingProp", MappingType = MappingTypes.Direct }
+			new() { DestinationField = "MissingProp", SourceValue = "MissingProp", MappingType = MappingTypes.Direct }
 		};
 		var result = SOAPParserUtil<TestResource>.BuildPayload(template, mapping, resource);
 		Assert.Contains("<Missing></Missing>", result);
@@ -105,9 +105,9 @@ public class SOAPParserUtilTests
 	{
 		var resource = new TestResource { UserName = "" };
 		var template = "<User><UserName>{{UserName}}</UserName></User>";
-		var mapping = new List<SOAPAttributeMapping>
+		var mapping = new List<AttributeSchema>
 		{
-			new() { Placeholder = "UserName", SourceValue = "UserName", MappingType = MappingTypes.Direct }
+			new() { DestinationField = "UserName", SourceValue = "UserName", MappingType = MappingTypes.Direct }
 		};
 		var result = SOAPParserUtil<TestResource>.BuildPayload(template, mapping, resource);
 		Assert.Contains("<UserName></UserName>", result);

@@ -20,7 +20,7 @@ namespace KN.KloudIdentity.Mapper.Utils
         /// <param name="mappingConfig">A list of mapping configs, each mapping a placeholder to a resource property.</param>
         /// <param name="resource">The SCIM resource object.</param>
         /// <returns>The SOAP XML payload as a string.</returns>
-        public static string BuildPayload(string xmlTemplate, IList<SOAPAttributeMapping> mappingConfig, T resource)
+        public static string BuildPayload(string xmlTemplate, IList<AttributeSchema> mappingConfig, T resource)
         {
             string result = xmlTemplate;
             foreach (var mapping in mappingConfig)
@@ -29,7 +29,7 @@ namespace KN.KloudIdentity.Mapper.Utils
                 string stringValue = value?.ToString() ?? string.Empty;
 
                 // Replace all occurrences of the placeholder (e.g., {{UserName}})
-                result = result.Replace($"{{{{{mapping.Placeholder}}}}}", stringValue);
+                result = result.Replace($"{{{{{mapping.DestinationField}}}}}", stringValue);
             }
             return result;
         }
@@ -38,7 +38,7 @@ namespace KN.KloudIdentity.Mapper.Utils
         /// Gets the value from the resource object based on the mapping config.
         /// Supports direct mapping, constants, and nested properties.
         /// </summary>
-        private static object? GetValue(T resource, SOAPAttributeMapping mapping)
+        private static object? GetValue(T resource, AttributeSchema mapping)
         {
             if (mapping.MappingType == MappingTypes.Constant)
                 return mapping.SourceValue;
@@ -87,16 +87,5 @@ namespace KN.KloudIdentity.Mapper.Utils
 
             return current;
         }
-    }
-
-    /// <summary>
-    /// Represents a mapping between a SOAP template placeholder and a resource property.
-    /// </summary>
-    public class SOAPAttributeMapping
-    {
-        public string Placeholder { get; set; } = string.Empty;
-        public string SourceValue { get; set; } = string.Empty;
-        public MappingTypes MappingType { get; set; } = MappingTypes.Direct; // "Direct" or "Constant"
-        public AttributeDataTypes DataType { get; set; } = AttributeDataTypes.String;
     }
 }

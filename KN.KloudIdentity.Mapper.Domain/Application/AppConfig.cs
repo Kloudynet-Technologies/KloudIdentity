@@ -22,4 +22,5 @@ public record AppConfig
     public bool? IsExternalAPIEnabled { get; set; }
     public ExternalEndpointInfo? ExternalEndpointInfo { get; set; }
     public dynamic? IntegrationDetails { get; set; }
+    public ICollection<SOAPTemplate>? SOAPTemplates { get; set; }
 }
