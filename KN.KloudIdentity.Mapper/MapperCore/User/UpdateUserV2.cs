@@ -5,6 +5,7 @@ using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
@@ -19,10 +20,10 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
     private readonly IKloudIdentityLogger _logger;
 
     public UpdateUserV2(
-        IGetFullAppConfigQuery getFullAppConfigQuery,
+        IAppConfigSnapshotRepository snapshotRepository,
         IIntegrationBaseFactory integrationBaseFactory,
         IOutboundPayloadProcessor outboundPayloadProcessor,
-        IKloudIdentityLogger logger) : base(getFullAppConfigQuery, outboundPayloadProcessor)
+        IKloudIdentityLogger logger) : base(snapshotRepository, outboundPayloadProcessor)
     {
         _integrationBaseFactory = integrationBaseFactory;
         _logger = logger;

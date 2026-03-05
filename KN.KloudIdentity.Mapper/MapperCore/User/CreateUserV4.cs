@@ -16,6 +16,7 @@ using KN.KI.LogAggregator.Library;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Utils;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
@@ -26,21 +27,17 @@ public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
     private readonly IOptions<AppSettings> _options;
     private readonly IReplaceResourceV2 _replaceResourceV2;
     private readonly IAzureStorageManager? _azureStorageManager;
-    private readonly IGetFullAppConfigQuery _getFullAppConfigQuery;
-    private readonly IOutboundPayloadProcessor _outboundPayloadProcessor;
     private AppConfig _appConfig = null!;
 
     public CreateUserV4(
-        IGetFullAppConfigQuery getFullAppConfigQuery,
+        IAppConfigSnapshotRepository snapshotRepository,
         IIntegrationBaseFactory integrationBaseFactory,
         IOutboundPayloadProcessor outboundPayloadProcessor,
         IKloudIdentityLogger logger,
         IOptions<AppSettings> options,
         IReplaceResourceV2 replaceResourceV2,
-        IServiceProvider serviceProvider) : base(getFullAppConfigQuery, outboundPayloadProcessor)
+        IServiceProvider serviceProvider) : base(snapshotRepository, outboundPayloadProcessor)
     {
-        _getFullAppConfigQuery = getFullAppConfigQuery;
-        _outboundPayloadProcessor = outboundPayloadProcessor;
         _integrationFactory = integrationBaseFactory;
         _logger = logger;
         _options = options;

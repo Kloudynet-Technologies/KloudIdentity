@@ -1,13 +1,10 @@
 ﻿//------------------------------------------------------------
 // Copyright (c) Kloudynet Technologies Sdn Bhd.  All rights reserved.
 //------------------------------------------------------------
-
-using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore;
-using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;
 using Serilog;

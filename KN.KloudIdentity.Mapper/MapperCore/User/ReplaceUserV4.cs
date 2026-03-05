@@ -1,9 +1,8 @@
-using System;
 using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
-using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
@@ -12,26 +11,13 @@ using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
-public class ReplaceUserV4 : ProvisioningBase, IReplaceResourceV2
+public class ReplaceUserV4(
+    IAppConfigSnapshotRepository snapshotRepository,
+    IKloudIdentityLogger logger,
+    IIntegrationBaseFactory integrationBaseFactory,
+    IOutboundPayloadProcessor outboundPayloadProcessor)
+    : ProvisioningBase(snapshotRepository, outboundPayloadProcessor), IReplaceResourceV2
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IKloudIdentityLogger _logger;
-    private readonly IIntegrationBaseFactory _integrationBaseFactory;
-
-    public ReplaceUserV4(IAuthContext authContext,
-        IHttpClientFactory httpClientFactory,
-        IGetFullAppConfigQuery getFullAppConfigQuery,
-        IKloudIdentityLogger logger,
-        IIntegrationBaseFactory integrationBaseFactory,
-        IOutboundPayloadProcessor outboundPayloadProcessor
-    )
-        : base(getFullAppConfigQuery, outboundPayloadProcessor)
-    {
-        _httpClientFactory = httpClientFactory;
-        _logger = logger;
-        _integrationBaseFactory = integrationBaseFactory;
-    }
-
     public virtual async Task ReplaceAsync(Core2EnterpriseUser resource, string appId, string correlationID)
     {
         ArgumentNullException.ThrowIfNull(resource);
@@ -50,13 +36,13 @@ public class ReplaceUserV4 : ProvisioningBase, IReplaceResourceV2
             .OrderBy(s => s.StepOrder)
             .ToList();
 
-        if (!actionSteps.Any())
+        if (actionSteps.Count == 0)
         {
             throw new InvalidOperationException($"No EDIT actions for USER target found for AppId: {appId}");
         }
 
         // Step 3: Get integration operator
-        var integrationOp = _integrationBaseFactory.GetIntegration(
+        var integrationOp = integrationBaseFactory.GetIntegration(
             appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST,
             appId
         ) ?? throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
@@ -93,7 +79,7 @@ public class ReplaceUserV4 : ProvisioningBase, IReplaceResourceV2
     {
         var logEntity = new CreateLogEntity(
             appId,
-            LogType.Edit.ToString(),
+            nameof(LogType.Edit),
             LogSeverities.Information,
             "Replace user (V4)",
             $"User replaced successfully for the id {identifier}",
@@ -105,6 +91,6 @@ public class ReplaceUserV4 : ProvisioningBase, IReplaceResourceV2
             null
         );
 
-        await _logger.CreateLogAsync(logEntity);
+        await logger.CreateLogAsync(logEntity);
     }
 }

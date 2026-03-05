@@ -1,10 +1,7 @@
-using System;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Application;
-using KN.KloudIdentity.Mapper.Domain.Mapping;
-using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
-using Microsoft.SCIM;
 using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Outbound;
@@ -13,18 +10,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound;
 /// Represents the base class for provisioning.
 /// This contains all the common methods and properties for provisioning.
 /// </summary>
-public class ProvisioningBase : IProvisioningBase
+public class ProvisioningBase(
+    IAppConfigSnapshotRepository appConfigSnapshotRepository,
+    IOutboundPayloadProcessor outboundPayloadProcessor
+    )
+    : IProvisioningBase
 {
-    private readonly IGetFullAppConfigQuery _getFullAppConfigQuery;
-    private readonly IOutboundPayloadProcessor _outboundPayloadProcessor;
-
-    public ProvisioningBase(IGetFullAppConfigQuery getFullAppConfigQuery,
-        IOutboundPayloadProcessor outboundPayloadProcessor)
-    {
-        _getFullAppConfigQuery = getFullAppConfigQuery;
-        _outboundPayloadProcessor = outboundPayloadProcessor;
-    }
-
     /// <summary>
     /// Executes custom logic asynchronously.
     /// </summary>
@@ -40,7 +31,7 @@ public class ProvisioningBase : IProvisioningBase
             return payload;
         }
 
-        payload = await _outboundPayloadProcessor.ProcessAsync(
+        payload = await outboundPayloadProcessor.ProcessAsync(
             payload,
             appConfig.ExternalEndpointInfo,
             correlationID,
@@ -57,7 +48,7 @@ public class ProvisioningBase : IProvisioningBase
     /// <exception cref="NotFoundException"></exception>
     public virtual async Task<AppConfig> GetAppConfigAsync(string appId)
     {
-        var config = await _getFullAppConfigQuery.GetAsync(appId);
+        var config = await appConfigSnapshotRepository.GetAppConfigByAppIdAsync(appId);
 
         if (config == null)
         {

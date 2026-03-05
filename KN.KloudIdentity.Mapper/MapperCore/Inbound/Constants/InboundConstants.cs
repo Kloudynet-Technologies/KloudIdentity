@@ -1,5 +1,4 @@
-﻿using KN.KloudIdentity.Mapper.Config;
-using KN.KloudIdentity.Mapper.Domain.Mapping;
+﻿using KN.KloudIdentity.Mapper.Domain.Mapping;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Inbound;
 

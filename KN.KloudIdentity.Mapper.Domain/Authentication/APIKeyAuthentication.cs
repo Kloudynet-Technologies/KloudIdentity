@@ -2,9 +2,10 @@
 
 public record APIKeyAuthentication
 {
-    public string APIKey { get; init; }
+    public string APIKey { get; set; }
 
     public string AuthHeaderName { get; init; }
 
     public DateTime? ExpirationDate { get; init; }
+    public EncryptedData EncryptedData { get; init; }
 }
