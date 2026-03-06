@@ -28,8 +28,11 @@ namespace KN.KloudIdentity.Mapper.Utils
                 object? value = GetValue(resource, mapping);
                 string stringValue = value?.ToString() ?? string.Empty;
 
-                // Replace all occurrences of the placeholder (e.g., {{UserName}})
-                result = result.Replace($"{{{{{mapping.DestinationField}}}}}", stringValue);
+                // Escape XML special characters to prevent invalid XML and injection
+                string escapedValue = System.Security.SecurityElement.Escape(stringValue) ?? string.Empty;
+
+                // Replace all occurrences of the placeholder (e.g., {{UserName}}) with the escaped value
+                result = result.Replace($"{{{{{mapping.DestinationField}}}}}", escapedValue);
             }
             return result;
         }
@@ -40,10 +43,62 @@ namespace KN.KloudIdentity.Mapper.Utils
         /// </summary>
         private static object? GetValue(T resource, AttributeSchema mapping)
         {
+            // Resolve the raw value from either a constant or the source property path.
+            object? value;
             if (mapping.MappingType == MappingTypes.Constant)
-                return mapping.SourceValue;
-            // Support nested property access (e.g., emails[0].value)
-            return ReadProperty(resource, mapping.SourceValue);
+            {
+                value = mapping.SourceValue;
+            }
+            else
+            {
+                // Support nested property access (e.g., emails[0].value)
+                value = string.IsNullOrWhiteSpace(mapping.SourceValue)
+                    ? null
+                    : ReadProperty(resource, mapping.SourceValue);
+            }
+
+            // Apply default value if the resolved value is null or empty.
+            bool IsNullOrEmpty(object? v) =>
+                v == null || (v is string sv && string.IsNullOrEmpty(sv));
+            if (IsNullOrEmpty(value) && mapping.DefaultValue != null)
+            {
+                value = mapping.DefaultValue;
+            }
+
+            // Enforce required semantics: if still null/empty, fail fast.
+            if (mapping.IsRequired && IsNullOrEmpty(value))
+            {
+                throw new ArgumentException(
+                    $"Required mapping '{mapping.DestinationField}' could not be resolved from source '{mapping.SourceValue}'.");
+            }
+
+            // Attempt to coerce the value to the desired destination type, if provided.
+            // DestinationType is assumed to be compatible with System.Type; if not, this cast will simply yield null.
+            switch (mapping.DestinationType)
+            {
+                case AttributeDataTypes.String:
+                    value = value?.ToString();
+                    break;
+                case AttributeDataTypes.Number:
+                    if (value != null && double.TryParse(value.ToString(), out var num))
+                        value = num;
+                    break;
+                case AttributeDataTypes.Boolean:
+                    if (value != null && bool.TryParse(value.ToString(), out var b))
+                        value = b;
+                    break;
+                case AttributeDataTypes.DateTime:
+                    if (value != null && DateTime.TryParse(value.ToString(), out var dt))
+                        value = dt;
+                    break;
+                default:
+                    value = value?.ToString();
+                    break;
+
+                    // Add more type coercions as needed
+            }
+
+            return value;
         }
 
         /// <summary>
