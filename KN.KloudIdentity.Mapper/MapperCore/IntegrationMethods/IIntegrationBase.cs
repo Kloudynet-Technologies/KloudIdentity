@@ -23,6 +23,20 @@ public interface IIntegrationBase
     Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Attribute mapping and prepares the payload asynchronously with app configuration context.
+    /// </summary>
+    /// <param name="schema">Attribute mapping schema data</param>
+    /// <param name="resource">Entra ID object</param>
+    /// <param name="appConfig">App configuration context</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource,
+        AppConfig appConfig, CancellationToken cancellationToken = default)
+    {
+        return MapAndPreparePayloadAsync(schema, resource, cancellationToken);
+    }
+
+    /// <summary>
     /// Gets the authentication token asynchronously.
     /// </summary>
     /// <param name="config">App configuration</param>

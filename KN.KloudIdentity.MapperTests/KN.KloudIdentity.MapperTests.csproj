@@ -29,4 +29,5 @@
     <ProjectReference Include="..\KN.KloudIdentity.Mapper.Domain\KN.KloudIdentity.Mapper.Domain.csproj" />
   </ItemGroup>
 
+
 </Project>

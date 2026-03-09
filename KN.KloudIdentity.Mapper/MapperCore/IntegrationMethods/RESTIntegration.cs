@@ -77,6 +77,12 @@ public class RESTIntegration : IIntegrationBase
         return await Task.FromResult(payload);
     }
 
+    public virtual Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema,
+        Core2EnterpriseUser resource, AppConfig appConfig, CancellationToken cancellationToken = default)
+    {
+        return MapAndPreparePayloadAsync(schema, resource, cancellationToken);
+    }
+
     /// <summary>
     /// Provisions the user asynchronously to LOB application.
     /// </summary>

@@ -6,6 +6,7 @@ using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using Microsoft.SCIM;
 using Serilog;
+using System.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Outbound;
 
@@ -66,5 +67,26 @@ public class ProvisioningBase : IProvisioningBase
         }
 
         return config;
+    }
+
+    /// <summary>
+    /// Returns an app config scoped to a single SOAP action template for payload mapping.
+    /// For non-SOAP integrations, returns the original configuration instance.
+    /// </summary>
+    protected AppConfig GetMappingConfigForSoapAction(AppConfig appConfig, SOAPActions action)
+    {
+        if (appConfig.IntegrationMethodOutbound != IntegrationMethods.SOAP)
+        {
+            return appConfig;
+        }
+
+        var scopedTemplates = appConfig.SOAPTemplates?
+            .Where(template => template.Action == action)
+            .ToList();
+
+        return appConfig with
+        {
+            SOAPTemplates = scopedTemplates
+        };
     }
 }

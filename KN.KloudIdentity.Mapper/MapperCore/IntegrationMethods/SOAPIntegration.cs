@@ -58,11 +58,26 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             throw new NotSupportedException("AppConfig is required for SOAP payload mapping. Use the overload that accepts AppConfig.");
         }
 
-        // SOAP-specific overload that accepts AppConfig
+        /// <summary>
+        /// Maps user attributes to a SOAP XML payload based on the provided template in app configuration.
+        /// </summary>
+        /// <param name="schema">The list of attribute schemas to map.</param>
+        /// <param name="resource">The user resource containing the attribute values.</param>
+        /// <param name="appConfig">The application configuration containing the SOAP template. SOAPTemplates must only contain one template for the action.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+        /// <returns>The mapped SOAP XML payload.</returns>
+        /// <exception cref="InvalidOperationException">Thrown if no SOAP template is configured.</exception>
         public virtual async Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource, AppConfig appConfig, CancellationToken cancellationToken = default)
         {
-            string xmlTemplate = GetSoapTemplate("", SOAPActions.Create); // You may want to determine the template based on appConfig and action
-            string payload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(xmlTemplate, schema, resource);
+            // It is assumed that the SOAP template passed is the correct one for the action.
+            SOAPTemplate? template = appConfig.SOAPTemplates?.FirstOrDefault();
+            if (template == null)
+            {
+                Log.Error("No SOAP template configured. AppId: {AppId}", appConfig.AppId);
+                throw new InvalidOperationException("SOAP template is required for payload mapping.");
+            }
+
+            string payload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(template.Template, schema, resource);
 
             return await Task.FromResult(payload);
         }
@@ -87,8 +102,20 @@ namespace KN.KloudIdentity.Mapper.MapperCore
         public virtual async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationId, CancellationToken cancellationToken = default)
         {
             var userUri = appConfig.UserURIs?.FirstOrDefault()?.Get ?? throw new InvalidOperationException("GET API not configured.");
-            string xmlTemplate = GetSoapTemplate(appConfig.AppId, SOAPActions.Get);
-            string responseBody = await SendSoapRequestAsync(userUri, xmlTemplate, appConfig, SCIMDirections.Outbound, correlationId, cancellationToken);
+            SOAPTemplate? template = appConfig.SOAPTemplates?.FirstOrDefault(t => t.Action == SOAPActions.Get);
+            if (template == null)
+            {
+                Log.Error("No SOAP template configured for GET action. AppId: {AppId}", appConfig.AppId);
+                throw new InvalidOperationException("SOAP template is required for GET action.");
+            }
+
+            string xmlTemplate = template.Template;
+            var attributes = appConfig.UserAttributeSchemas.Where(p => p.HttpRequestType == HttpRequestTypes.GET).ToList();
+            Core2EnterpriseUser resource = new Core2EnterpriseUser { Identifier = identifier };
+
+            var payload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(xmlTemplate, attributes, resource);
+
+            string responseBody = await SendSoapRequestAsync(userUri, payload, appConfig, SCIMDirections.Outbound, correlationId, cancellationToken);
 
             return ParseSoapUserResponse(responseBody);
         }
@@ -108,8 +135,20 @@ namespace KN.KloudIdentity.Mapper.MapperCore
         public virtual async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationId)
         {
             var userUri = appConfig.UserURIs?.FirstOrDefault()?.Delete ?? throw new InvalidOperationException("Delete endpoint not configured.");
-            string xmlTemplate = GetSoapTemplate(appConfig.AppId, SOAPActions.Delete);
-            await SendSoapRequestAsync(userUri, xmlTemplate, appConfig, SCIMDirections.Outbound, correlationId);
+            SOAPTemplate? template = appConfig.SOAPTemplates?.FirstOrDefault(t => t.Action == SOAPActions.Delete);
+            if (template == null)
+            {
+                Log.Error("No SOAP template configured for DELETE action. AppId: {AppId}", appConfig.AppId);
+                throw new InvalidOperationException("SOAP template is required for DELETE action.");
+            }
+
+            string xmlTemplate = template.Template;
+            var attributes = appConfig.UserAttributeSchemas.Where(p => p.HttpRequestType == HttpRequestTypes.DELETE).ToList();
+            Core2EnterpriseUser resource = new Core2EnterpriseUser { Identifier = identifier };
+
+            var payload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(xmlTemplate, attributes, resource);
+
+            await SendSoapRequestAsync(userUri, payload, appConfig, SCIMDirections.Outbound, correlationId);
         }
         /// <summary>
         /// Sends a SOAP request to the specified URI with the given payload and handles common response logic.
@@ -160,23 +199,83 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             return client;
         }
 
-        private string GetSoapTemplate(string appId, SOAPActions action)
+        public virtual string ExtractIdentifierFromSoapResponse(string responseBody, AppConfig appConfig)
         {
-            // Retrieve the appropriate SOAP template based on the action (create, update, etc.)
-            // This could be from appConfig.SOAPTemplates or determined by the schema
-            throw new NotImplementedException();
+            var user = ParseSoapUserResponse(responseBody);
+            if (string.IsNullOrEmpty(user.Identifier))
+            {
+                Log.Error("Identifier not found in SOAP response. AppId: {AppId}, Response: {ResponseBody}", appConfig.AppId, responseBody);
+                throw new InvalidOperationException("Identifier not found in SOAP response.");
+            }
+
+            return user.Identifier;
         }
 
-        private string ExtractIdentifierFromSoapResponse(string responseBody, AppConfig appConfig)
+        public virtual Core2EnterpriseUser ParseSoapUserResponse(string responseBody)
         {
-            // Parse SOAP response XML to extract identifier
-            throw new NotImplementedException();
-        }
+            if (string.IsNullOrWhiteSpace(responseBody))
+            {
+                throw new ArgumentException("SOAP response body is empty.");
+            }
 
-        private Core2EnterpriseUser ParseSoapUserResponse(string responseBody)
-        {
-            // Parse SOAP response XML to Core2EnterpriseUser
-            throw new NotImplementedException();
+            try
+            {
+                // Load the response into an XML document
+                var xmlDoc = new System.Xml.XmlDocument
+                {
+                    XmlResolver = null // Prevent XXE by disabling external entity resolution
+                };
+                xmlDoc.LoadXml(responseBody);
+
+                // Try to find the SOAP body node
+                var nsmgr = new System.Xml.XmlNamespaceManager(xmlDoc.NameTable);
+                nsmgr.AddNamespace("soap", "http://schemas.xmlsoap.org/soap/envelope/");
+                var bodyNode = xmlDoc.SelectSingleNode("//soap:Body", nsmgr);
+
+                if (bodyNode == null)
+                {
+                    throw new InvalidOperationException("SOAP Body not found in response.");
+                }
+
+                // Find the first element inside the body (the actual response payload)
+                var userNode = bodyNode.FirstChild;
+                if (userNode == null)
+                {
+                    throw new InvalidOperationException("No payload found in SOAP Body.");
+                }
+
+                // Map fields from the XML to Core2EnterpriseUser properties
+                var user = new Core2EnterpriseUser();
+
+                // Example: try to extract Identifier, UserName, DisplayName, etc.
+                // Adjust element names as per your SOAP response schema
+                var identifierNode = userNode.SelectSingleNode(".//*[local-name()='Identifier']");
+                if (identifierNode != null)
+                {
+                    user.Identifier = identifierNode.InnerText;
+                }
+
+                var userNameNode = userNode.SelectSingleNode(".//*[local-name()='UserName']");
+                if (userNameNode != null)
+                {
+                    user.UserName = userNameNode.InnerText;
+                }
+
+                var displayNameNode = userNode.SelectSingleNode(".//*[local-name()='DisplayName']");
+                if (displayNameNode != null)
+                {
+                    user.DisplayName = displayNameNode.InnerText;
+                }
+
+                // Add more mappings as needed...
+
+                return user;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to parse SOAP user response.");
+                throw new InvalidOperationException("Failed to parse SOAP user response.", ex);
+            }
         }
     }
 }
