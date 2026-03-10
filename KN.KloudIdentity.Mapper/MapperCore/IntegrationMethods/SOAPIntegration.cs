@@ -111,6 +111,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore
 
             string xmlTemplate = template.Template;
             var attributes = appConfig.UserAttributeSchemas.Where(p => p.HttpRequestType == HttpRequestTypes.GET).ToList();
+            if (!attributes.Any() || !attributes.Any(a => a.SourceValue.Equals("Identifier", StringComparison.OrdinalIgnoreCase)))
+            {
+                Log.Error("No valid attributes configured for GET action. AppId: {AppId}", appConfig.AppId);
+                throw new InvalidOperationException("At least one attribute other than Identifier must be configured for GET action.");
+            }
+
             Core2EnterpriseUser resource = new Core2EnterpriseUser { Identifier = identifier };
 
             var payload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(xmlTemplate, attributes, resource);
@@ -144,6 +150,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore
 
             string xmlTemplate = template.Template;
             var attributes = appConfig.UserAttributeSchemas.Where(p => p.HttpRequestType == HttpRequestTypes.DELETE).ToList();
+            if (!attributes.Any() || !attributes.Any(a => a.SourceValue.Equals("Identifier", StringComparison.OrdinalIgnoreCase)))
+            {
+                Log.Error("No valid attributes configured for DELETE action. AppId: {AppId}", appConfig.AppId);
+                throw new InvalidOperationException("At least one attribute other than Identifier must be configured for DELETE action.");
+            }
+
             Core2EnterpriseUser resource = new Core2EnterpriseUser { Identifier = identifier };
 
             var payload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(xmlTemplate, attributes, resource);
