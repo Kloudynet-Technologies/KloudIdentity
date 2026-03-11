@@ -1,14 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
+using System.Text.Json;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.Utils;
@@ -29,6 +31,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
         private readonly IConfiguration _configuration;
         private readonly IKloudIdentityLogger _logger;
         private readonly AppSettings _appSettings;
+        private readonly IReadOnlyList<ISoapAuthApplier> _soapAuthAppliers;
         public IntegrationMethods IntegrationMethod { get; init; }
 
         public SOAPIntegration(
@@ -36,7 +39,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             IHttpClientFactory httpClientFactory,
             IConfiguration configuration,
             IOptions<AppSettings> appSettings,
-            IKloudIdentityLogger logger)
+            IKloudIdentityLogger logger,
+            IEnumerable<ISoapAuthApplier>? soapAuthAppliers = null)
         {
             IntegrationMethod = IntegrationMethods.SOAP;
             _authContext = authContext;
@@ -44,6 +48,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             _configuration = configuration;
             _logger = logger;
             _appSettings = appSettings.Value;
+            _soapAuthAppliers = [.. (soapAuthAppliers ??
+            [
+                new SoapTransportAuthApplier(),
+                new WsSecuritySoapAuthApplier(),
+                new SoapTokenHeaderApplier()
+            ])];
         }
 
         public virtual async Task<dynamic> GetAuthenticationAsync(AppConfig config, SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default, params dynamic[] args)
@@ -174,9 +184,29 @@ namespace KN.KloudIdentity.Mapper.MapperCore
         /// <returns>Response body as string.</returns>
         private async Task<string> SendSoapRequestAsync(Uri uri, string payload, AppConfig appConfig, SCIMDirections direction, string correlationId, CancellationToken cancellationToken = default)
         {
-            var httpClient = await CreateHttpClientAsync(appConfig, direction, cancellationToken);
-            var content = new StringContent(payload, Encoding.UTF8, "text/xml");
-            var response = await httpClient.PostAsync(uri, content, cancellationToken);
+            var soapAuthOptions = ResolveSoapAuthenticationOptions(appConfig);
+            var (httpClient, handler, token) = await CreateHttpClientAsync(appConfig, direction, soapAuthOptions, cancellationToken);
+
+            var request = new HttpRequestMessage(HttpMethod.Post, uri);
+            var authContext = new SoapAuthContext
+            {
+                AppConfig = appConfig,
+                Direction = direction,
+                HttpClient = httpClient,
+                Request = request,
+                Handler = handler,
+                Token = token,
+                AuthOptions = soapAuthOptions,
+                Payload = payload
+            };
+
+            foreach (var applier in _soapAuthAppliers)
+            {
+                await applier.ApplyAsync(authContext, cancellationToken);
+            }
+
+            request.Content = new StringContent(authContext.Payload, Encoding.UTF8, "text/xml");
+            var response = await httpClient.SendAsync(request, cancellationToken);
             string responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
             // Check for HTTP error
@@ -196,19 +226,130 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             return responseBody;
         }
 
-        private async Task<HttpClient> CreateHttpClientAsync(AppConfig appConfig, SCIMDirections direction, CancellationToken cancellationToken = default)
+        private async Task<(HttpClient client, HttpClientHandler? handler, string? token)> CreateHttpClientAsync(AppConfig appConfig, SCIMDirections direction, SOAPAuthenticationOptions? soapAuthOptions, CancellationToken cancellationToken = default)
         {
-            var client = _httpClientFactory.CreateClient();
-            // Set headers, authentication, etc. as needed
-            // Example: client.DefaultRequestHeaders.Add("SOAPAction", ...);
-            // Add token if required
-            var token = await GetAuthenticationAsync(appConfig, direction, cancellationToken);
-            if (token is string t && !string.IsNullOrEmpty(t))
+            var isNtlmEnabled = soapAuthOptions?.Transport?.Enabled == true && soapAuthOptions.Transport.UseNtlm;
+            HttpClientHandler? handler = null;
+            var client = isNtlmEnabled
+                ? CreateHttpClientForNtlm(out handler)
+                : _httpClientFactory.CreateClient();
+
+            string? token = null;
+            if (ShouldResolveToken(appConfig, soapAuthOptions, direction))
             {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", t);
+                token = await GetAuthenticationAsync(appConfig, direction, cancellationToken);
             }
 
-            return client;
+            if (!isNtlmEnabled && !string.IsNullOrWhiteSpace(token) && appConfig.AuthenticationMethodOutbound != AuthenticationMethods.None)
+            {
+                Utils.HttpClientExtensions.SetAuthenticationHeaders(
+                   client,
+                   appConfig.AuthenticationMethodOutbound,
+                   NormalizeAuthenticationDetails(appConfig.AuthenticationDetails),
+                   token);
+            }
+
+            var customHttpClient = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
+            if (customHttpClient?.HttpSettings?.Headers is { Count: > 0 })
+            {
+                client.SetCustomHeaders(customHttpClient.HttpSettings.Headers);
+            }
+
+            return (client, handler, token);
+        }
+
+        protected virtual HttpClient CreateHttpClientForNtlm(out HttpClientHandler handler)
+        {
+            handler = new HttpClientHandler();
+            return new HttpClient(handler);
+        }
+
+        private static bool ShouldResolveToken(AppConfig appConfig, SOAPAuthenticationOptions? options, SCIMDirections direction)
+        {
+            var authMethod = direction == SCIMDirections.Inbound
+                ? appConfig.AuthenticationMethodInbound
+                : appConfig.AuthenticationMethodOutbound;
+
+            if (authMethod != AuthenticationMethods.None)
+            {
+                return true;
+            }
+
+            var tokenPlacement = options?.TokenPlacement;
+            if (tokenPlacement?.Enabled != true)
+            {
+                return false;
+            }
+
+            return tokenPlacement.UseAuthorizationHeader
+                || (tokenPlacement.CustomHttpHeaders != null && tokenPlacement.CustomHttpHeaders.Count > 0)
+                || !string.IsNullOrWhiteSpace(tokenPlacement.SoapHeaderTemplate);
+        }
+
+        private static SOAPAuthenticationOptions? ResolveSoapAuthenticationOptions(AppConfig appConfig)
+        {
+            if (appConfig.SOAPAuthenticationOptions != null)
+            {
+                return appConfig.SOAPAuthenticationOptions;
+            }
+
+            if (appConfig.AuthenticationDetails == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                var authDetailsJson = JsonSerializer.Serialize(appConfig.AuthenticationDetails);
+                using var document = JsonDocument.Parse(authDetailsJson);
+                var root = document.RootElement;
+                SOAPAuthenticationOptions? options;
+
+                if (TryReadSoapAuthOptions(root, "SOAPAuthenticationOptions", out options)
+                    || TryReadSoapAuthOptions(root, "SoapAuthenticationOptions", out options)
+                    || TryReadSoapAuthOptions(root, "soapAuthenticationOptions", out options)
+                    || TryReadSoapAuthOptions(root, "soapAuthOptions", out options))
+                {
+                    return options;
+                }
+            }
+            catch
+            {
+                return null;
+            }
+
+            return null;
+        }
+
+        private static bool TryReadSoapAuthOptions(JsonElement root, string propertyName, out SOAPAuthenticationOptions? options)
+        {
+            options = null;
+            if (!root.TryGetProperty(propertyName, out var value))
+            {
+                return false;
+            }
+
+            options = value.Deserialize<SOAPAuthenticationOptions>(new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            return options != null;
+        }
+
+        private static dynamic NormalizeAuthenticationDetails(dynamic authenticationDetails)
+        {
+            if (authenticationDetails is null)
+            {
+                return "{}";
+            }
+
+            if (authenticationDetails is string authDetailsString)
+            {
+                return authDetailsString;
+            }
+
+            return JsonSerializer.Serialize(authenticationDetails);
         }
 
         public virtual string ExtractIdentifierFromSoapResponse(string responseBody, AppConfig appConfig)
