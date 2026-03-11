@@ -180,7 +180,7 @@ public class LinuxIntegration : IIntegrationBase
         Dictionary<string, string> valuesForCommand = payload;
 
         string command =
-            $"sudo useradd -u {valuesForCommand["UID"]} -c \"{valuesForCommand["Identifier"]}\" {valuesForCommand["Username"]}";       
+            $"sudo useradd -u {valuesForCommand["UID"]} -c \"{valuesForCommand["Identifier"]}\" {valuesForCommand["Username"]}";
 
         LinuxRequestMessage linuxRequestMessage = new LinuxRequestMessage(
             appConfig.IntegrationDetails,
