@@ -416,7 +416,7 @@ public class SOAPIntegrationUnitTests
 
         var sut = CreateSut(handler, "token-123");
         var appConfig = CreateAppConfig(
-                authMethodOutbound: AuthenticationMethods.None,
+                authMethodOutbound: AuthenticationMethods.Bearer,
                 soapAuthenticationOptions: new SOAPAuthenticationOptions
                 {
                     TokenPlacement = new SoapTokenPlacementOptions

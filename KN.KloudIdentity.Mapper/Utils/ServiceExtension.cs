@@ -38,6 +38,14 @@ public static class ServiceExtension
     public static void ConfigureMapperServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddHttpClient();
+        services.AddHttpClient(AppConstant.NtlmSoapClientName)
+                .ConfigurePrimaryHttpMessageHandler(() =>
+                    new HttpClientHandler
+                    {
+                        UseDefaultCredentials = true
+                        // or static credentials if your app uses fixed service credentials
+                    });
+
         services.AddMemoryCache();
         services.AddScoped<Context>();
 

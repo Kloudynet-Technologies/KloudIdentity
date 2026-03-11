@@ -33,6 +33,7 @@ public sealed class WsSecuritySoapAuthApplier : ISoapAuthApplier
         var soapNs = string.IsNullOrWhiteSpace(envelope.NamespaceURI) ? Soap11Ns : envelope.NamespaceURI;
         var nsmgr = new XmlNamespaceManager(document.NameTable);
         nsmgr.AddNamespace("soap", soapNs);
+        nsmgr.AddNamespace("wsse", WsseNs);
 
         var header = document.SelectSingleNode("/soap:Envelope/soap:Header", nsmgr) as XmlElement;
         if (header == null)
@@ -47,7 +48,13 @@ public sealed class WsSecuritySoapAuthApplier : ISoapAuthApplier
             body.ParentNode.InsertBefore(header, body);
         }
 
-        var security = document.CreateElement("wsse", "Security", WsseNs);
+        var security = header.SelectSingleNode("wsse:Security", nsmgr) as XmlElement;
+        if (security == null)
+        {
+            security = document.CreateElement("wsse", "Security", WsseNs);
+            header.AppendChild(security);
+        }
+
         var usernameToken = document.CreateElement("wsse", "UsernameToken", WsseNs);
 
         var username = document.CreateElement("wsse", "Username", WsseNs);
@@ -74,7 +81,6 @@ public sealed class WsSecuritySoapAuthApplier : ISoapAuthApplier
         }
 
         security.AppendChild(usernameToken);
-        header.AppendChild(security);
 
         context.Payload = document.OuterXml;
         return Task.CompletedTask;

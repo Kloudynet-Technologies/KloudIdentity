@@ -260,8 +260,9 @@ namespace KN.KloudIdentity.Mapper.MapperCore
 
         protected virtual HttpClient CreateHttpClientForNtlm(out HttpClientHandler handler)
         {
-            handler = new HttpClientHandler();
-            return new HttpClient(handler);
+            // Handler is configured by DI for this named client, so no manual `new HttpClient(...)`.
+            handler = null!;
+            return _httpClientFactory.CreateClient(AppConstant.NtlmSoapClientName);
         }
 
         private static bool ShouldResolveToken(AppConfig appConfig, SOAPAuthenticationOptions? options, SCIMDirections direction)
@@ -281,9 +282,20 @@ namespace KN.KloudIdentity.Mapper.MapperCore
                 return false;
             }
 
-            return tokenPlacement.UseAuthorizationHeader
+            var hasEffectiveTokenPlacement =
+                tokenPlacement.UseAuthorizationHeader
                 || (tokenPlacement.CustomHttpHeaders != null && tokenPlacement.CustomHttpHeaders.Count > 0)
                 || !string.IsNullOrWhiteSpace(tokenPlacement.SoapHeaderTemplate);
+
+            if (hasEffectiveTokenPlacement)
+            {
+                throw new InvalidOperationException(
+                    "Token placement is enabled for a SOAP integration, but the authentication method is set to 'None'. " +
+                    "Configure a token-producing authentication method for the specified direction (inbound or outbound) " +
+                    "when using token placement.");
+            }
+
+            return false;
         }
 
         private static SOAPAuthenticationOptions? ResolveSoapAuthenticationOptions(AppConfig appConfig)
@@ -313,8 +325,19 @@ namespace KN.KloudIdentity.Mapper.MapperCore
                     return options;
                 }
             }
+            catch (JsonException ex)
+            {
+                Log.Error(ex, "Failed to parse SOAP authentication options from AuthenticationDetails. AppId: {AppId}", appConfig.AppId);
+                return null;
+            }
+            catch (InvalidOperationException ex)
+            {
+                Log.Error(ex, "Failed to parse SOAP authentication options from AuthenticationDetails. AppId: {AppId}", appConfig.AppId);
+                return null;
+            }
             catch
             {
+                Log.Error("Failed to parse SOAP authentication options from AuthenticationDetails due to an unexpected error. AppId: {AppId}", appConfig.AppId);
                 return null;
             }
 

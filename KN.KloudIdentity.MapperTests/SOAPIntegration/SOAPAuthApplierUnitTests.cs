@@ -159,6 +159,50 @@ public class SOAPAuthApplierUnitTests
     }
 
     [Fact]
+    public async Task WsSecuritySoapAuthApplier_WhenSecurityAlreadyExists_DoesNotCreateDuplicateSecurityNode()
+    {
+        const string payload = """
+                        <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+                            <soap:Header>
+                                <wsse:Security>
+                                    <wsse:UsernameToken>
+                                        <wsse:Username>existing-user</wsse:Username>
+                                    </wsse:UsernameToken>
+                                </wsse:Security>
+                            </soap:Header>
+                            <soap:Body>
+                                <CreateUser />
+                            </soap:Body>
+                        </soap:Envelope>
+                        """;
+
+        var context = CreateContext(
+                payload: payload,
+                authOptions: new SOAPAuthenticationOptions
+                {
+                    WsSecurity = new WsSecuritySoapAuthOptions
+                    {
+                        Enabled = true,
+                        Username = "ws-user",
+                        Password = "ws-pass",
+                        IncludeTimestamp = false
+                    }
+                });
+
+        await new WsSecuritySoapAuthApplier().ApplyAsync(context);
+
+        var doc = new XmlDocument();
+        doc.LoadXml(context.Payload);
+        var ns = new XmlNamespaceManager(doc.NameTable);
+        ns.AddNamespace("soap", "http://schemas.xmlsoap.org/soap/envelope/");
+        ns.AddNamespace("wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd");
+
+        var securityNodes = doc.SelectNodes("/soap:Envelope/soap:Header/wsse:Security", ns);
+        Assert.NotNull(securityNodes);
+        Assert.Equal(1, securityNodes!.Count);
+    }
+
+    [Fact]
     public async Task SoapTokenHeaderApplier_WithSoapHeaderPlacement_AddsConfiguredHeaderFragment()
     {
         var context = CreateContext(
