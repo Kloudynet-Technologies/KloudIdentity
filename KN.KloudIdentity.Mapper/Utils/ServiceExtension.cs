@@ -38,6 +38,14 @@ public static class ServiceExtension
     public static void ConfigureMapperServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddHttpClient();
+        services.AddHttpClient(AppConstant.NtlmSoapClientName)
+                .ConfigurePrimaryHttpMessageHandler(() =>
+                    new HttpClientHandler
+                    {
+                        UseDefaultCredentials = true
+                        // or static credentials if your app uses fixed service credentials
+                    });
+
         services.AddMemoryCache();
         services.AddScoped<Context>();
 
@@ -45,8 +53,12 @@ public static class ServiceExtension
         services.AddScoped<IAuthContext, AuthContextV1>();
         services.AddScoped<IAuthStrategy, ApiKeyStrategy>();
         services.AddScoped<IAuthStrategy, BasicAuthStrategy>();
+        services.AddScoped<IAuthStrategy, BearerAuthStratergy>();
         services.AddScoped<IAuthStrategy, OAuth2Strategy>();
         services.AddScoped<IAuthStrategy, DotRezAuthStrategy>();
+        services.AddScoped<ISoapAuthApplier, SoapTransportAuthApplier>();
+        services.AddScoped<ISoapAuthApplier, WsSecuritySoapAuthApplier>();
+        services.AddScoped<ISoapAuthApplier, SoapTokenHeaderApplier>();
 
         services.AddScoped<IConfigReader, ConfigReaderSQL>();
 
@@ -54,7 +66,7 @@ public static class ServiceExtension
         {
             return provider.GetServices<IIntegrationBase>().ToList();
         });
-                
+
         var appSettingsSection = configuration.GetSection("KI");
         var appSettings = appSettingsSection.Get<AppSettings>();
         var connectionString = appSettings?.UserMigration?.AzureStorageConnectionString;
@@ -69,14 +81,15 @@ public static class ServiceExtension
         }
 
         services.AddScoped<ICreateResourceV2, CreateUserV3>();
-       
-        services.AddScoped<IIntegrationBase, RestIntegrationManageEngine>(); 
+
+        services.AddScoped<IIntegrationBase, RestIntegrationManageEngine>();
         services.AddScoped<IIntegrationBase, RESTIntegrationV2>();
-        
+
         services.AddScoped<IIntegrationBase, RESTIntegration>();
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
         services.AddScoped<IIntegrationBase, AS400Integration>();
         services.AddScoped<IIntegrationBase, SQLIntegration>();
+        services.AddScoped<IIntegrationBase, SOAPIntegration>();
 
         services.AddScoped<IIntegrationBaseFactory, IntegrationBaseFactory>();
 

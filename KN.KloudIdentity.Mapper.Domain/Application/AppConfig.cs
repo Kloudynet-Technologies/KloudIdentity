@@ -23,4 +23,5 @@ public record AppConfig
     public ExternalEndpointInfo? ExternalEndpointInfo { get; set; }
     public dynamic? IntegrationDetails { get; set; }
     public ICollection<SOAPTemplate>? SOAPTemplates { get; set; }
+    public SOAPAuthenticationOptions? SOAPAuthenticationOptions { get; set; }
 }
