@@ -1,4 +1,3 @@
-using System;
 using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
@@ -73,7 +72,12 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         if (!user.Active)
         {
             // Custom logic for deprovisioning
-            await integrationOp.DeleteAsync(user.Identifier, appConfig, correlationId);
+            var deleteIdentifier = integrationOp.IntegrationMethod == IntegrationMethods.Linux
+                ? user.ExternalIdentifier
+                : user.Identifier;
+
+            await integrationOp.DeleteAsync(deleteIdentifier, appConfig, correlationId);
+
             Log.Information(
                 "Deprovisioning logic applied successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
                 user.Identifier, appId, correlationId);

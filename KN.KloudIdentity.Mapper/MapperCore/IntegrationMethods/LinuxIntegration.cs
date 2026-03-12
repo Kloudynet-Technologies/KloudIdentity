@@ -33,9 +33,9 @@ public class LinuxIntegration : IIntegrationBase
         _appSettings = appSettings;
     }
 
-    public async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationID)
+    public async Task DeleteAsync(string username, AppConfig appConfig, string correlationID)
     {
-        string command = $"sudo usermod -L {identifier}";
+        string command = $"sudo usermod -L {username}";
 
         LinuxRequestMessage linuxRequestMessage = new LinuxRequestMessage(
             appConfig.IntegrationDetails,
@@ -48,8 +48,8 @@ public class LinuxIntegration : IIntegrationBase
         if (response == null || response?.IsError == true)
         {
             Log.Error(
-                "Error occurred while disabling the user. AppId: {AppId}, Identifier: {Identifier}, CorrelationID: {CorrelationID}, Error: {ErrorMessage}",
-                appConfig.AppId, identifier, correlationID, response?.ErrorMessage);
+                "Error occurred while disabling the user. AppId: {AppId}, Username: {Username}, CorrelationID: {CorrelationID}, Error: {ErrorMessage}",
+                appConfig.AppId, username, correlationID, response?.ErrorMessage);
             throw new ApplicationException($"Error occurred while disabling the user: {response?.ErrorMessage}");
         }
     }
@@ -246,7 +246,7 @@ public class LinuxIntegration : IIntegrationBase
     public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
         string correlationID)
     {
-        string command = $"sudo usermod -c \"{payload["Identifier"]}\" {resource.Identifier}";
+        string command = $"sudo usermod -c \"{payload["Identifier"]}\" {payload["Username"]}";
 
         LinuxRequestMessage linuxRequestMessage = new LinuxRequestMessage(
             appConfig.IntegrationDetails,
