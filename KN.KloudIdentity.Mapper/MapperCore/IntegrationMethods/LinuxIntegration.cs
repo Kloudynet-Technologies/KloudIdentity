@@ -184,12 +184,12 @@ public class LinuxIntegration : IIntegrationBase
 
         string command = string.Empty;
 
-        if (!string.IsNullOrEmpty(groupName) && groupName == "sudo")
+        if (!string.IsNullOrEmpty(groupName))
         {
             command = $"sudo useradd -u {valuesForCommand["UID"]} " +
                 $"-c \"{valuesForCommand["Identifier"]}\" {valuesForCommand["Username"]} " +
                 $"&& sudo passwd -d {valuesForCommand["Username"]} " +
-                $"&& sudo usermod -aG sudo {valuesForCommand["Username"]}";             
+                $"&& sudo usermod -aG {valuesForCommand["GroupName"]} {valuesForCommand["Username"]}";             
         }
         else
         {
