@@ -130,7 +130,8 @@ public class LinuxIntegration : IIntegrationBase
         {
             { "Username", GetValueFromResource(schema, resource, "Username") },
             { "UID", GetValueFromResource(schema, resource, "UID") },
-            { "Identifier", GetValueFromResource(schema, resource, "Identifier", true) }
+            { "Identifier", GetValueFromResource(schema, resource, "Identifier", true) } ,
+            { "GroupName", GetValueFromResource(schema, resource, "GroupName", true) }
         };
 
         return await Task.FromResult(valuesForCommand);
@@ -179,8 +180,23 @@ public class LinuxIntegration : IIntegrationBase
 
         Dictionary<string, string> valuesForCommand = payload;
 
-        string command =
-            $"sudo useradd -u {valuesForCommand["UID"]} -c \"{valuesForCommand["Identifier"]}\" {valuesForCommand["Username"]}";
+        string groupName = valuesForCommand["GroupName"];
+
+        string command = string.Empty;
+
+        if (!string.IsNullOrEmpty(groupName) && groupName == "sudo")
+        {
+            command = $"sudo useradd -u {valuesForCommand["UID"]} " +
+                $"-c \"{valuesForCommand["Identifier"]}\" {valuesForCommand["Username"]} " +
+                $"&& sudo passwd -d {valuesForCommand["Username"]} " +
+                $"&& sudo usermod -aG sudo {valuesForCommand["Username"]}";             
+        }
+        else
+        {
+            command = $"sudo useradd -u {valuesForCommand["UID"]} " +
+            $"-c \"{valuesForCommand["Identifier"]}\" {valuesForCommand["Username"]} " +
+            $"&& sudo passwd -d {valuesForCommand["Username"]}";
+        }       
 
         LinuxRequestMessage linuxRequestMessage = new LinuxRequestMessage(
             appConfig.IntegrationDetails,
