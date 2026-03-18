@@ -41,6 +41,10 @@ public class ReqStagQueuePublisherV1 : IReqStagQueuePublisher
         {
             response = await _httpClient.GetAsync($"{_appSettings.Value.ExternalQueueUrl}/api/users?encryptedMessage={request}", cancellationToken);
         }
+        else if (operationType == OperationTypes.UserGroup)
+        {
+            response = await _httpClient.GetAsync($"{_appSettings.Value.ExternalQueueUrl}/api/groups?encryptedMessage={request}", cancellationToken);
+        }
         else
         {
             throw new NotSupportedException($"Operation type {operationType} is not supported.");
