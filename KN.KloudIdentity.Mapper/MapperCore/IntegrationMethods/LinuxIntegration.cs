@@ -5,7 +5,6 @@ using KN.KloudIdentity.Mapper.Domain.Messaging.LinuxIntegration;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using Microsoft.SCIM;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
@@ -181,22 +180,19 @@ public class LinuxIntegration : IIntegrationBase
         Dictionary<string, string> valuesForCommand = payload;
 
         string groupName = valuesForCommand["GroupName"];
+        var commandBuilder = new StringBuilder();
 
-        string command = string.Empty;
-
+        commandBuilder.Append($"sudo useradd -u {valuesForCommand["UID"]} -c \"{valuesForCommand["Identifier"]}\" {valuesForCommand["Username"]} ");
+        commandBuilder.Append($"&& sudo passwd -d {valuesForCommand["Username"]} ");
+       
+        // Assuming group already exists in Linux server.
+        // TODO: If group does not exist, extend this logic to create the group before creating the user and assigning to the group.
         if (!string.IsNullOrEmpty(groupName))
         {
-            command = $"sudo useradd -u {valuesForCommand["UID"]} " +
-                $"-c \"{valuesForCommand["Identifier"]}\" {valuesForCommand["Username"]} " +
-                $"&& sudo passwd -d {valuesForCommand["Username"]} " +
-                $"&& sudo usermod -aG {valuesForCommand["GroupName"]} {valuesForCommand["Username"]}";             
+            commandBuilder.Append($"&& sudo usermod -aG {groupName} {valuesForCommand["Username"]}");
         }
-        else
-        {
-            command = $"sudo useradd -u {valuesForCommand["UID"]} " +
-            $"-c \"{valuesForCommand["Identifier"]}\" {valuesForCommand["Username"]} " +
-            $"&& sudo passwd -d {valuesForCommand["Username"]}";
-        }       
+
+        string command = commandBuilder.ToString().Trim();
 
         LinuxRequestMessage linuxRequestMessage = new LinuxRequestMessage(
             appConfig.IntegrationDetails,
@@ -262,7 +258,41 @@ public class LinuxIntegration : IIntegrationBase
     public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
         string correlationID)
     {
-        string command = $"sudo usermod -c \"{payload["Identifier"]}\" {payload["Username"]}";
+        Log.Information("Provisioning started for user updating. AppId: {AppId}, CorrelationID: {CorrelationID}",
+           appConfig.AppId, correlationID);
+
+        Dictionary<string, string> valuesForCommand = payload;
+
+        string username = valuesForCommand["Username"];
+        string newGroupName = valuesForCommand["GroupName"];        
+
+        var commandBuilder = new StringBuilder();
+
+        // Update comment field
+        commandBuilder.Append($"sudo usermod -c \"{valuesForCommand["Identifier"]}\" {username}");
+
+        // Handle group assignment      
+        List<string> currentGroups = await GetUserGroupsAsync(username, correlationID, appConfig); ;
+
+        if (!string.IsNullOrEmpty(newGroupName))
+        {
+            // If group name is different, update group membership
+            if (!currentGroups.Contains(newGroupName))
+            {                
+                commandBuilder.Append($" && sudo usermod -aG {newGroupName} {username}");
+            }
+        }
+
+        if (currentGroups.Count > 0)
+        { 
+            // Remove user from the current group           
+            foreach (var group in currentGroups)
+            {
+                commandBuilder.Append($" && sudo gpasswd -d {username} {group}");
+            }
+        }
+
+        string command = commandBuilder.ToString();
 
         LinuxRequestMessage linuxRequestMessage = new LinuxRequestMessage(
             appConfig.IntegrationDetails,
@@ -285,5 +315,27 @@ public class LinuxIntegration : IIntegrationBase
         CancellationToken cancellationToken = default)
     {
         return Task.FromResult((true, Array.Empty<string>()));
+    }
+
+    private async Task<List<string>> GetUserGroupsAsync(string username, string correlationId, AppConfig appConfig)
+    {
+        string command = $"sudo id -nG {username} | tr ' ' '\\n' | grep -vx \"$(id -gn {username})\"";
+
+        var request = new LinuxRequestMessage(
+            appConfig.IntegrationDetails,
+            appConfig.AuthenticationDetails,
+            command
+        );
+
+        var response = await SendMessage(correlationId, request, OperationTypes.UserGroup, default);
+
+        if (response == null || response?.IsError == true)
+        {
+            throw new ApplicationException($"Failed to get user groups: {response?.ErrorMessage}");            
+        }
+
+        var userGroupList = JsonConvert.DeserializeObject<LinuxUserGroupResponse>(response!.Message.ToString());
+
+        return userGroupList?.Groups ?? new List<string>();
     }
 }
