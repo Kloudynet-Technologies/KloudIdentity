@@ -1,7 +1,7 @@
 using Azure.Identity;
 using Microsoft.Extensions.Configuration;
 
-namespace KN.KloudIdentity.Mapper.Utils;
+namespace KN.KloudIdentity.Mapper.Domain.Shared;
 
 public static class AzureCredentialHelper
 {

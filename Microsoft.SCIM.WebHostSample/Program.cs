@@ -2,8 +2,7 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //------------------------------------------------------------
 
-using Azure.Identity;
-using KN.KloudIdentity.Mapper.Utils;
+using KN.KloudIdentity.Mapper.Domain.Shared;
 
 namespace Microsoft.SCIM.WebHostSample
 {
