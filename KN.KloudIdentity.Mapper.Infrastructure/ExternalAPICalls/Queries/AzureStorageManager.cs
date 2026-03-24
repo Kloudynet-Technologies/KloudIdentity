@@ -17,9 +17,10 @@ public class AzureStorageManager : IAzureStorageManager
     private readonly AppSettings _appSettings;
 
     /// <summary>
-    /// Supports authentication via connection string or service principal.
-    /// If connectionString is provided, it is used. Otherwise, service principal is used.
+    /// Supports Azure Storage authentication via <c>ConnectionString</c> or <c>ServicePrincipal</c>, as selected by <paramref name="authMethod"/>.
     /// </summary>
+    /// <param name="connectionString">Required when <paramref name="authMethod"/> is <c>ConnectionString</c>; ignored for <c>ServicePrincipal</c>.</param>
+    /// <param name="authMethod">The authentication method to use: <c>ConnectionString</c> or <c>ServicePrincipal</c>.</param>
     public AzureStorageManager(
         string? connectionString,
         string authMethod,
@@ -49,11 +50,20 @@ public class AzureStorageManager : IAzureStorageManager
             var accountUrl = _appSettings.UserMigration.AzureStorageAccountUrl;
             if (string.IsNullOrWhiteSpace(accountUrl))
             {
-                Log.Error("Azure Storage account url is required but not provided in configuration.");
+                Log.Error("Azure Storage account URL is required but not provided in configuration.");
                 throw new InvalidOperationException("Azure Storage account URL is not configured.");
             }
+
+            if (!Uri.TryCreate(accountUrl, UriKind.Absolute, out var parsedAccountUri) ||
+                (parsedAccountUri.Scheme != Uri.UriSchemeHttps && parsedAccountUri.Scheme != Uri.UriSchemeHttp))
+            {
+                Log.Error("Invalid Azure Storage account URL configured: {AccountUrl}", accountUrl);
+                throw new InvalidOperationException(
+                    "Invalid Azure Storage account URL. Expected Azure Tables endpoint format, e.g. 'https://<account-name>.table.core.windows.net'.");
+            }
+
             var credential = AzureCredentialHelper.CreateClientSecretCredential(configuration);
-            _tableServiceClient = new TableServiceClient(new Uri(accountUrl), credential);
+            _tableServiceClient = new TableServiceClient(parsedAccountUri, credential);
         }
         else
         {
