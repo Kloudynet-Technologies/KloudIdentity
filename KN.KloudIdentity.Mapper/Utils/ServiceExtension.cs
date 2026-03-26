@@ -49,13 +49,14 @@ public static class ServiceExtension
         var appSettingsSection = configuration.GetSection("KI");
         var appSettings = appSettingsSection.Get<AppSettings>();
         var connectionString = appSettings?.UserMigration?.AzureStorageConnectionString;
+        var authMethod = appSettings?.UserMigration?.AuthMethod;
 
-        if (!string.IsNullOrWhiteSpace(connectionString))
+        if (!string.IsNullOrWhiteSpace(authMethod))
         {
             services.AddSingleton<IAzureStorageManager>(provider =>
             {
                 var options = provider.GetRequiredService<IOptions<AppSettings>>().Value;
-                return new AzureStorageManager(connectionString, options);
+                return new AzureStorageManager(connectionString, authMethod, options, configuration);
             });
         }
 
