@@ -1,5 +1,6 @@
 using Azure.Core;
 using Azure.Identity;
+using KN.KloudIdentity.Mapper.Domain.Shared;
 using Microsoft.Extensions.Configuration;
 
 namespace KN.KloudIdentity.Mapper.Utils;
