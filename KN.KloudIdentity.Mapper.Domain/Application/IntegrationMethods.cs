@@ -9,4 +9,5 @@ public enum IntegrationMethods
     Linux = 4,
     AS400 = 5,
     SQL = 6,
+    Disconnected = 7
 }
