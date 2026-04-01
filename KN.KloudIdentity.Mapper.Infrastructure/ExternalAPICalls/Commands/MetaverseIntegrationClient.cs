@@ -52,6 +52,10 @@ public class MetaverseIntegrationClient(
         CancellationToken cancellationToken
     ) => SendAsync<T>(appId, new { appId, identifier }, correlationId, ActionType.DisconnectedUserDeletion, cancellationToken);
 
+    /// <summary>
+    /// Sends a request message to the metaverse integration service and processes the response.
+    /// This method is used by all the public methods to perform the actual communication with the metaverse service.
+    /// </summary>
     private async Task<T> SendAsync<T>(
         string appId,
         object request,
