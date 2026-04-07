@@ -136,6 +136,12 @@ public class LinuxIntegration : IIntegrationBase
         return await Task.FromResult(valuesForCommand);
     }
 
+    public Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource,
+        AppConfig appConfig, CancellationToken cancellationToken = default)
+    {
+        return MapAndPreparePayloadAsync(schema, resource, cancellationToken);
+    }
+
     private string GetValueFromResource(IList<AttributeSchema> schema, Core2EnterpriseUser resource,
         string destinationField, bool allowEmpty = false)
     {
