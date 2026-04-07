@@ -55,7 +55,11 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
         var attributes = GetUserAttributes(appConfig.UserAttributeSchemas, appConfig.IntegrationMethodOutbound);
 
         // Step 2: Map and prepare payload
-        var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, resource);
+
+        // For SOAP, we need to get the specific mapping config for the Update action. For other integration methods, we can pass the whole appConfig.
+        var mappingConfig = GetMappingConfigForSoapAction(appConfig, SOAPActions.Update);
+
+        var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, resource, mappingConfig);
         Log.Information(
             "Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Payload: {Payload}",
             appId, correlationID, JsonConvert.SerializeObject(payload));

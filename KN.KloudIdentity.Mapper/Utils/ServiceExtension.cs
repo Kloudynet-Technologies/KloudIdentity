@@ -37,12 +37,27 @@ public static class ServiceExtension
     public static void ConfigureMapperServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddHttpClient();
+        services.AddHttpClient(AppConstant.NtlmSoapClientName)
+                .ConfigurePrimaryHttpMessageHandler(() =>
+                    new HttpClientHandler
+                    {
+                        UseDefaultCredentials = true
+                        // or static credentials if your app uses fixed service credentials
+                    });
+
         services.AddMemoryCache();
         services.AddScoped<IAuthContext, AuthContextV2>();
         services.AddScoped<IAuthStrategy, ApiKeyStrategy>();
         services.AddScoped<IAuthStrategy, BasicAuthStrategy>();
+        services.AddScoped<IAuthStrategy, BearerAuthStratergy>();
         services.AddScoped<IAuthStrategy, OAuth2Strategy>();
         services.AddScoped<IAuthStrategy, DotRezAuthStrategy>();
+        services.AddScoped<ISoapAuthApplier, SoapTransportAuthApplier>();
+        services.AddScoped<ISoapAuthApplier, WsSecuritySoapAuthApplier>();
+        services.AddScoped<ISoapAuthApplier, SoapTokenHeaderApplier>();
+
+        // @TODO: [ASELA] Correct this later.
+        // services.AddScoped<IConfigReader, ConfigReaderSQL>();
 
         services.AddScoped<IList<IIntegrationBaseV2>>(provider => provider.GetServices<IIntegrationBaseV2>().ToList());
 
@@ -60,22 +75,23 @@ public static class ServiceExtension
             });
         }
 
-        services.AddScoped<ICreateResourceV2, CreateUserV4>();
+        services.AddScoped<ICreateResourceV2, CreateUserV3>();
 
         services.AddScoped<IIntegrationBase, RestIntegrationManageEngine>();
-        services.AddScoped<IIntegrationBaseV2, RESTIntegrationV4>();
+        services.AddScoped<IIntegrationBase, RESTIntegrationV2>();
 
         services.AddScoped<IIntegrationBase, RESTIntegration>();
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
         services.AddScoped<IIntegrationBase, AS400Integration>();
         services.AddScoped<IIntegrationBase, SQLIntegration>();
+        services.AddScoped<IIntegrationBase, SOAPIntegration>();
 
         services.AddScoped<IIntegrationBaseFactory, IntegrationBaseFactory>();
 
         services.AddScoped<IReqStagQueuePublisher, ReqStagQueuePublisherV1>();
         services.AddScoped<IGetResourceV2, GetUserV4>();
         services.AddScoped<IReplaceResourceV2, ReplaceUserV4>();
-        
+
         services.AddScoped<IUpdateResourceV2, UpdateUserV4>();
         services.AddScoped<IDeleteResourceV2, DeleteUserV4>();
 
@@ -105,7 +121,7 @@ public static class ServiceExtension
         services.AddScoped<IListAs400GroupsQuery, ListAs400GroupsQuery>();
 
         services.AddScoped<ILicenseValidationQuery, LicenseValidationQuery>();
-        
+
         services.AddScoped<IAddOrEditAppConfig, AddOrEditAppConfig>();
         services.AddScoped<IDeleteAppConfig, DeleteAppConfig>();
     }

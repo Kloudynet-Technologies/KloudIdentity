@@ -90,6 +90,12 @@ public class SQLIntegration : IIntegrationBase
         return await Task.FromResult(parameters);
     }
 
+    public Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource,
+        AppConfig appConfig, CancellationToken cancellationToken = default)
+    {
+        return MapAndPreparePayloadAsync(schema, resource, cancellationToken);
+    }
+
     private OdbcParameter CreateOdbcParameter(string destinationField, OdbcType destinationType,
         int? destinationTypeLength, dynamic? value)
     {
