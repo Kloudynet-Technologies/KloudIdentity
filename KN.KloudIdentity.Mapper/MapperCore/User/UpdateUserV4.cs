@@ -59,7 +59,7 @@ public class UpdateUserV4(
         foreach (var step in actionSteps)
         {
             var attributes = step.UserAttributeSchemas?.ToList() ?? [];
-            var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, user);
+            var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, user, appConfig);
             Log.Information(
                 "[UpdateUserV4] Payload mapped and prepared successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
                 user.Identifier, appId, correlationId);

@@ -84,7 +84,7 @@ public static class ServiceExtension
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
         services.AddScoped<IIntegrationBase, AS400Integration>();
         services.AddScoped<IIntegrationBase, SQLIntegration>();
-        services.AddScoped<IIntegrationBase, SOAPIntegration>();
+        services.AddScoped<IIntegrationBaseV2, SOAPIntegration>();
 
         services.AddScoped<IIntegrationBaseFactory, IntegrationBaseFactory>();
 

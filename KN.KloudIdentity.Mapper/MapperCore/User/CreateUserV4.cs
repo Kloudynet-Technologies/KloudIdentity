@@ -60,16 +60,18 @@ public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
             return resource;
         }
 
-        // Step 3: Handle multistep API calls if applicable
-        resource = _appConfig.IntegrationMethodOutbound == IntegrationMethods.REST
-            ? await ExecuteMultistepForRESTAsync(resource, appId, correlationID)
+        // Step 3: Handle multistep API calls if action steps are configured for the integration method
+        var hasCreateActionSteps = _appConfig.Actions?.Any(a => a.ActionTarget == ActionTargets.USER && a.ActionName == ActionNames.CREATE) == true;
+
+        resource = hasCreateActionSteps
+            ? await ExecuteMultistepCreateAsync(resource, appId, correlationID)
             : await ExecuteGenericUserCreationLogicAsync(resource, appId, correlationID);
 
         // Step 4: Return the updated user.
         return resource;
     }
 
-    protected virtual async Task<Core2EnterpriseUser> ExecuteMultistepForRESTAsync(Core2EnterpriseUser resource, string appId, string correlationID)
+    protected virtual async Task<Core2EnterpriseUser> ExecuteMultistepCreateAsync(Core2EnterpriseUser resource, string appId, string correlationID)
     {
         // Resolve integration method operations
         var integrationOp = _integrationFactory.GetIntegration(_appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST, appId) ??
@@ -85,7 +87,7 @@ public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
         {
             // Attribute mapping
             var userAttributes = step.UserAttributeSchemas?.ToList() ?? [];
-            var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource);
+            var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource, _appConfig);
             Log.Information(
                 "Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Step: {Step}, Payload: {Payload}",
                 appId, correlationID, step.StepOrder, JsonConvert.SerializeObject(payload));
@@ -175,7 +177,7 @@ public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
 
         // Step 2: Attribute mapping
         var userAttributes = GetUserAttributes(_appConfig.UserAttributeSchemas, _appConfig.IntegrationMethodOutbound);
-        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource);
+        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource, _appConfig);
         Log.Information(
             "Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Payload: {Payload}",
             appId, correlationID, JsonConvert.SerializeObject(payload));

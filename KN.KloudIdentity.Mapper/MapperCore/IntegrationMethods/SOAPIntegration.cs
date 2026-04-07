@@ -24,7 +24,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
     /// <summary>
     /// Generic SOAP integration method for SCIM Connector Service.
     /// </summary>
-    public class SOAPIntegration : IIntegrationBase
+    public class SOAPIntegration : IIntegrationBaseV2
     {
         private readonly IAuthContext _authContext;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -120,7 +120,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             }
 
             string xmlTemplate = template.Template;
-            var attributes = appConfig.UserAttributeSchemas.Where(p => p.HttpRequestType == HttpRequestTypes.GET).ToList();
+            var attributes = (appConfig.UserAttributeSchemas ?? Array.Empty<AttributeSchema>()).Where(p => p.HttpRequestType == HttpRequestTypes.GET).ToList();
             if (!attributes.Any() || !attributes.Any(a => a.SourceValue.Equals("Identifier", StringComparison.OrdinalIgnoreCase)))
             {
                 Log.Error("No valid attributes configured for GET action. AppId: {AppId}", appConfig.AppId);
@@ -148,6 +148,129 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             await SendSoapRequestAsync(userUri, payload, appConfig, SCIMDirections.Outbound, correlationId);
         }
 
+        #region IIntegrationBaseV2 — action-step-aware methods
+
+        public virtual async Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
+        {
+            ValidateActionStep(actionStep, "PROVISION");
+
+            Log.Information("SOAP Provisioning (V2) started. AppId: {AppId}, Step: {Step}, CorrelationID: {CorrelationID}",
+                appConfig.AppId, actionStep.StepOrder, correlationId);
+
+            var endpointUri = new Uri(actionStep.EndPoint);
+            string responseBody = await SendSoapRequestAsync(endpointUri, payload, appConfig, SCIMDirections.Outbound, correlationId, cancellationToken);
+            string idVal = ExtractIdentifierFromSoapResponse(responseBody, appConfig);
+
+            return new Core2EnterpriseUser { Identifier = idVal };
+        }
+
+        public virtual async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
+        {
+            ValidateActionStep(actionStep, "GET");
+
+            var soapAction = MapHttpVerbToSoapAction(actionStep.HttpVerb, "GET");
+            SOAPTemplate template = ResolveSoapTemplate(appConfig, soapAction);
+
+            var attributes = actionStep.UserAttributeSchemas?.ToList()
+                ?? throw new InvalidOperationException($"No attributes configured on ActionStep {actionStep.StepOrder} for GET. AppId: {appConfig.AppId}");
+
+            var resource = new Core2EnterpriseUser { Identifier = identifier };
+            var soapPayload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(template.Template, attributes, resource);
+
+            var endpointUri = new Uri(actionStep.EndPoint);
+            string responseBody = await SendSoapRequestAsync(endpointUri, soapPayload, appConfig, SCIMDirections.Outbound, correlationId, cancellationToken);
+
+            return ParseSoapUserResponse(responseBody);
+        }
+
+        public virtual async Task<Core2EnterpriseUser> ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
+        {
+            ValidateActionStep(actionStep, "REPLACE");
+
+            var endpointUri = new Uri(actionStep.EndPoint);
+            string responseBody = await SendSoapRequestAsync(endpointUri, payload, appConfig, SCIMDirections.Outbound, correlationId, cancellationToken);
+
+            var parsedUser = ParseSoapUserResponse(responseBody);
+            if (!string.IsNullOrEmpty(parsedUser.Identifier))
+            {
+                resource.Identifier = parsedUser.Identifier;
+            }
+
+            return resource;
+        }
+
+        public virtual async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
+        {
+            ValidateActionStep(actionStep, "UPDATE");
+
+            var endpointUri = new Uri(actionStep.EndPoint);
+            await SendSoapRequestAsync(endpointUri, payload, appConfig, SCIMDirections.Outbound, correlationId, cancellationToken);
+        }
+
+        public virtual async Task DeleteAsync(string identifier, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
+        {
+            ValidateActionStep(actionStep, "DELETE");
+
+            var soapAction = MapHttpVerbToSoapAction(actionStep.HttpVerb, "DELETE");
+            SOAPTemplate template = ResolveSoapTemplate(appConfig, soapAction);
+
+            var attributes = actionStep.UserAttributeSchemas?.ToList()
+                ?? throw new InvalidOperationException($"No attributes configured on ActionStep {actionStep.StepOrder} for DELETE. AppId: {appConfig.AppId}");
+
+            var resource = new Core2EnterpriseUser { Identifier = identifier };
+            var soapPayload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(template.Template, attributes, resource);
+
+            var endpointUri = new Uri(actionStep.EndPoint);
+            await SendSoapRequestAsync(endpointUri, soapPayload, appConfig, SCIMDirections.Outbound, correlationId, cancellationToken);
+        }
+
+        /// <summary>
+        /// Validates that actionStep and its endpoint are provided.
+        /// </summary>
+        private static void ValidateActionStep(ActionStep actionStep, string operationName)
+        {
+            ArgumentNullException.ThrowIfNull(actionStep, nameof(actionStep));
+
+            if (string.IsNullOrWhiteSpace(actionStep.EndPoint))
+            {
+                throw new InvalidOperationException(
+                    $"ActionStep endpoint must be provided for SOAP {operationName} operation (StepOrder: {actionStep.StepOrder}).");
+            }
+        }
+
+        /// <summary>
+        /// Maps an ActionStep HttpVerb to the corresponding SOAPActions enum for template lookup.
+        /// </summary>
+        private static SOAPActions MapHttpVerbToSoapAction(HttpVerbs httpVerb, string operationName)
+        {
+            return httpVerb switch
+            {
+                HttpVerbs.POST => SOAPActions.Create,
+                HttpVerbs.PUT => SOAPActions.Update,
+                HttpVerbs.PATCH => SOAPActions.Update,
+                HttpVerbs.DELETE => SOAPActions.Delete,
+                HttpVerbs.GET => SOAPActions.Get,
+                _ => throw new NotSupportedException(
+                    $"HttpVerb '{httpVerb}' is not supported for SOAP {operationName} operation.")
+            };
+        }
+
+        /// <summary>
+        /// Resolves the SOAP template from app configuration by action type.
+        /// </summary>
+        private static SOAPTemplate ResolveSoapTemplate(AppConfig appConfig, SOAPActions action)
+        {
+            var template = appConfig.SOAPTemplates?.FirstOrDefault(t => t.Action == action);
+            if (template == null)
+            {
+                Log.Error("No SOAP template configured for {Action} action. AppId: {AppId}", action, appConfig.AppId);
+                throw new InvalidOperationException($"SOAP template is required for {action} action. AppId: {appConfig.AppId}");
+            }
+            return template;
+        }
+
+        #endregion
+
         public virtual async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationId)
         {
             var userUri = appConfig.UserURIs?.FirstOrDefault()?.Delete ?? throw new InvalidOperationException("Delete endpoint not configured.");
@@ -159,7 +282,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             }
 
             string xmlTemplate = template.Template;
-            var attributes = appConfig.UserAttributeSchemas.Where(p => p.HttpRequestType == HttpRequestTypes.DELETE).ToList();
+            var attributes = (appConfig.UserAttributeSchemas ?? Array.Empty<AttributeSchema>()).Where(p => p.HttpRequestType == HttpRequestTypes.DELETE).ToList();
             if (!attributes.Any() || !attributes.Any(a => a.SourceValue.Equals("Identifier", StringComparison.OrdinalIgnoreCase)))
             {
                 Log.Error("No valid attributes configured for DELETE action. AppId: {AppId}", appConfig.AppId);

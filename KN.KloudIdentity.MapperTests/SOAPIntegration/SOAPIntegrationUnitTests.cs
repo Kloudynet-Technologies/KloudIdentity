@@ -466,7 +466,7 @@ public class SOAPIntegrationUnitTests
         services.ConfigureMapperServices(configuration);
 
         Assert.Contains(services, d => d.ServiceType == typeof(IAuthStrategy) && d.ImplementationType == typeof(BearerAuthStratergy));
-        Assert.Contains(services, d => d.ServiceType == typeof(IIntegrationBase) && d.ImplementationType == typeof(global::KN.KloudIdentity.Mapper.MapperCore.SOAPIntegration));
+        Assert.Contains(services, d => d.ServiceType == typeof(IIntegrationBaseV2) && d.ImplementationType == typeof(global::KN.KloudIdentity.Mapper.MapperCore.SOAPIntegration));
         Assert.Contains(services, d => d.ServiceType == typeof(ISoapAuthApplier) && d.ImplementationType == typeof(SoapTransportAuthApplier));
         Assert.Contains(services, d => d.ServiceType == typeof(ISoapAuthApplier) && d.ImplementationType == typeof(WsSecuritySoapAuthApplier));
         Assert.Contains(services, d => d.ServiceType == typeof(ISoapAuthApplier) && d.ImplementationType == typeof(SoapTokenHeaderApplier));
@@ -487,10 +487,330 @@ public class SOAPIntegrationUnitTests
             }
         });
 
-        var factory = new IntegrationBaseFactory(new List<IIntegrationBase> { soapIntegration }, appSettings);
+        var factory = new IntegrationBaseFactory(new List<IIntegrationBaseV2> { soapIntegration }, appSettings);
 
         var resolved = factory.GetIntegration(IntegrationMethods.SOAP, "soap-app");
         Assert.IsType<global::KN.KloudIdentity.Mapper.MapperCore.SOAPIntegration>(resolved);
+    }
+
+    #region V2 ActionStep-aware tests
+
+    [Fact]
+    public async Task ProvisionAsyncV2_WithNullActionStep_ThrowsArgumentNullException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            sut.ProvisionAsync("<CreateUser />", "soap-app", appConfig, null!, "corr-v2-1"));
+    }
+
+    [Fact]
+    public async Task ProvisionAsyncV2_WithEmptyEndpoint_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(endpoint: "");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.ProvisionAsync("<CreateUser />", "soap-app", appConfig, step, "corr-v2-2"));
+    }
+
+    [Fact]
+    public async Task ProvisionAsyncV2_WithValidStep_ReturnsIdentifier()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""
+                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                      <soap:Body>
+                        <CreateUserResponse>
+                          <Identifier>V2-100</Identifier>
+                        </CreateUserResponse>
+                      </soap:Body>
+                    </soap:Envelope>
+                    """, Encoding.UTF8, "text/xml")
+            });
+
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(endpoint: "https://soap.example.test/v2/users", httpVerb: HttpVerbs.POST);
+
+        var result = await sut.ProvisionAsync("<CreateUser />", "soap-app", appConfig, step, "corr-v2-3");
+
+        Assert.NotNull(result);
+        Assert.Equal("V2-100", result!.Identifier);
+    }
+
+    [Fact]
+    public async Task GetAsyncV2_WithNullActionStep_ThrowsArgumentNullException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            sut.GetAsync("U-1", appConfig, null!, "corr-v2-4"));
+    }
+
+    [Fact]
+    public async Task GetAsyncV2_WithEmptyEndpoint_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(endpoint: "", httpVerb: HttpVerbs.GET);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetAsync("U-1", appConfig, step, "corr-v2-5"));
+    }
+
+    [Fact]
+    public async Task GetAsyncV2_WithNoAttributesOnStep_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig(
+            templates: new List<SOAPTemplate>
+            {
+                new("<GetUser><Identifier>{{Identifier}}</Identifier></GetUser>", SOAPActions.Get)
+            });
+        var step = CreateActionStep(
+            endpoint: "https://soap.example.test/v2/users/get",
+            httpVerb: HttpVerbs.GET,
+            attributes: null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetAsync("U-1", appConfig, step, "corr-v2-6"));
+    }
+
+    [Fact]
+    public async Task GetAsyncV2_WithValidStepAndTemplate_ReturnsMappedUser()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""
+                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                      <soap:Body>
+                        <GetUserResponse>
+                          <Identifier>V2-GET-1</Identifier>
+                          <UserName>soap.get</UserName>
+                        </GetUserResponse>
+                      </soap:Body>
+                    </soap:Envelope>
+                    """, Encoding.UTF8, "text/xml")
+            });
+
+        var sut = CreateSut(handler);
+        var stepAttributes = new List<AttributeSchema>
+        {
+            new() { DestinationField = "Identifier", SourceValue = "Identifier", MappingType = MappingTypes.Direct, HttpRequestType = HttpRequestTypes.GET }
+        };
+        var appConfig = CreateAppConfig(
+            templates: new List<SOAPTemplate>
+            {
+                new("<GetUser><Identifier>{{Identifier}}</Identifier></GetUser>", SOAPActions.Get)
+            });
+        var step = CreateActionStep(
+            endpoint: "https://soap.example.test/v2/users/get",
+            httpVerb: HttpVerbs.GET,
+            attributes: stepAttributes);
+
+        var result = await sut.GetAsync("V2-GET-1", appConfig, step, "corr-v2-7");
+
+        Assert.Equal("V2-GET-1", result.Identifier);
+        Assert.Equal("soap.get", result.UserName);
+    }
+
+    [Fact]
+    public async Task ReplaceAsyncV2_WithNullActionStep_ThrowsArgumentNullException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            sut.ReplaceAsync("<Update />", new Core2EnterpriseUser { Identifier = "U-1" }, "soap-app", appConfig, null!, "corr-v2-8"));
+    }
+
+    [Fact]
+    public async Task ReplaceAsyncV2_WithValidStep_ReturnsUserWithUpdatedIdentifier()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""
+                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                      <soap:Body>
+                        <ReplaceResponse>
+                          <Identifier>V2-REPLACED</Identifier>
+                        </ReplaceResponse>
+                      </soap:Body>
+                    </soap:Envelope>
+                    """, Encoding.UTF8, "text/xml")
+            });
+
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(endpoint: "https://soap.example.test/v2/users/replace", httpVerb: HttpVerbs.PUT);
+        var resource = new Core2EnterpriseUser { Identifier = "V2-OLD" };
+
+        var result = await sut.ReplaceAsync("<Replace />", resource, "soap-app", appConfig, step, "corr-v2-9");
+
+        Assert.Equal("V2-REPLACED", result.Identifier);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncV2_WithNullActionStep_ThrowsArgumentNullException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            sut.UpdateAsync("<Update />", new Core2EnterpriseUser(), "soap-app", appConfig, null!, "corr-v2-10"));
+    }
+
+    [Fact]
+    public async Task UpdateAsyncV2_WithValidStep_CompletesWithoutException()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""
+                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                      <soap:Body><UpdateResponse/></soap:Body>
+                    </soap:Envelope>
+                    """, Encoding.UTF8, "text/xml")
+            });
+
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(endpoint: "https://soap.example.test/v2/users/update", httpVerb: HttpVerbs.PATCH);
+
+        await sut.UpdateAsync("<Update />", new Core2EnterpriseUser(), "soap-app", appConfig, step, "corr-v2-11");
+    }
+
+    [Fact]
+    public async Task DeleteAsyncV2_WithNullActionStep_ThrowsArgumentNullException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            sut.DeleteAsync("U-1", "soap-app", appConfig, null!, "corr-v2-12"));
+    }
+
+    [Fact]
+    public async Task DeleteAsyncV2_WithEmptyEndpoint_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(endpoint: "", httpVerb: HttpVerbs.DELETE);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.DeleteAsync("U-1", "soap-app", appConfig, step, "corr-v2-13"));
+    }
+
+    [Fact]
+    public async Task DeleteAsyncV2_WithMissingTemplate_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig(
+            templates: new List<SOAPTemplate>
+            {
+                new("<GetUser/>", SOAPActions.Get)
+            });
+        var step = CreateActionStep(
+            endpoint: "https://soap.example.test/v2/users/delete",
+            httpVerb: HttpVerbs.DELETE,
+            attributes: new List<AttributeSchema>
+            {
+                new() { DestinationField = "Identifier", SourceValue = "Identifier", MappingType = MappingTypes.Direct, HttpRequestType = HttpRequestTypes.DELETE }
+            });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.DeleteAsync("U-1", "soap-app", appConfig, step, "corr-v2-14"));
+    }
+
+    [Fact]
+    public async Task DeleteAsyncV2_WithValidStepAndTemplate_CompletesSuccessfully()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""
+                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                      <soap:Body><DeleteResponse/></soap:Body>
+                    </soap:Envelope>
+                    """, Encoding.UTF8, "text/xml")
+            });
+
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig(
+            templates: new List<SOAPTemplate>
+            {
+                new("<DeleteUser><Identifier>{{Identifier}}</Identifier></DeleteUser>", SOAPActions.Delete)
+            });
+        var step = CreateActionStep(
+            endpoint: "https://soap.example.test/v2/users/delete",
+            httpVerb: HttpVerbs.DELETE,
+            attributes: new List<AttributeSchema>
+            {
+                new() { DestinationField = "Identifier", SourceValue = "Identifier", MappingType = MappingTypes.Direct, HttpRequestType = HttpRequestTypes.DELETE }
+            });
+
+        await sut.DeleteAsync("U-999", "soap-app", appConfig, step, "corr-v2-15");
+    }
+
+    [Fact]
+    public async Task DeleteAsyncV2_WithSoapFaultResponse_ThrowsHttpRequestException()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""
+                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                      <soap:Body>
+                        <soap:Fault>
+                          <faultcode>soap:Server</faultcode>
+                          <faultstring>Delete failed</faultstring>
+                        </soap:Fault>
+                      </soap:Body>
+                    </soap:Envelope>
+                    """, Encoding.UTF8, "text/xml")
+            });
+
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig(
+            templates: new List<SOAPTemplate>
+            {
+                new("<DeleteUser><Identifier>{{Identifier}}</Identifier></DeleteUser>", SOAPActions.Delete)
+            });
+        var step = CreateActionStep(
+            endpoint: "https://soap.example.test/v2/users/delete",
+            httpVerb: HttpVerbs.DELETE,
+            attributes: new List<AttributeSchema>
+            {
+                new() { DestinationField = "Identifier", SourceValue = "Identifier", MappingType = MappingTypes.Direct, HttpRequestType = HttpRequestTypes.DELETE }
+            });
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            sut.DeleteAsync("U-999", "soap-app", appConfig, step, "corr-v2-16"));
+    }
+
+    #endregion
+
+    private static ActionStep CreateActionStep(
+        string endpoint = "https://soap.example.test/v2/action",
+        HttpVerbs httpVerb = HttpVerbs.POST,
+        ICollection<AttributeSchema>? attributes = null)
+    {
+        return new ActionStep
+        {
+            EndPoint = endpoint,
+            HttpVerb = httpVerb,
+            StepOrder = 1,
+            IsMandatory = true,
+            UserAttributeSchemas = attributes
+        };
     }
 
     private static global::KN.KloudIdentity.Mapper.MapperCore.SOAPIntegration CreateSut(TestHttpMessageHandler? handler = null, string token = "test-token")

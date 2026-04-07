@@ -55,7 +55,7 @@ public class ReplaceUserV4(
             var attributes = step.UserAttributeSchemas?.ToList() ?? [];
 
             // Map the user resource to the outbound payload
-            var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, resource);
+            var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, resource, appConfig);
             Log.Information($"[ReplaceUserV4] Payload mapped and prepared successfully for ActionStep {step.StepOrder}, AppId: {appId}, CorrelationID: {correlationID}");
 
             var payloadValidationResult = await integrationOp.ValidatePayloadAsync(payload, appConfig, correlationID);
