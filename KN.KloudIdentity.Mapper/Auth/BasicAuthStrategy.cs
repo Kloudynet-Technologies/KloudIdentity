@@ -4,9 +4,11 @@
 
 using KN.KloudIdentity.Mapper.Auth;
 using KN.KloudIdentity.Mapper.Common.Encryption;
+using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
 namespace KN.KloudIdentity.Mapper;
@@ -15,7 +17,7 @@ namespace KN.KloudIdentity.Mapper;
 /// Represents a basic authentication strategy.
 /// </summary>
 public class BasicAuthStrategy(
-    IConfiguration configuration,
+    IOptions<AppSettings> appSettings,
     ISecretManager secretManager
 ) : IAuthStrategy
 {
@@ -75,7 +77,7 @@ public class BasicAuthStrategy(
     
     private string DecryptPassword(string encryptedPassword, EncryptedData encryptedData)
     {
-        var encryptionKey = configuration["EncryptionKey"];
+        var encryptionKey = appSettings.Value.EncryptionKey;
         if (string.IsNullOrWhiteSpace(encryptionKey))
         {
             throw new ArgumentException("Encryption key is not configured in EncryptionKey.");

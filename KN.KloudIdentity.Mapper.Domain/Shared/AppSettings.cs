@@ -14,6 +14,7 @@ public class AppSettings
     public IntegrationMappings IntegrationMappings { get; set; } = new IntegrationMappings();
     public List<LoggingConfigs> LoggingConfigs { get; set; } = new List<LoggingConfigs>();
     public AzureKeyVaultSettings AzureKeyVault { get; set; } = new AzureKeyVaultSettings();
+    public string EncryptionKey { get; set; } = string.Empty;
 }
 
 public class RabbitMQOptions
