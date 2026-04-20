@@ -27,6 +27,7 @@ public static class DependencyInjection
         
         services.AddScoped<IAppConfigSnapshotRepository, AppConfigSnapshotRepository>();
         services.AddScoped<IListApplicationConfigsQuery, ListApplicationConfigsQuery>();
+        services.AddScoped<ISecretManager, AzureSecretManager>();
         
         return services;
     }

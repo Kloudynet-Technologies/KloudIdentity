@@ -5,6 +5,7 @@
 using KN.KloudIdentity.Mapper.Auth;
 using KN.KloudIdentity.Mapper.Common.Encryption;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 
@@ -14,8 +15,9 @@ namespace KN.KloudIdentity.Mapper;
 /// Represents a basic authentication strategy.
 /// </summary>
 public class BasicAuthStrategy(
-    IConfiguration configuration
-    ) : IAuthStrategy
+    IConfiguration configuration,
+    ISecretManager secretManager
+) : IAuthStrategy
 {
     public AuthenticationMethods AuthenticationMethod => AuthenticationMethods.Basic;
 
@@ -28,8 +30,11 @@ public class BasicAuthStrategy(
     {
         ValidateParameters(authConfig, out BasicAuthentication authentication);
 
+        var encryptedPassword = await secretManager.GetSecretAsync(authentication.KeyVaultReference!);
+        var password = DecryptPassword(encryptedPassword, authentication.EncryptedData!);
+
         var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(
-            $"{authentication.Username}:{authentication.Password}"
+            $"{authentication.Username}:{password}"
         );
         string base64EncodedValue = Convert.ToBase64String(plainTextBytes);
 
@@ -42,6 +47,7 @@ public class BasicAuthStrategy(
     /// Validates the parameters for Basic Auth.
     /// </summary>
     /// <param name="authConfig"></param>
+    /// <param name="authentication"></param>
     /// <exception cref="ArgumentNullException"></exception>
     private void ValidateParameters(dynamic authConfig, out BasicAuthentication authentication)
     {
@@ -50,24 +56,32 @@ public class BasicAuthStrategy(
         {
             throw new ArgumentNullException(nameof(authConfig));
         }
-        
+
         if (string.IsNullOrWhiteSpace(authentication?.Username))
         {
             throw new ArgumentNullException(nameof(authConfig.Username));
         }
-        var encryptedData = authentication?.EncryptedData as EncryptedData;
-        var encryptionKey = configuration["EncryptionKey"];
         
-        if(encryptedData == null || string.IsNullOrWhiteSpace(encryptionKey))
-            throw new ArgumentException("EncryptedData or EncryptionKey is missing in configuration.");   
-        
-        var password = EncryptionHelper.Decrypt(encryptedData!.EncryptedValue, encryptionKey!, encryptedData.IV);
-        
-        if (string.IsNullOrWhiteSpace(password))
+        if(string.IsNullOrWhiteSpace(authentication?.EncryptedData?.IV))
         {
-            throw new ArgumentException("Decrypted password is null or empty.");
+            throw new ArgumentNullException(nameof(authConfig.EncryptedData.IV));
         }
-        
-        authentication!.Password = password;
+
+        if (string.IsNullOrWhiteSpace(authentication?.KeyVaultReference))
+        {
+            throw new ArgumentNullException(nameof(authConfig.KeyVaultReference));
+        }
+    }
+    
+    private string DecryptPassword(string encryptedPassword, EncryptedData encryptedData)
+    {
+        var encryptionKey = configuration["EncryptionKey"];
+        if (string.IsNullOrWhiteSpace(encryptionKey))
+        {
+            throw new ArgumentException("Encryption key is not configured in EncryptionKey.");
+        }
+
+        var decryptedPassword = EncryptionHelper.Decrypt(encryptedPassword, encryptionKey, encryptedData.IV);
+        return decryptedPassword;
     }
 }

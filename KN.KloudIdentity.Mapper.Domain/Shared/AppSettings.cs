@@ -13,6 +13,7 @@ public class AppSettings
     public List<AppIntegrationConfig> AppIntegrationConfigs { get; set; } = [];
     public IntegrationMappings IntegrationMappings { get; set; } = new IntegrationMappings();
     public List<LoggingConfigs> LoggingConfigs { get; set; } = new List<LoggingConfigs>();
+    public AzureKeyVaultSettings AzureKeyVault { get; set; } = new AzureKeyVaultSettings();
 }
 
 public class RabbitMQOptions
@@ -65,8 +66,14 @@ public class HttpSettings
     public Dictionary<string, string>? Headers { get; set; }
     public string? ContentType { get; set; }
 }
+
 public class IntegrationMappings
 {
     public Dictionary<string, string> AppIdToIntegration { get; set; } = new Dictionary<string, string>();
     public Dictionary<string, string> DefaultIntegration { get; set; } = new Dictionary<string, string>();
+}
+
+public class AzureKeyVaultSettings
+{
+    public string Url { get; set; } = string.Empty;
 }
