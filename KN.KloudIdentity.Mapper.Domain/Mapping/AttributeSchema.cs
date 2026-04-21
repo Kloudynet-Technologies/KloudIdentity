@@ -11,4 +11,5 @@ public record AttributeSchema : SchemaBase
     /// Destination field type length.
     /// </summary>
     public int? DestinationTypeLength { get; init; }
+    public int? ServiceProviderUrlId { get; init; }
 }

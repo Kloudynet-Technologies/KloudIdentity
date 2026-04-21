@@ -206,11 +206,27 @@ public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
 
     private IList<AttributeSchema> GetUserAttributes(ICollection<AttributeSchema> userAttributeSchemas, IntegrationMethods? integrationMethodOutbound)
     {
+        if (userAttributeSchemas == null)
+            return new List<AttributeSchema>();
+
         switch (integrationMethodOutbound)
         {
             case IntegrationMethods.REST:
             case IntegrationMethods.SQL:
-                return userAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.POST).ToList();
+                return userAttributeSchemas
+                    .Where(x => x.HttpRequestType == HttpRequestTypes.POST)
+                    .ToList();
+
+            case IntegrationMethods.ITSM:
+                var providerUrlId = _appConfig.ItsmConfigurations.ServiceProviderUrls
+                    .FirstOrDefault(x => x.ActionName == ActionNames.CREATE)?.Id;
+                if (providerUrlId == null)
+                    throw new InvalidOperationException("No ServiceProviderUrlId found for CREATE action in ITSM configurations.");
+                
+                return userAttributeSchemas
+                    .Where(x => x.ServiceProviderUrlId == providerUrlId)
+                    .ToList();
+
             default:
                 return userAttributeSchemas.ToList();
         }
