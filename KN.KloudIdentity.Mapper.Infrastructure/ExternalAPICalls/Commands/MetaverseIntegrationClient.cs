@@ -82,7 +82,8 @@ public class MetaverseIntegrationClient(
         {
             var response = await requestClient.GetResponse<IInterserviceResponseMsg>(
                 message,
-                cancellationToken
+                timeout: RequestTimeout.After(s: 60),
+                cancellationToken: cancellationToken
             );
 
             return (T)response;
