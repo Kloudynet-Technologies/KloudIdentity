@@ -43,6 +43,7 @@ public static class ServiceExtension
         services.AddScoped<IAuthStrategy, BasicAuthStrategy>();
         services.AddScoped<IAuthStrategy, OAuth2Strategy>();
         services.AddScoped<IAuthStrategy, DotRezAuthStrategy>();
+        services.AddScoped<IAuthStrategy, BearerAuthStratergy>();
 
         services.AddScoped<IList<IIntegrationBaseV2>>(provider => provider.GetServices<IIntegrationBaseV2>().ToList());
 

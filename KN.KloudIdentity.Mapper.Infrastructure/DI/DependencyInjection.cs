@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<IAppConfigSnapshotRepository, AppConfigSnapshotRepository>();
         services.AddScoped<IListApplicationConfigsQuery, ListApplicationConfigsQuery>();
         services.AddScoped<IMetaverseIntegrationClient, MetaverseIntegrationClient>();
+        services.AddScoped<ISecretManager, AzureSecretManager>();
         
         return services;
     }

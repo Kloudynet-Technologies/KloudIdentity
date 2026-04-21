@@ -7,5 +7,9 @@ public record APIKeyAuthentication
     public string AuthHeaderName { get; init; }
 
     public DateTime? ExpirationDate { get; init; }
+    
     public EncryptedData EncryptedData { get; init; }
+    
+    public string? KeyVaultReference { get; set; }
+
 }
