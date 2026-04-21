@@ -58,5 +58,7 @@
         public string? TokenPrefix { get; set;}
         
         public EncryptedData EncryptedData { get; set; }
+        
+        public string? KeyVaultReference { get; set; }
     }
 }

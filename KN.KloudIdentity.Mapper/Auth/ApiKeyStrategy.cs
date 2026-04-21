@@ -3,17 +3,20 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Common.Encryption;
+using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
-using Microsoft.Extensions.Configuration;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using Serilog;
 
 namespace KN.KloudIdentity.Mapper;
 
 /// <summary>
 /// Represents an authentication strategy using an API key.
 /// </summary>
-public class ApiKeyStrategy(IConfiguration configuration) : IAuthStrategy
+public class ApiKeyStrategy(
+    IOptions<AppSettings> appSettings, 
+    ISecretManager secretManager) : IAuthStrategy
 {
     public AuthenticationMethods AuthenticationMethod => AuthenticationMethods.APIKey;
 
@@ -26,14 +29,16 @@ public class ApiKeyStrategy(IConfiguration configuration) : IAuthStrategy
     public async Task<string> GetTokenAsync(dynamic authConfig)
     {
         ValidateParameters(authConfig, out APIKeyAuthentication apiKeyAuth);
-
-        if (!string.IsNullOrWhiteSpace(apiKeyAuth?.APIKey))
-            return await Task.FromResult(apiKeyAuth.APIKey);
-
-        // TODO: Implement API key retrieval from a server.
-        throw new NotImplementedException();
+        
+        var encryptedApiKey = await secretManager.GetSecretAsync(apiKeyAuth.KeyVaultReference!);
+        var apiKey = DecryptPassword(encryptedApiKey, apiKeyAuth.EncryptedData!);
+        
+        if(string.IsNullOrWhiteSpace(apiKey))
+            throw new ArgumentException("API Key is required in APIKeyAuthentication.");
+        
+        return apiKey;
     }
-
+   
     /// <summary>
     /// Validates the parameters for API Key.
     /// </summary>
@@ -42,80 +47,44 @@ public class ApiKeyStrategy(IConfiguration configuration) : IAuthStrategy
     /// <exception cref="ArgumentNullException">Thrown when the authentication configuration is null.</exception>
     private void ValidateParameters(dynamic authConfig, out APIKeyAuthentication authentication)
     {
-        authentication = null;
-
-        if (authConfig is null)
+        authentication = JsonConvert.DeserializeObject<APIKeyAuthentication>(authConfig.ToString());
+        
+        if (authentication == null)
         {
-            Log.Error("authConfig is null.");
-            throw new ArgumentNullException(nameof(authConfig));
+            throw new ArgumentNullException(nameof(authConfig), "Authentication configuration is null or invalid.");
         }
-
-        string authJson;
-
-        try
+        
+        if (string.IsNullOrWhiteSpace(authentication.AuthHeaderName))
         {
-            authJson = authConfig.ToString();
+            throw new ArgumentException("AuthHeaderName is required in APIKeyAuthentication.");
         }
-        catch (Exception ex)
+        
+        if (string.IsNullOrWhiteSpace(authentication.KeyVaultReference))
         {
-            Log.Error(ex, "Failed converting authConfig to string.");
-            throw;
+            throw new ArgumentException("KeyVaultReference is required in APIKeyAuthentication for retrieving the encrypted API key.");
         }
-
-        if (string.IsNullOrWhiteSpace(authJson))
+        
+        if (authentication.EncryptedData == null)
         {
-            Log.Error("Authentication configuration is empty.");
-            throw new ArgumentException("Authentication configuration is empty.", nameof(authConfig));
+            throw new ArgumentException("EncryptedData is required in APIKeyAuthentication for decrypting the API key.");
         }
-
-        try
+        
+        if (string.IsNullOrWhiteSpace(authentication.EncryptedData.IV))
         {
-            authentication = JsonConvert.DeserializeObject<APIKeyAuthentication>(authJson);
+            throw new ArgumentException("EncryptedData.IV is required in APIKeyAuthentication for decrypting the API key.");
         }
-        catch (JsonException ex)
-        {
-            Log.Error(ex, "JSON deserialization failed. Payload: {Payload}", authJson);
-            throw new ArgumentException("Invalid authentication configuration JSON.", nameof(authConfig));
-        }
-
-        if (authentication is null)
-        {
-            Log.Error("Deserialized authentication object is null.");
-            throw new ArgumentException("Invalid authentication configuration payload.", nameof(authConfig));
-        }
-
-        var encryptedData = authentication.EncryptedData;
-        if (encryptedData is null)
-        {
-            Log.Error("EncryptedData is missing.");
-            throw new ArgumentNullException(nameof(authentication.EncryptedData));
-        }
-
-        var encryptionKey = configuration["EncryptionKey"];
+        
+    }
+    
+    private string DecryptPassword(string encryptedPassword, EncryptedData encryptedData)
+    {
+        var encryptionKey = appSettings.Value.EncryptionKey;
         if (string.IsNullOrWhiteSpace(encryptionKey))
         {
-            Log.Error("Encryption key is not configured.");
-            throw new InvalidOperationException("Encryption key is not configured.");
+            throw new ArgumentException("Encryption key is not configured in EncryptionKey.");
         }
 
-        if (string.IsNullOrWhiteSpace(encryptedData.EncryptedValue) ||
-            string.IsNullOrWhiteSpace(encryptedData.IV))
-        {
-            Log.Error("EncryptedValue or IV missing.");
-            throw new ArgumentException("EncryptedValue or IV missing.", nameof(authConfig));
-        }
-
-        var apiKey = EncryptionHelper.Decrypt(
-            encryptedData.EncryptedValue,
-            encryptionKey,
-            encryptedData.IV);
-
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            Log.Error("API key decrypted but empty.");
-            throw new InvalidOperationException("Decrypted API key is empty.");
-        }
-
-        authentication.APIKey = apiKey;
+        var decryptedPassword = EncryptionHelper.Decrypt(encryptedPassword, encryptionKey, encryptedData.IV);
+        return decryptedPassword;
     }
 }
