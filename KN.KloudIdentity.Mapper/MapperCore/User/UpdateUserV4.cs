@@ -150,9 +150,7 @@ public class UpdateUserV4(
             case IntegrationMethods.ITSM:
                 var providerUrlId = _appConfig.ItsmConfigurations.ServiceProviderUrls
                     .FirstOrDefault(x => x.ActionName == ActionNames.EDIT)?.Id;
-                if (providerUrlId == null)
-                    throw new InvalidOperationException("No ServiceProviderUrlId found for EDIT action in ITSM configurations.");
-
+                
                 return userAttributeSchemas
                     .Where(x => x.ServiceProviderUrlId == providerUrlId)
                     .ToList();
