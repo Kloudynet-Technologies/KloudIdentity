@@ -220,9 +220,7 @@ public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
             case IntegrationMethods.ITSM:
                 var providerUrlId = _appConfig.ItsmConfigurations.ServiceProviderUrls
                     .FirstOrDefault(x => x.ActionName == ActionNames.CREATE)?.Id;
-                if (providerUrlId == null)
-                    throw new InvalidOperationException("No ServiceProviderUrlId found for CREATE action in ITSM configurations.");
-                
+             
                 return userAttributeSchemas
                     .Where(x => x.ServiceProviderUrlId == providerUrlId)
                     .ToList();
