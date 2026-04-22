@@ -29,6 +29,7 @@ public class AddOrEditAppConfig(
         {
             var newSnapshot = new AppConfigSnapshot(
                 id: 0,
+                tenantId: appConfigSnapshot.TenantId,
                 appId: appConfigSnapshot.AppId,
                 etag: etag,
                 configJson: json,

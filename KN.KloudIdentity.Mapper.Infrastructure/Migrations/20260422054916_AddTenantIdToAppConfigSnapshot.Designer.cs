@@ -4,6 +4,7 @@ using KN.KloudIdentity.Mapper.Infrastructure.Persistence.SQLServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KN.KloudIdentity.Mapper.Infrastructure.Migrations
 {
     [DbContext(typeof(KNContext))]
-    partial class KNContextModelSnapshot : ModelSnapshot
+    [Migration("20260422054916_AddTenantIdToAppConfigSnapshot")]
+    partial class AddTenantIdToAppConfigSnapshot
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
