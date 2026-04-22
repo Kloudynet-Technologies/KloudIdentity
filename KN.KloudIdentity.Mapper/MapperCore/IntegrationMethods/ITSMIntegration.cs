@@ -8,7 +8,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore;
 /// <summary>
 /// The DisconnectedIntegration class is intended for use with applications that lack user provisioning functionality.
 /// </summary>
-public class DisconnectedIntegration(
+public class ITSMIntegration(
     IMetaverseIntegrationClient metaverseIntegrationClient
 ) : IIntegrationBaseV2
 {
@@ -47,9 +47,9 @@ public class DisconnectedIntegration(
             payload,
             correlationId,
             cancellationToken);
-
-        // [To-DO] Develop later
-        return new Core2EnterpriseUser { Identifier = payload.identifier };
+        
+        var identifier = payload["identifier"].ToString();
+        return new Core2EnterpriseUser { Identifier = identifier };
     }
 
     public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, AppConfig appConfig, string correlationId,

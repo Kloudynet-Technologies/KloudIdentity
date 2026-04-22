@@ -86,7 +86,7 @@ public class MetaverseIntegrationClient(
                 cancellationToken: cancellationToken
             );
 
-            return (T)response;
+            return ProcessResponse<T>(response.Message);
         }
         catch (Exception ex)
         {

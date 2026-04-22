@@ -65,7 +65,7 @@ public static class ServiceExtension
 
         services.AddScoped<IIntegrationBase, RestIntegrationManageEngine>();
         services.AddScoped<IIntegrationBaseV2, RESTIntegrationV4>();
-        services.AddScoped<IIntegrationBaseV2, DisconnectedIntegration>();
+        services.AddScoped<IIntegrationBaseV2, ITSMIntegration>();
 
         services.AddScoped<IIntegrationBase, RESTIntegration>();
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
