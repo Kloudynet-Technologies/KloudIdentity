@@ -17,12 +17,13 @@ public class AddOrEditAppConfig(
 {
     public async Task AddOrEditAsync(IAppConfigSnapshotUpdated appConfigSnapshot, CancellationToken cancellationToken = default)
     { 
+        ValidateMessage(appConfigSnapshot);
         var generatedAt = appConfigSnapshot.GeneratedAtUtc;
         var appConfig = JsonSerializer.Deserialize<Domain.Application.AppConfig>(appConfigSnapshot.Message);
         var json = JsonSerializer.Serialize(appConfig);
         var etag = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(json)));
         
-        var existingSnapshot = await configSnapshotRepository.GetByAppIdAsync(appConfigSnapshot.AppId, cancellationToken);
+        var existingSnapshot = await configSnapshotRepository.GetByAppIdAsync(appConfigSnapshot.TenantId, appConfigSnapshot.AppId, cancellationToken);
 
         // INSERT
         if (existingSnapshot is null)
@@ -43,7 +44,7 @@ public class AddOrEditAppConfig(
             configSnapshotRepository.Add(newSnapshot);
             await configSnapshotRepository.SaveAsync(cancellationToken);
             Log.Information(
-                "Inserted new AppConfigSnapshot for CorrelationId: {CorrelationId} AppId: {AppId}, ETag: {ETag}",
+                "AddOrEditAppConfig: Inserted new AppConfigSnapshot for CorrelationId: {CorrelationId} AppId: {AppId}, ETag: {ETag}",
                 appConfigSnapshot.CorrelationId, appConfigSnapshot.AppId,
                 etag);
             _ = CreateLogAsync(appConfigSnapshot);
@@ -69,10 +70,29 @@ public class AddOrEditAppConfig(
 
         await configSnapshotRepository.SaveAsync(cancellationToken);
 
-        Log.Information("Updated AppConfigSnapshot for CorrelationId: {CorrelationId} AppId: {AppId}, ETag: {ETag}",
+        Log.Information("AddOrEditAppConfig: Updated AppConfigSnapshot for CorrelationId: {CorrelationId} AppId: {AppId}, ETag: {ETag}",
             appConfigSnapshot.CorrelationId, appConfigSnapshot.AppId,
             etag);
         _ = CreateLogAsync(appConfigSnapshot);
+    }
+    
+    private void ValidateMessage(IAppConfigSnapshotUpdated message)
+    {
+        if (string.IsNullOrWhiteSpace(message.AppId))
+        {
+            Log.Error("AddOrEditAppConfig: For CorrelationId: {CorrelationId} AppId: {appId} cannot be null or empty.", message.CorrelationId, message.AppId);
+            throw new ArgumentException("AppId cannot be null or empty.");
+        }
+        if(string.IsNullOrWhiteSpace(message.TenantId))
+        {
+            Log.Error("AddOrEditAppConfig: For CorrelationId: {CorrelationId} AppId: {appId} TenantId cannot be null or empty.", message.CorrelationId, message.AppId);
+            throw new ArgumentException("TenantId cannot be null or empty.");
+        }
+        if (string.IsNullOrWhiteSpace(message.Message))
+        {
+            Log.Error("AddOrEditAppConfig: For CorrelationId: {CorrelationId} AppId: {appId} Message cannot be null or empty.", message.CorrelationId, message.AppId);
+            throw new ArgumentException("Message cannot be null or empty.");
+        }
     }
 
     private async Task CreateLogAsync(IAppConfigSnapshotUpdated appConfigSnapshot)

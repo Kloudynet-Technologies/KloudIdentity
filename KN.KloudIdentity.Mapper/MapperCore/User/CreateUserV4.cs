@@ -1,9 +1,7 @@
 using Serilog;
-using System;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
-using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -20,30 +18,19 @@ using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
-public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
+public class CreateUserV4(
+    IAppConfigSnapshotRepository snapshotRepository,
+    IIntegrationBaseFactory integrationBaseFactory,
+    IOutboundPayloadProcessor outboundPayloadProcessor,
+    IKloudIdentityLogger logger,
+    IOptions<AppSettings> options,
+    IReplaceResourceV2 replaceResourceV2,
+    IServiceProvider serviceProvider,
+    ITenantContext tenantContext)
+    : ProvisioningBase(snapshotRepository, outboundPayloadProcessor), ICreateResourceV2
 {
-    private readonly IIntegrationBaseFactory _integrationFactory;
-    private readonly IKloudIdentityLogger _logger;
-    private readonly IOptions<AppSettings> _options;
-    private readonly IReplaceResourceV2 _replaceResourceV2;
-    private readonly IAzureStorageManager? _azureStorageManager;
+    private readonly IAzureStorageManager? _azureStorageManager = serviceProvider.GetService<IAzureStorageManager>();
     private AppConfig _appConfig = null!;
-
-    public CreateUserV4(
-        IAppConfigSnapshotRepository snapshotRepository,
-        IIntegrationBaseFactory integrationBaseFactory,
-        IOutboundPayloadProcessor outboundPayloadProcessor,
-        IKloudIdentityLogger logger,
-        IOptions<AppSettings> options,
-        IReplaceResourceV2 replaceResourceV2,
-        IServiceProvider serviceProvider) : base(snapshotRepository, outboundPayloadProcessor)
-    {
-        _integrationFactory = integrationBaseFactory;
-        _logger = logger;
-        _options = options;
-        _replaceResourceV2 = replaceResourceV2;
-        _azureStorageManager = serviceProvider.GetService<IAzureStorageManager>();
-    }
 
     public async Task<Core2EnterpriseUser> ExecuteAsync(Core2EnterpriseUser resource, string appId, string correlationID)
     {
@@ -51,7 +38,7 @@ public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
         Log.Information("Execution started for user creation. AppId: {AppId}, CorrelationID: {CorrelationID}", appId, correlationID);
 
         // Step 1: Get app config
-        _appConfig = await GetAppConfigAsync(appId);
+        _appConfig = await GetAppConfigForTenantAsync(tenantContext.TenantId, appId, CancellationToken.None);
 
         // Step 2: If user migration is enabled, handle user migration logic.
         if (IsUserMigrationEnabled(appId))
@@ -72,7 +59,7 @@ public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
     protected virtual async Task<Core2EnterpriseUser> ExecuteMultistepForRESTAsync(Core2EnterpriseUser resource, string appId, string correlationID)
     {
         // Resolve integration method operations
-        var integrationOp = _integrationFactory.GetIntegration(_appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST, appId) ??
+        var integrationOp = integrationBaseFactory.GetIntegration(_appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST, appId) ??
                                 throw new NotSupportedException($"Integration method {_appConfig.IntegrationMethodOutbound} is not supported.");
 
         var apiSteps = _appConfig.Actions?.Where(a => a.ActionTarget == ActionTargets.USER && a.ActionName == ActionNames.CREATE)
@@ -144,21 +131,21 @@ public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
         resource.Identifier = userMigrationData.RowKey;
 
         // Step 4: Replace the user using the ReplaceUserV2 logic.
-        await _replaceResourceV2.ReplaceAsync(resource, appId, correlationID);
+        await replaceResourceV2.ReplaceAsync(resource, appId, correlationID);
 
         return resource;
     }
 
     private bool IsUserMigrationEnabled(string appId)
     {
-        return _options.Value.UserMigration?.AppFeatureEnabledMap is { } map
+        return options.Value.UserMigration?.AppFeatureEnabledMap is { } map
                && map.TryGetValue(appId, out var enabled)
                && enabled;
     }
 
     private string GetCorrelationPropertyName(string appId)
     {
-        if (_options.Value.UserMigration?.AppCorrelationPropertyMap is { } map
+        if (options.Value.UserMigration?.AppCorrelationPropertyMap is { } map
             && map.TryGetValue(appId, out var correlationPropertyName))
         {
             return correlationPropertyName;
@@ -170,7 +157,7 @@ public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
     protected virtual async Task<Core2EnterpriseUser> ExecuteGenericUserCreationLogicAsync(Core2EnterpriseUser resource, string appId, string correlationID)
     {
         // Resolve integration method operations
-        var integrationOp = _integrationFactory.GetIntegration(_appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST, appId) ??
+        var integrationOp = integrationBaseFactory.GetIntegration(_appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST, appId) ??
                                 throw new NotSupportedException($"Integration method {_appConfig.IntegrationMethodOutbound} is not supported.");
 
         // Step 2: Attribute mapping
@@ -246,6 +233,6 @@ public class CreateUserV4 : ProvisioningBase, ICreateResourceV2
             null
         );
 
-        await _logger.CreateLogAsync(logEntity);
+        await logger.CreateLogAsync(logEntity);
     }
 }

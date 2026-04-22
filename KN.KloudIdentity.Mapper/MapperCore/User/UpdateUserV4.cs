@@ -18,7 +18,9 @@ public class UpdateUserV4(
     IAppConfigSnapshotRepository snapshotRepository,
     IOutboundPayloadProcessor outboundPayloadProcessor,
     IKloudIdentityLogger logger,
-    IIntegrationBaseFactory integrationBaseFactory)
+    IIntegrationBaseFactory integrationBaseFactory,
+    ITenantContext tenantContext
+    )
     : ProvisioningBase(snapshotRepository, outboundPayloadProcessor), IUpdateResourceV2
 {
     private AppConfig _appConfig = null!;
@@ -32,7 +34,7 @@ public class UpdateUserV4(
         Log.Information($"[UpdateUserV4] Execution started for user update. AppId: {appId}, CorrelationID: {correlationId}");
 
         // Step 1: Get app config
-        _appConfig = await GetAppConfigAsync(appId);
+        _appConfig = await GetAppConfigForTenantAsync(tenantContext.TenantId, appId, CancellationToken.None);
 
         if (patch.PatchRequest is not PatchRequest2 patchRequest)
         {

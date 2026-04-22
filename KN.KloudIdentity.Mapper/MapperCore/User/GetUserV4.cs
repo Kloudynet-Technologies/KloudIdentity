@@ -12,21 +12,15 @@ using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
-public class GetUserV4 : ProvisioningBase, IGetResourceV2
+public class GetUserV4(
+    IAppConfigSnapshotRepository snapshotRepository,
+    IIntegrationBaseFactory integrationBaseFactory,
+    IOutboundPayloadProcessor outboundPayloadProcessor,
+    IKloudIdentityLogger logger,
+    ITenantContext tenantContext)
+    : ProvisioningBase(snapshotRepository, outboundPayloadProcessor), IGetResourceV2
 {
-    private readonly IIntegrationBaseFactory _integrationBaseFactory;
-    private readonly IKloudIdentityLogger _logger;
     private AppConfig _appConfig = null!;
-
-    public GetUserV4(
-        IAppConfigSnapshotRepository snapshotRepository,
-        IIntegrationBaseFactory integrationBaseFactory,
-        IOutboundPayloadProcessor outboundPayloadProcessor,
-        IKloudIdentityLogger logger) : base(snapshotRepository, outboundPayloadProcessor)
-    {
-        _integrationBaseFactory = integrationBaseFactory;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Retrieves a user by identifier and application ID asynchronously using V4 action-based config.
@@ -36,7 +30,7 @@ public class GetUserV4 : ProvisioningBase, IGetResourceV2
         Log.Information("Starting GetUserV4 for identifier: {Identifier}, appId: {AppId}", identifier, appId);
 
         // Retrieve full application configuration
-        _appConfig = await GetAppConfigAsync(appId);
+        _appConfig = await GetAppConfigForTenantAsync(tenantContext.TenantId, appId, CancellationToken.None);
 
         var retrievedUser = _appConfig.IntegrationMethodOutbound == IntegrationMethods.REST
             ? await ExecuteMultistepForRESTAsync(identifier, appId, correlationID)
@@ -72,7 +66,7 @@ public class GetUserV4 : ProvisioningBase, IGetResourceV2
         {
             Log.Information("Processing ActionStep {StepOrder} with HttpVerb {HttpVerb}", actionStep.StepOrder, actionStep.HttpVerb);
 
-            var integrationMethod = _integrationBaseFactory.GetIntegration(_appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST, appId)
+            var integrationMethod = integrationBaseFactory.GetIntegration(_appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST, appId)
                 ?? throw new NotSupportedException($"Integration method {_appConfig.IntegrationMethodOutbound} is not supported.");
 
             retrievedUser = await integrationMethod.GetAsync(identifier, _appConfig, actionStep, correlationID, CancellationToken.None);
@@ -97,7 +91,7 @@ public class GetUserV4 : ProvisioningBase, IGetResourceV2
         string appId, string correlationID)
     {
         var integrationOp =
-            _integrationBaseFactory.GetIntegration(_appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST,
+            integrationBaseFactory.GetIntegration(_appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST,
                 appId) ??
             throw new NotSupportedException(
                 $"Integration method {_appConfig.IntegrationMethodOutbound} is not supported.");
@@ -121,6 +115,6 @@ public class GetUserV4 : ProvisioningBase, IGetResourceV2
             null
         );
 
-        await _logger.CreateLogAsync(logEntity);
+        await logger.CreateLogAsync(logEntity);
     }
 }

@@ -28,6 +28,7 @@ public class CreateUserV4Tests
     private readonly Mock<IReplaceResourceV2> _mockReplaceResourceV2 = new();
     private readonly Mock<IServiceProvider> _mockServiceProvider = new();
     private readonly Mock<IAzureStorageManager> _mockAzureStorageManager = new();
+    private readonly Mock<ITenantContext> _mockTenantContext = new();
 
     private readonly AppSettings _appSettings = new AppSettings
     {
@@ -40,6 +41,8 @@ public class CreateUserV4Tests
 
     private CreateUserV4 CreateSut(bool withAzureStorageManager = false)
     {
+
+        _mockTenantContext.Setup(x => x.TenantId).Returns("tenant1");
         _mockOptions.Setup(x => x.Value).Returns(_appSettings);
         _mockAzureStorageManager.Setup(x => x.GetUserMigrationDataAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(new UserMigrationData("partition", "migratedId", "testuser"));
@@ -71,7 +74,8 @@ public class CreateUserV4Tests
             _mockLogger.Object,
             _mockOptions.Object,
             _mockReplaceResourceV2.Object,
-            _mockServiceProvider.Object
+            _mockServiceProvider.Object,
+            _mockTenantContext.Object
         );
     }
 
@@ -80,6 +84,7 @@ public class CreateUserV4Tests
     {
         // Arrange
         var appId = "app1";
+        var tenantId = "tenant1";
         var correlationId = "corr-123";
         var user = new Core2EnterpriseUser() { UserName = "testuser" };
         var appConfig = new AppConfig
@@ -119,7 +124,8 @@ public class CreateUserV4Tests
             AuthenticationDetails = new { }
         };
 
-        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId, CancellationToken.None)).ReturnsAsync(appConfig);
+        _mockTenantContext.Setup(x => x.TenantId).Returns(tenantId);
+        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(tenantId, appId, It.IsAny<CancellationToken>())).ReturnsAsync(appConfig);
         _mockOptions.Setup(x => x.Value).Returns(new AppSettings
         {
             UserMigration = new UserMigrationOptions
@@ -128,10 +134,6 @@ public class CreateUserV4Tests
             }
         });
         var sut = CreateSut(true);
-        // Set _appConfig field via reflection
-        var appConfigField = typeof(CreateUserV4).GetField("_appConfig",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        if (appConfigField != null) appConfigField.SetValue(sut, appConfig);
         // Act
         var result = await sut.ExecuteAsync(user, appId, correlationId);
         // Assert
@@ -164,7 +166,7 @@ public class CreateUserV4Tests
             AuthenticationDetails = new { },
             UserAttributeSchemas = new List<KN.KloudIdentity.Mapper.Domain.Mapping.AttributeSchema>()
         };
-        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId, CancellationToken.None)).ReturnsAsync(appConfig);
+        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync("tenant1", appId, It.IsAny<CancellationToken>())).ReturnsAsync(appConfig);
         _mockOptions.Setup(x => x.Value).Returns(new AppSettings
         {
             UserMigration = new UserMigrationOptions
@@ -208,7 +210,7 @@ public class CreateUserV4Tests
             AuthenticationDetails = new { },
             UserAttributeSchemas = new List<KN.KloudIdentity.Mapper.Domain.Mapping.AttributeSchema>()
         };
-        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId, CancellationToken.None)).ReturnsAsync(appConfig);
+        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync("tenant1", appId, It.IsAny<CancellationToken>())).ReturnsAsync(appConfig);
         _mockOptions.Setup(x => x.Value).Returns(_appSettings);
         _mockAzureStorageManager.Setup(x => x.GetUserMigrationDataAsync(appId, It.IsAny<string>()))
             .ReturnsAsync((UserMigrationData)null);
@@ -246,7 +248,7 @@ public class CreateUserV4Tests
             AuthenticationDetails = new { },
             UserAttributeSchemas = new List<KN.KloudIdentity.Mapper.Domain.Mapping.AttributeSchema>()
         };
-        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId, CancellationToken.None)).ReturnsAsync(appConfig);
+        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync("tenant1", appId, It.IsAny<CancellationToken>())).ReturnsAsync(appConfig);
         _mockOptions.Setup(x => x.Value).Returns(_appSettings);
         var migrationData = new UserMigrationData("partition", "migratedId", "corr");
         _mockAzureStorageManager.Setup(x => x.GetUserMigrationDataAsync(appId, It.IsAny<string>()))
@@ -288,7 +290,7 @@ public class CreateUserV4Tests
             AuthenticationDetails = new { },
             UserAttributeSchemas = new List<KN.KloudIdentity.Mapper.Domain.Mapping.AttributeSchema>()
         };
-        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId, CancellationToken.None))
+        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync("tenant1", appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(appConfig);
         _mockOptions.Setup(x => x.Value).Returns(_appSettings);
         var sut = CreateSut(withAzureStorageManager: false);
@@ -325,7 +327,7 @@ public class CreateUserV4Tests
             AuthenticationDetails = new { },
             UserAttributeSchemas = new List<KN.KloudIdentity.Mapper.Domain.Mapping.AttributeSchema>()
         };
-        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync(appId, CancellationToken.None))
+        _mockGetFullAppConfigQuery.Setup(x => x.GetAppConfigByAppIdAsync("tenant1", appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(appConfig);
         _mockOptions.Setup(x => x.Value).Returns(_appSettings);
         var sut = CreateSut(withAzureStorageManager: true);

@@ -25,14 +25,17 @@ public class GetUserV4Tests
     private readonly Mock<IOutboundPayloadProcessor> _mockOutboundPayloadProcessor = new();
     private readonly Mock<IKloudIdentityLogger> _mockLogger = new();
     private readonly Mock<IOptions<AppSettings>> _mockOptions = new();
+    private readonly Mock<ITenantContext> _mockTenantContext = new();
 
     private GetUserV4 CreateSut()
     {
+        _mockTenantContext.Setup(x => x.TenantId).Returns("tenant1");
         return new GetUserV4(
             _mockGetFullAppConfigQuery.Object,
             _mockIntegrationFactory.Object,
             _mockOutboundPayloadProcessor.Object,
-            _mockLogger.Object);
+            _mockLogger.Object,
+            _mockTenantContext.Object);
     }
 
     private RESTIntegrationV4 CreateRestIntegrationV4Sut(
@@ -116,7 +119,7 @@ public class GetUserV4Tests
         var correlationID = "test-correlation-id";
 
         _mockGetFullAppConfigQuery
-            .Setup(x => x.GetAppConfigByAppIdAsync(appId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAppConfigByAppIdAsync("tenant1", appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AppConfig
             {
                 AppId = appId,
@@ -142,7 +145,7 @@ public class GetUserV4Tests
         var correlationID = "test-correlation-id";
 
         _mockGetFullAppConfigQuery
-            .Setup(x => x.GetAppConfigByAppIdAsync(appId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAppConfigByAppIdAsync("tenant1", appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AppConfig
             {
                 AppId = appId,
@@ -175,7 +178,7 @@ public class GetUserV4Tests
         var correlationID = "test-correlation-id";
 
         _mockGetFullAppConfigQuery
-            .Setup(x => x.GetAppConfigByAppIdAsync(appId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAppConfigByAppIdAsync("tenant1", appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AppConfig
             {
                 AppId = appId,
@@ -217,7 +220,7 @@ public class GetUserV4Tests
         var correlationID = "test-correlation-id";
 
         _mockGetFullAppConfigQuery
-            .Setup(x => x.GetAppConfigByAppIdAsync(appId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAppConfigByAppIdAsync("tenant1", appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AppConfig
             {
                 AppId = appId,
@@ -277,7 +280,7 @@ public class GetUserV4Tests
         };
 
         _mockGetFullAppConfigQuery
-            .Setup(x => x.GetAppConfigByAppIdAsync(appId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAppConfigByAppIdAsync("tenant1", appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AppConfig
             {
                 AppId = appId,
@@ -336,8 +339,9 @@ public class GetUserV4Tests
             UserName = "testuser"
         };
 
+        _mockTenantContext.Setup(x => x.TenantId).Returns("tenant1");
         _mockGetFullAppConfigQuery
-            .Setup(x => x.GetAppConfigByAppIdAsync(appId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAppConfigByAppIdAsync("tenant1", appId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AppConfig
             {
                 AppId = appId,

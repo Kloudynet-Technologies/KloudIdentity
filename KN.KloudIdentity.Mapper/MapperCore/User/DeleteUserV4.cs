@@ -16,7 +16,8 @@ public class DeleteUserV4(
     IAppConfigSnapshotRepository snapshotRepository,
     IOutboundPayloadProcessor outboundPayloadProcessor,
     IIntegrationBaseFactory integrationBaseFactory,
-    IKloudIdentityLogger logger
+    IKloudIdentityLogger logger,
+    ITenantContext tenantContext
 )
     : ProvisioningBase(snapshotRepository, outboundPayloadProcessor), IDeleteResourceV2
 {
@@ -31,7 +32,7 @@ public class DeleteUserV4(
         Log.Information(
             $"[DeleteUserV4] Execution started for user deletion. Identifier: {resourceIdentifier.Identifier}, AppId: {appId}, CorrelationID: {correlationId}");
 
-        _appConfig = await GetAppConfigAsync(appId);
+        _appConfig = await GetAppConfigForTenantAsync(tenantContext.TenantId, appId, CancellationToken.None);
 
         if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST)
             await ExecuteMultistepForRESTAsync(resourceIdentifier.Identifier, appId, correlationId);
