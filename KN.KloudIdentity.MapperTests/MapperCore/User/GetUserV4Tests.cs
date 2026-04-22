@@ -121,7 +121,8 @@ public class GetUserV4Tests
             {
                 AppId = appId,
                 Actions = new List<Mapper.Domain.Application.Action>(), // No actions defined
-                AuthenticationDetails = default!
+                AuthenticationDetails = default!,
+                IntegrationMethodOutbound = IntegrationMethods.REST
             });
 
         // Act & Assert
@@ -153,7 +154,8 @@ public class GetUserV4Tests
                         ActionSteps = new List<ActionStep>()
                     }
                 },
-                AuthenticationDetails = default!
+                AuthenticationDetails = default!,
+                IntegrationMethodOutbound = IntegrationMethods.REST
             });
 
         // Act & Assert

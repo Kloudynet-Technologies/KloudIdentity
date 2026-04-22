@@ -20,6 +20,8 @@ public class DeleteUserV4(
 )
     : ProvisioningBase(snapshotRepository, outboundPayloadProcessor), IDeleteResourceV2
 {
+    private AppConfig _appConfig = null!;
+
     public async Task DeleteAsync(IResourceIdentifier resourceIdentifier, string appId, string correlationId)
     {
         ArgumentNullException.ThrowIfNull(resourceIdentifier);
@@ -29,15 +31,29 @@ public class DeleteUserV4(
         Log.Information(
             $"[DeleteUserV4] Execution started for user deletion. Identifier: {resourceIdentifier.Identifier}, AppId: {appId}, CorrelationID: {correlationId}");
 
-        var appConfig = await GetAppConfigAsync(appId);
-        if (appConfig.Actions == null || !appConfig.Actions.Any())
+        _appConfig = await GetAppConfigAsync(appId);
+
+        if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST)
+            await ExecuteMultistepForRESTAsync(resourceIdentifier.Identifier, appId, correlationId);
+        else
+            await ExecuteGenericUserDeletionLogicAsync(resourceIdentifier.Identifier, appId, correlationId);
+
+        Log.Information(
+            $"User deleted successfully for the id {resourceIdentifier.Identifier}. AppId: {appId}, CorrelationID: {correlationId}");
+        _ = CreateLogAsync(appId, resourceIdentifier.Identifier, correlationId);
+    }
+
+    protected virtual async Task ExecuteMultistepForRESTAsync(string identifier, string appId, string correlationId)
+    {
+        if (_appConfig.Actions == null || !_appConfig.Actions.Any())
             throw new InvalidOperationException("No action steps defined in application configuration.");
-        var integrationOp = integrationBaseFactory.GetIntegration(appConfig.IntegrationMethodOutbound ??
+
+        var integrationOp = integrationBaseFactory.GetIntegration(_appConfig.IntegrationMethodOutbound ??
                                                                   IntegrationMethods.REST, appId) ??
                             throw new NotSupportedException(
-                                $"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
+                                $"Integration method {_appConfig.IntegrationMethodOutbound} is not supported.");
 
-        var actionSteps = appConfig.Actions
+        var actionSteps = _appConfig.Actions
             .Where(a => a is { ActionName: ActionNames.DELETE, ActionTarget: ActionTargets.USER })
             .SelectMany(a => a.ActionSteps)
             .OrderBy(s => s.StepOrder)
@@ -50,12 +66,31 @@ public class DeleteUserV4(
         {
             Log.Information("Processing ActionStep {StepOrder} with HttpVerb {HttpVerb}", actionStep.StepOrder,
                 actionStep.HttpVerb);
-            await integrationOp.DeleteAsync(resourceIdentifier.Identifier, appId, appConfig, actionStep, correlationId);
+            await integrationOp.DeleteAsync(identifier, appId, _appConfig, actionStep, correlationId);
         }
+    }
 
-        Log.Information(
-            $"User deleted successfully for the id {resourceIdentifier.Identifier}. AppId: {appId}, CorrelationID: {correlationId}");
-        _ = CreateLogAsync(appId, resourceIdentifier.Identifier, correlationId);
+    protected virtual async Task ExecuteGenericUserDeletionLogicAsync(string identifier, string appId,
+        string correlationId)
+    {
+        var integrationOp = integrationBaseFactory.GetIntegration(_appConfig.IntegrationMethodOutbound ??
+                                                                  IntegrationMethods.REST, appId) ??
+                            throw new NotSupportedException(
+                                $"Integration method {_appConfig.IntegrationMethodOutbound} is not supported.");
+
+        ValidateRequest(identifier, _appConfig);
+
+        await integrationOp.DeleteAsync(identifier, _appConfig, correlationId);
+    }
+
+    private static void ValidateRequest(string identifier, AppConfig appConfig)
+    {
+        if (appConfig.IntegrationMethodOutbound == IntegrationMethods.AS400 ||
+            appConfig.IntegrationMethodOutbound == IntegrationMethods.SQL)
+            return;
+
+        if (string.IsNullOrWhiteSpace(identifier))
+            throw new ArgumentNullException(nameof(identifier), "Identifier cannot be null or empty");
     }
 
     private async Task CreateLogAsync(string appId, string identifier, string correlationId)

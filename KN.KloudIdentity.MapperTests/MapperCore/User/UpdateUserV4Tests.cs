@@ -1,5 +1,6 @@
 using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
@@ -119,7 +120,7 @@ public class UpdateUserV4Tests
     }
 
     [Fact]
-    public async Task UpdateAsync_ThrowsInvalidOperationException_WhenPayloadValidationFails()
+    public async Task UpdateAsync_ThrowsPayloadValidationException_WhenPayloadValidationFails()
     {
         // Arrange
         var actionStep = new ActionStep { StepOrder = 1, UserAttributeSchemas = new List<AttributeSchema>() };
@@ -176,7 +177,7 @@ public class UpdateUserV4Tests
         };
 
         // Act & Assert
-        var ex = await Xunit.Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Xunit.Assert.ThrowsAsync<PayloadValidationException>(() =>
             sut.UpdateAsync(user, "app1", "corr1"));
         Assert.Contains("Payload validation failed", ex.Message);
     }

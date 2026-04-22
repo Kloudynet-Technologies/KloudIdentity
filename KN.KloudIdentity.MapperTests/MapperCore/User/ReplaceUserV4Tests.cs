@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper;
+using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
@@ -57,6 +58,8 @@ public class ReplaceUserV4Tests
         };
         var sut = CreateSut(appConfig);
         var user = new Core2EnterpriseUser { Identifier = "user1" };
+        _integrationBaseFactoryMock.Setup(f => f.GetIntegration(It.IsAny<IntegrationMethods>(), It.IsAny<string>()))
+            .Returns(_integrationBaseMock.Object);
 
         // Act & Assert
         await Xunit.Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -93,7 +96,7 @@ public class ReplaceUserV4Tests
     }
 
     [Fact]
-    public async Task ReplaceAsync_ThrowsInvalidOperationException_WhenPayloadValidationFails()
+    public async Task ReplaceAsync_ThrowsPayloadValidationException_WhenPayloadValidationFails()
     {
         // Arrange
         var actionStep = new ActionStep { StepOrder = 1, UserAttributeSchemas = new List<AttributeSchema>() };
@@ -132,7 +135,7 @@ public class ReplaceUserV4Tests
         var user = new Core2EnterpriseUser { Identifier = "user1" };
 
         // Act & Assert
-        var ex = await Xunit.Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Xunit.Assert.ThrowsAsync<PayloadValidationException>(() =>
             sut.ReplaceAsync(user, "app1", "corr1"));
         Assert.Contains("Payload validation failed", ex.Message);
     }
@@ -284,6 +287,8 @@ public class ReplaceUserV4Tests
         };
         var sut = CreateSut(appConfig);
         var user = new Core2EnterpriseUser { Identifier = "user1" };
+        _integrationBaseFactoryMock.Setup(f => f.GetIntegration(It.IsAny<IntegrationMethods>(), It.IsAny<string>()))
+            .Returns(_integrationBaseMock.Object);
 
         // Act & Assert
         var ex = await Xunit.Assert.ThrowsAsync<InvalidOperationException>(() => sut.ReplaceAsync(user, "app1", "corr1"));
