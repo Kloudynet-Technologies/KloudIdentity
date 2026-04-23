@@ -47,7 +47,7 @@ public class ProvisioningBase(
     /// <param name="appId"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
+    /// <exception cref="NotFoundException">Thrown when no application configuration exists for the specified tenant and application ID.</exception>
     public virtual async Task<AppConfig> GetAppConfigForTenantAsync(string tenantId, string appId, CancellationToken cancellationToken)
     {
         var config = await appConfigSnapshotRepository.GetAppConfigByAppIdAsync(tenantId, appId, cancellationToken);

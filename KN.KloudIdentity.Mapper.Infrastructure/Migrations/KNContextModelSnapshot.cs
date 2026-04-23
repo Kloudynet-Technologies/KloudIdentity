@@ -72,8 +72,7 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AppId")
-                        .IsUnique();
+                    b.HasIndex("TenantId", "AppId");
 
                     b.ToTable("AppConfigSnapshots", (string)null);
                 });
