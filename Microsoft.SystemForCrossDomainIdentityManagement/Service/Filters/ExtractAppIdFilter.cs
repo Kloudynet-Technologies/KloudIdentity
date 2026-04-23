@@ -12,6 +12,14 @@ namespace Microsoft.SCIM;
 /// </summary>
 public class ExtractAppIdFilter : IActionFilter
 {
+    private const string TenantIdItemName = "tenantId";
+    private readonly ITenantContext _tenantContext;
+
+    public ExtractAppIdFilter(ITenantContext tenantContext)
+    {
+        _tenantContext = tenantContext;
+    }
+
     /// <summary>
     /// Extracts the application identifier from the route data and adds it to the request context.
     /// </summary>
@@ -27,6 +35,13 @@ public class ExtractAppIdFilter : IActionFilter
         if (context.RouteData.Values["appId"] is string appId)
         {
             context.HttpContext.Items.Add("appId", appId);
+        }
+
+        var tenantId = context.HttpContext.User.GetTenantId();
+        if (!string.IsNullOrWhiteSpace(tenantId))
+        {
+            context.HttpContext.Items[TenantIdItemName] = tenantId;
+            _tenantContext.TenantId = tenantId;
         }
     }
 

@@ -240,6 +240,7 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddScoped<NonSCIMGroupProvider>();
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();
+            services.AddScoped<ITenantContext, TenantContext>();
             services.AddScoped<ExtractAppIdFilter>();
             services.AddHostedService<AppConfigStartupSync>();
         }

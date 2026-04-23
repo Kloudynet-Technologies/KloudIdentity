@@ -38,6 +38,7 @@ public class AppConfigStartupSync(
                         });
                         var update = new AppConfigSnapshotUpdated
                         {
+                            TenantId = appConfig.TenantId,
                             AppId = appConfig.AppId,
                             GeneratedAtUtc = DateTime.UtcNow,
                             Message = json,

@@ -19,12 +19,15 @@ public class UpdateUserV4Tests
     private readonly Mock<IIntegrationBaseFactory> _integrationBaseFactoryMock = new();
     private readonly Mock<IOutboundPayloadProcessor> _outboundPayloadProcessorMock = new();
     private readonly Mock<IIntegrationBaseV2> _integrationBaseMock = new();
+    private readonly Mock<ITenantContext> _tenantContextMock = new();
     
     private UpdateUserV4 CreateSut(AppConfig? appConfig = null)
     {
+
         if (appConfig != null)
         {
-            _getFullAppConfigQueryMock.Setup(q => q.GetAppConfigByAppIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            _tenantContextMock.Setup(x => x.TenantId).Returns("tenant1");
+            _getFullAppConfigQueryMock.Setup(q => q.GetAppConfigByAppIdAsync("tenant1", It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(appConfig);
         }
 
@@ -32,7 +35,8 @@ public class UpdateUserV4Tests
             _getFullAppConfigQueryMock.Object,
             _outboundPayloadProcessorMock.Object,
             _loggerMock.Object,
-            _integrationBaseFactoryMock.Object
+            _integrationBaseFactoryMock.Object,
+            _tenantContextMock.Object
         );
     }
 
@@ -47,7 +51,9 @@ public class UpdateUserV4Tests
             AuthenticationDetails = null!,
             IntegrationMethodOutbound = IntegrationMethods.REST
         };
-        var sut = CreateSut(appConfig);
+        _tenantContextMock.Setup(x => x.TenantId).Returns("tenant1");
+        _getFullAppConfigQueryMock.Setup(q => q.GetAppConfigByAppIdAsync("tenant1", "app1", It.IsAny<CancellationToken>())).ReturnsAsync(appConfig);
+        var sut = CreateSut();
 
         // Build PatchOperation2
         var patchOperation = new PatchOperation2Combined
@@ -93,9 +99,9 @@ public class UpdateUserV4Tests
             AuthenticationDetails = null!,
             IntegrationMethodOutbound = (IntegrationMethods)999 // Unknown
         };
-        _integrationBaseFactoryMock.Setup(f => f.GetIntegration(It.IsAny<IntegrationMethods>(), It.IsAny<string>()))
-            .Returns((IIntegrationBaseV2?)null);
-        var sut = CreateSut(appConfig);
+        _tenantContextMock.Setup(x => x.TenantId).Returns("tenant1");
+        _getFullAppConfigQueryMock.Setup(q => q.GetAppConfigByAppIdAsync("tenant1", "app1", It.IsAny<CancellationToken>())).ReturnsAsync(appConfig);
+        var sut = CreateSut();
         // Build PatchOperation2
         var patchOperation = new PatchOperation2Combined
         {
@@ -318,9 +324,11 @@ public class UpdateUserV4Tests
     {
         // Arrange
         var actionStep = new ActionStep { StepOrder = 1, UserAttributeSchemas = new List<AttributeSchema>() };
+        var appId = "app1";
+        var tenantId = "tenant1";
         var appConfig = new AppConfig
         {
-            AppId = "app1",
+            AppId = appId,
             AuthenticationDetails = null!,
             Actions = new List<Mapper.Domain.Application.Action>
             {
@@ -333,6 +341,8 @@ public class UpdateUserV4Tests
             },
             IntegrationMethodOutbound = IntegrationMethods.REST
         };
+        _tenantContextMock.Setup(x => x.TenantId).Returns(tenantId);
+        _getFullAppConfigQueryMock.Setup(q => q.GetAppConfigByAppIdAsync(tenantId, appId, It.IsAny<CancellationToken>())).ReturnsAsync(appConfig);
         _integrationBaseFactoryMock.Setup(f => f.GetIntegration(It.IsAny<IntegrationMethods>(), It.IsAny<string>()))
             .Returns(_integrationBaseMock.Object);
         _integrationBaseMock.Setup(m => m.MapAndPreparePayloadAsync(It.IsAny<List<AttributeSchema>>(), It.IsAny<Core2EnterpriseUser>(), CancellationToken.None))
@@ -368,7 +378,7 @@ public class UpdateUserV4Tests
         };
 
         // Act
-        var task = sut.UpdateAsync(user, "app1", "corr1");
+        var task = sut.UpdateAsync(user, appId, "corr1");
         await task;
 
         // Assert

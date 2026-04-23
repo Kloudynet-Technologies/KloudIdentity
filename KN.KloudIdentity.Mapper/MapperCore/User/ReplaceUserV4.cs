@@ -18,7 +18,9 @@ public class ReplaceUserV4(
     IAppConfigSnapshotRepository snapshotRepository,
     IKloudIdentityLogger logger,
     IIntegrationBaseFactory integrationBaseFactory,
-    IOutboundPayloadProcessor outboundPayloadProcessor)
+    IOutboundPayloadProcessor outboundPayloadProcessor,
+    ITenantContext tenantContext
+    )
     : ProvisioningBase(snapshotRepository, outboundPayloadProcessor), IReplaceResourceV2
 {
     private AppConfig _appConfig = null!;
@@ -32,7 +34,7 @@ public class ReplaceUserV4(
         Log.Information($"[ReplaceUserV4] Execution started for user replacement. AppId: {appId}, CorrelationID: {correlationID}, Identifier: {resource.Identifier}");
 
         // Step 1: Get app config
-        _appConfig = await GetAppConfigAsync(appId);
+        _appConfig = await GetAppConfigForTenantAsync(tenantContext.TenantId, appId, CancellationToken.None);
 
         if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST)
             await ExecuteMultistepForRESTAsync(resource, appId, correlationID);

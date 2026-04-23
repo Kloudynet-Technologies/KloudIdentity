@@ -9,23 +9,44 @@ namespace KN.KloudIdentity.Mapper.Common.AppConfig;
 public class DeleteAppConfig(
     IAppConfigSnapshotRepository appConfigSnapshotRepository,
     IKloudIdentityLogger logger
-    ) : IDeleteAppConfig
+) : IDeleteAppConfig
 {
-    public async Task DeleteAsync(IAppConfigSnapshotUpdated snapshotUpdated, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(IAppConfigSnapshotUpdated snapshotUpdated,
+        CancellationToken cancellationToken = default)
     {
-        await appConfigSnapshotRepository.DeleteByAppIdAsync(snapshotUpdated.AppId, cancellationToken);
+        ValidateMessage(snapshotUpdated);
+        await appConfigSnapshotRepository.DeleteByAppIdAsync(snapshotUpdated.TenantId, snapshotUpdated.AppId,
+            cancellationToken);
         Log.Information("Deleted AppConfigSnapshot for appId {AppId}", snapshotUpdated.AppId);
-        
-        _= CreateLogAsync(snapshotUpdated);
+
+        _ = CreateLogAsync(snapshotUpdated);
     }
-    
+
+    private static void ValidateMessage(IAppConfigSnapshotUpdated message)
+    {
+        if (string.IsNullOrWhiteSpace(message.AppId))
+        {
+            Log.Error("DeleteAppConfig: For CorrelationId: {CorrelationId} AppId: {appId} cannot be null or empty.",
+                message.CorrelationId, message.AppId);
+            throw new ArgumentException("DeleteAppConfig: AppId cannot be null or empty.");
+        }
+
+        if (string.IsNullOrWhiteSpace(message.TenantId))
+        {
+            Log.Error("For CorrelationId: {CorrelationId} AppId: {appId} TenantId cannot be null or empty.",
+                message.CorrelationId, message.AppId);
+            throw new ArgumentException("DeleteAppConfig: TenantId cannot be null or empty.");
+        }
+    }
+
     private async Task CreateLogAsync(IAppConfigSnapshotUpdated snapshotUpdated)
     {
         await logger.CreateLogAsync(new CreateLogEntity(
             AppId: snapshotUpdated.AppId,
             Type: nameof(LogType.Delete),
             Severity: LogSeverities.Information,
-            EventInfo:$"Deleted AppConfigSnapshotUpdated for CorrelationId: {snapshotUpdated.CorrelationId} AppId: {snapshotUpdated.AppId}",
+            EventInfo:
+            $"Deleted AppConfigSnapshotUpdated for CorrelationId: {snapshotUpdated.CorrelationId} AppId: {snapshotUpdated.AppId}",
             Message: $"Deleted AppConfigSnapshot for appId {snapshotUpdated.AppId}",
             CorrelationId: snapshotUpdated.CorrelationId!,
             LoggerName: "KN.KloudIdentity.Mapper",

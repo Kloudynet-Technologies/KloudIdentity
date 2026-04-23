@@ -13,6 +13,7 @@ public class AppConfigSnapshot : EntityBase
     public AppConfigSnapshot(
         int id,
         string appId,
+        string tenantId,
         string etag,
         string configJson,
         DateTime generatedDate,
@@ -24,6 +25,7 @@ public class AppConfigSnapshot : EntityBase
     {
         Id = id;
         AppId = appId;
+        TenantId = tenantId;
         Etag = etag;
         ConfigJson = configJson;
         GeneratedDate = generatedDate;
@@ -31,6 +33,7 @@ public class AppConfigSnapshot : EntityBase
 
     public int Id { get; private set; }                 // PK
     public string AppId { get; private set; } = default!;
+    public string TenantId { get; private set; } = default!;
     public string Etag { get; private set; } = default!;
     public string ConfigJson { get; private set; } = default!;
     public DateTime GeneratedDate { get; private set; }

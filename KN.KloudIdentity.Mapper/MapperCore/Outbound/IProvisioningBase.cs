@@ -12,10 +12,20 @@ public interface IProvisioningBase
     /// Gets the application configuration asynchronously.
     /// </summary>
     /// <returns></returns>
+    [Obsolete("Please use GetAppConfigForTenantAsync instead")]
     Task<AppConfig> GetAppConfigAsync(string appId);
 
     /// <summary>
     /// Executes custom logic asynchronously.
     /// </summary>
     Task<dynamic> ExecuteCustomLogicAsync(dynamic payload, AppConfig appConfig, string correlationID);
+    
+    /// <summary>
+    /// Gets the application configuration for a specific tenant and application ID asynchronously.
+    /// </summary>
+    /// <param name="tenantId"></param>
+    /// <param name="appId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<AppConfig> GetAppConfigForTenantAsync(string tenantId, string appId, CancellationToken cancellationToken);
 }
