@@ -65,6 +65,7 @@ public class AppConfigSnapshotRepository(KNContext dbContext) : RepositoryBase(d
         }
     }
 
+    [Obsolete("Use GetByAppIdAsync with tenantId instead.")]
     public async Task<AppConfig?> GetAppConfigByAppIdAsync(string appId, CancellationToken cancellationToken = default)
     {
         var snapshot = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId, cancellationToken);
