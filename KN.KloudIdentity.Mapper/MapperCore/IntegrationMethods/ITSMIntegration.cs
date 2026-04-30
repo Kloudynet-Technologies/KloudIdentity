@@ -1,7 +1,14 @@
+using System.Web.Http;
+using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Application;
+using KN.KloudIdentity.Mapper.Domain.Itsm;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
+using KN.KloudIdentity.Mapper.Domain.Messaging;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using Microsoft.SCIM;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
@@ -19,9 +26,9 @@ public class ITSMIntegration(
         CancellationToken cancellationToken = default)
     {
         var payload = JSONParserUtilV2<Resource>.Parse(schema, resource);
-        if (!payload.ContainsKey("identifier"))
+        if (!payload.ContainsKey("Identifier"))
         {
-            payload["identifier"] = resource.Identifier;
+            payload["Identifier"] = resource.Identifier;
         }
 
         return await Task.FromResult(payload);
@@ -41,15 +48,15 @@ public class ITSMIntegration(
     public async Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, AppConfig appConfig, string correlationId,
         CancellationToken cancellationToken = default)
     {
-        var result = await metaverseIntegrationClient.CreateAsync<object>(
-            appConfig.TenantId,
-            appConfig.AppId,
-            payload,
+        EnrichPayloadWithMetadata(payload, appConfig);
+
+        var result = await metaverseIntegrationClient.SendAsync<ItsmOperationResponse>(
+            payload.ToString(),
             correlationId,
+            ActionType.CreateUser,
             cancellationToken);
         
-        var identifier = payload["identifier"].ToString();
-        return new Core2EnterpriseUser { Identifier = identifier };
+        return new Core2EnterpriseUser { Identifier = result.ExternalKey };
     }
 
     public Task<(bool, string[])> ValidatePayloadAsync(dynamic payload, AppConfig appConfig, string correlationId,
@@ -61,46 +68,100 @@ public class ITSMIntegration(
     public async Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, string correlationId,
         CancellationToken cancellationToken = default)
     {
-        var response = await metaverseIntegrationClient.GetAsync<object>(appConfig.TenantId,
-            appConfig.AppId,
-            identifier,
+        var payload = new JObject
+        {
+            ["Identifier"] = identifier
+        };
+
+        EnrichPayloadWithMetadata(payload, appConfig);
+
+        var response = await metaverseIntegrationClient.SendAsync<ItsmOperationResponse>(
+            payload.ToString(),
             correlationId,
+            ActionType.GetUser,
             cancellationToken);
 
-        // [To-DO] Develop later
-        return new Core2EnterpriseUser { Identifier = identifier };
+        if (response.ExternalKey == null)
+        {
+            throw new HttpResponseException(System.Net.HttpStatusCode.NotFound);
+        }
+        
+        return new Core2EnterpriseUser { Identifier = response.ExternalKey };
     }
 
     public async Task ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
         string correlationId)
     {
-        var response = await metaverseIntegrationClient.ReplaceAsync<object>(appConfig.TenantId,
-            appConfig.AppId,
-            resource.Identifier,
-            payload,
-            correlationId);
+        EnrichPayloadWithMetadata(payload, appConfig);
+
+        var response = await metaverseIntegrationClient.SendAsync<ItsmOperationResponse>(
+            payload.ToString(),
+            correlationId,
+            ActionType.EditUser,
+            CancellationToken.None);
         // [To-DO] Develop later
     }
 
     public async Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, AppConfig appConfig,
         string correlationId)
     {
-        var response = await metaverseIntegrationClient.UpdateAsync<object>(appConfig.TenantId,
-            appConfig.AppId,
-            resource.Identifier,
-            payload,
-            correlationId);
-
+        EnrichPayloadWithMetadata(payload, appConfig);
+        
+        if(resource.UserName == null) return;
+        
+        var response = await metaverseIntegrationClient.SendAsync<ItsmOperationResponse>(
+            payload.ToString(),
+            correlationId,
+            ActionType.EditUser,
+            CancellationToken.None);
         // [To-DO] Develop later
     }
 
     public async Task DeleteAsync(string identifier, AppConfig appConfig, string correlationId)
     {
-        var response = await metaverseIntegrationClient.DeleteAsync<object>(appConfig.TenantId,
-            appConfig.AppId,
-            identifier,
-            correlationId);
-        //[To-DO] Develop later
+        var payload = new JObject
+        {
+            ["Identifier"] = identifier
+        };
+        EnrichPayloadWithMetadata(payload, appConfig);
+        var response = await metaverseIntegrationClient.SendAsync<ItsmOperationResponse>(
+            payload.ToString(),
+            correlationId,
+            ActionType.DisableUser,
+            CancellationToken.None);
+        // [To-DO] Develop later
+    }
+
+    // Helper: safely read IntegrationDetails and merge AdditionalProperties into the payload
+
+    private static void EnrichPayloadWithMetadata(dynamic payload, AppConfig appConfig)
+    {
+        var inDetails = appConfig.IntegrationDetails?.ToString();
+        if (string.IsNullOrWhiteSpace(inDetails)) return;
+
+        try
+        {
+            var details = JsonConvert.DeserializeObject<ItsmIntegrationMethod>(inDetails);
+
+            if (payload is not JObject jObj) return;
+
+            var extProps = details?.AdditionalProperties != null
+                ? JObject.FromObject(details.AdditionalProperties)
+                : new JObject();
+
+            extProps["Identifier"] = jObj["Identifier"]?.ToString();
+            jObj["ExtendedProperties"] = extProps;
+            jObj["AppId"] = appConfig.AppId;
+            jObj["TenantId"] = appConfig.TenantId;
+        }
+        catch
+        {
+            Log.Error(
+                "Failed to parse IntegrationDetails for appId {AppId}. Ensure it is a valid JSON string matching ItsmIntegrationMethod structure.",
+                appConfig.AppId);
+            throw new ArgumentException(
+                "Invalid IntegrationDetails format. Expected a JSON string matching ItsmIntegrationMethod structure.");
+        }
     }
 
     #region Not Implemented: Action-based methods (not required for DisconnectedIntegration)
