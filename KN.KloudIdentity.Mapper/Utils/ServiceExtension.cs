@@ -57,7 +57,7 @@ public static class ServiceExtension
         services.AddScoped<ISoapAuthApplier, SoapTokenHeaderApplier>();
 
         // @TODO: [ASELA] Correct this later.
-        // services.AddScoped<IConfigReader, ConfigReaderSQL>();
+        // services.AddScoped<IConfigReader, ConfigReaderSQL>();       
 
         services.AddScoped<IList<IIntegrationBaseV2>>(provider => provider.GetServices<IIntegrationBaseV2>().ToList());
 
@@ -79,6 +79,8 @@ public static class ServiceExtension
 
         services.AddScoped<IIntegrationBase, RestIntegrationManageEngine>();
         services.AddScoped<IIntegrationBase, RESTIntegrationV2>();
+        services.AddScoped<IIntegrationBaseV2, RESTIntegrationV4>();
+        services.AddScoped<IIntegrationBaseV2, ITSMIntegration>();
 
         services.AddScoped<IIntegrationBase, RESTIntegration>();
         services.AddScoped<IIntegrationBase, LinuxIntegration>();

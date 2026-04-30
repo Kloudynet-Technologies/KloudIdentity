@@ -17,5 +17,7 @@ public record BasicAuthentication
     /// </summary>
     public string? AuthHeaderName { get; init; }
     
+    public string? KeyVaultReference { get; init; }
+    
     public EncryptedData EncryptedData { get; init; }
 }

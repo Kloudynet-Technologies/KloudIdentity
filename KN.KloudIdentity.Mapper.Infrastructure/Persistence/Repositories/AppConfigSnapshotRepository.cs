@@ -43,16 +43,21 @@ public class AppConfigSnapshotRepository(KNContext dbContext) : RepositoryBase(d
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<AppConfigSnapshot?> GetByAppIdAsync(string appId, CancellationToken cancellationToken = default)
+    public async Task<AppConfigSnapshot?> GetByAppIdAsync(string tenantId, string appId,
+        CancellationToken cancellationToken = default)
     {
-        var entity = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId, cancellationToken);
+        var entity =
+            await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId && e.TenantId == tenantId,
+                cancellationToken);
 
         return entity;
     }
 
-    public async Task DeleteByAppIdAsync(string appId, CancellationToken cancellationToken = default)
+    public async Task DeleteByAppIdAsync(string tenantId, string appId, CancellationToken cancellationToken = default)
     {
-        var entity = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId, cancellationToken);
+        var entity = await dbContext.AppConfigSnapshots
+            .FirstOrDefaultAsync(e => e.AppId == appId && e.TenantId == tenantId, cancellationToken);
+
         if (entity != null)
         {
             dbContext.AppConfigSnapshots.Remove(entity);
@@ -60,9 +65,29 @@ public class AppConfigSnapshotRepository(KNContext dbContext) : RepositoryBase(d
         }
     }
 
+    [Obsolete("Use GetByAppIdAsync with tenantId instead.")]
     public async Task<AppConfig?> GetAppConfigByAppIdAsync(string appId, CancellationToken cancellationToken = default)
     {
         var snapshot = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId, cancellationToken);
+        if (snapshot == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var appConfig = System.Text.Json.JsonSerializer.Deserialize<AppConfig>(snapshot.ConfigJson);
+            return appConfig;
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            throw new InvalidOperationException($"Failed to deserialize AppConfig for AppId {appId}.", ex);
+        }
+    }
+
+    public async Task<AppConfig?> GetAppConfigByAppIdAsync(string tenantId, string appId, CancellationToken cancellationToken = default)
+    {
+        var snapshot = await dbContext.AppConfigSnapshots.FirstOrDefaultAsync(e => e.AppId == appId && e.TenantId == tenantId, cancellationToken);
         if (snapshot == null)
         {
             return null;

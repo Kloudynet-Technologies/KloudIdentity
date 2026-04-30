@@ -18,6 +18,7 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
     {
         private readonly IConfiguration configuration;
         private const int DefaultTokenExpirationTimeInMins = 120;
+        private const string TenantIdHeaderName = "X-Tenant-Id";
 
         public TokenController(IConfiguration configuration)
         {
@@ -34,7 +35,7 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
             public string Password { get; set; }
         }
 
-        private string GenerateJsonWebToken()
+        private string GenerateJsonWebToken(string tenantId)
         {
             var section = configuration.GetSection("KI");
 
@@ -49,7 +50,8 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, "scim-service"),
-                new Claim(ClaimTypes.Role, "TokenGenerator")
+                new Claim(ClaimTypes.Role, "TokenGenerator"),
+                new Claim("tid", tenantId)
             };
 
             var startTime = DateTime.UtcNow;
@@ -78,7 +80,10 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
             if (!Authenticate(request.User, request.Password))
                 return Unauthorized("Invalid credentials");
 
-            var tokenString = GenerateJsonWebToken();
+            if (!TryGetTenantId(out var tenantId, out var tenantValidationResult))
+                return tenantValidationResult;
+
+            var tokenString = GenerateJsonWebToken(tenantId);
             return Ok(new { token = tokenString });
         }
 
@@ -94,6 +99,27 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
             if (!ModelState.IsValid)
             {
                 result = BadRequest(ModelState);
+                return false;
+            }
+
+            result = null;
+            return true;
+        }
+
+        private bool TryGetTenantId(out string tenantId, out ActionResult result)
+        {
+            tenantId = null;
+
+            if (!Request.Headers.TryGetValue(TenantIdHeaderName, out var headerValue))
+            {
+                result = BadRequest($"{TenantIdHeaderName} header is missing.");
+                return false;
+            }
+
+            tenantId = headerValue.ToString();
+            if (string.IsNullOrWhiteSpace(tenantId))
+            {
+                result = BadRequest($"{TenantIdHeaderName} header is empty.");
                 return false;
             }
 

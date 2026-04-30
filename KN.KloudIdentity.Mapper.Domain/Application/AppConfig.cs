@@ -1,11 +1,13 @@
 ﻿using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.ExternalEndpoint;
+using KN.KloudIdentity.Mapper.Domain.Itsm;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 
 namespace KN.KloudIdentity.Mapper.Domain.Application;
 
 public record AppConfig
 {
+    public string TenantId { get; init; }
     public string AppId { get; init; } = string.Empty;
     public string AppName { get; init; } = string.Empty;
     public bool IsEnabled { get; init; }
@@ -25,7 +27,7 @@ public record AppConfig
 
     public ICollection<Action> Actions { get; set; } = [];
     public AuthenticationFlow? AuthenticationFlow { get; set; }
-
+    public ItsmSettings ItsmConfigurations { get; set; } = new ItsmSettings();
 
     /// <summary>
     /// Validates that UserURIs is set when IntegrationMethodOutbound is REST.

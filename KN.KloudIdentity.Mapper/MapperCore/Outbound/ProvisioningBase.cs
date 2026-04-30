@@ -43,11 +43,29 @@ public class ProvisioningBase(
     }
 
     /// <summary>
+    /// Gets the application configuration for a specific tenant and application ID asynchronously.
+    /// </summary>
+    /// <param name="tenantId"></param>
+    /// <param name="appId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    /// <exception cref="NotFoundException">Thrown when no application configuration exists for the specified tenant and application ID.</exception>
+    public virtual async Task<AppConfig> GetAppConfigForTenantAsync(string tenantId, string appId, CancellationToken cancellationToken)
+    {
+        var config = await appConfigSnapshotRepository.GetAppConfigByAppIdAsync(tenantId, appId, cancellationToken);
+        if (config == null)
+            throw new NotFoundException($"ProvisioningBase: App configuration not found for tenant ID {tenantId} and app ID {appId}.");
+        
+        return config;
+    }
+
+    /// <summary>
     /// Gets the application configuration asynchronously.
     /// </summary>
     /// <param name="appId">Application ID</param>
     /// <returns></returns>
     /// <exception cref="NotFoundException"></exception>
+    [Obsolete("Please use GetAppConfigForTenantAsync instead")]
     public virtual async Task<AppConfig> GetAppConfigAsync(string appId)
     {
         var config = await appConfigSnapshotRepository.GetAppConfigByAppIdAsync(appId);

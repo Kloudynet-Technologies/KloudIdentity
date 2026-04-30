@@ -1,4 +1,5 @@
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Commands;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Queries;
 using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Repositories;
@@ -27,6 +28,8 @@ public static class DependencyInjection
         
         services.AddScoped<IAppConfigSnapshotRepository, AppConfigSnapshotRepository>();
         services.AddScoped<IListApplicationConfigsQuery, ListApplicationConfigsQuery>();
+        services.AddScoped<IMetaverseIntegrationClient, MetaverseIntegrationClient>();
+        services.AddScoped<ISecretManager, AzureSecretManager>();
         
         return services;
     }

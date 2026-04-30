@@ -7,5 +7,7 @@ public enum ActionNames
     CREATE = 2,
     EDIT = 3,
     DELETE = 4,
-    PATCH = 5
+    LIST = 5,
+    BASE = 6,
+    PATCH = 7
 }

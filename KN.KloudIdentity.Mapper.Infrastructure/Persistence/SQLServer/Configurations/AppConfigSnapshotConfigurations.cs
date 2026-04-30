@@ -18,9 +18,14 @@ public class AppConfigSnapshotConfigurations : IEntityTypeConfiguration<AppConfi
         builder.Property(x => x.AppId)
             .HasColumnName("AppId")
             .HasColumnType("nvarchar(50)")
+            .IsRequired();   
+
+        builder.Property(x => x.TenantId)
+            .HasColumnName("TenantId")
+            .HasColumnType("nvarchar(64)")
             .IsRequired();
-        
-        builder.HasIndex(x => x.AppId).IsUnique();
+
+        builder.HasIndex(x => new { x.TenantId, x.AppId }).IsUnique();
         
         builder.Property(x => x.Etag)
             .HasColumnName("Etag")
