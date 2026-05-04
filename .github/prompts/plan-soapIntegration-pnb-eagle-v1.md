@@ -74,7 +74,7 @@ The solution is a **subclass** `EagleSOAPIntegration : SOAPIntegration` that ove
 
 ### Phase 2: EagleSoapActionApplier
 
-**New file:** `KN.KloudIdentity.Mapper/MapperCore/IntegrationMethods/EagleInvestment/EagleSoapActionApplier.cs`
+**New file:** `KN.KloudIdentity.Mapper/MapperCore/IntegrationMethods/SOAPAuth/EagleSoapActionApplier.cs`
 
 **Logic:** A sealed, zero-dependency implementation of `ISoapAuthApplier` that adds the `SOAPAction: "RunTaskRequestSync"` HTTP header to every request. It is prepended to the auth applier chain in the `EagleSOAPIntegration` constructor — no changes to the base applier chain or to `ServiceExtension.cs` for the applier registrations.
 
@@ -88,7 +88,7 @@ class EagleSoapActionApplier : ISoapAuthApplier  (sealed, internal)
         return Task.CompletedTask
 ```
 
-**Namespace:** `KN.KloudIdentity.Mapper.MapperCore.IntegrationMethods.EagleInvestment`
+**Namespace:** `KN.KloudIdentity.Mapper.MapperCore`
 
 **Agent Instruction:** "Create `EagleSoapActionApplier.cs` as a `sealed internal` class in the namespace above. Implement only `ISoapAuthApplier`. No constructor parameters. The only logic is adding the `SOAPAction` HTTP header to `context.Request`."
 
@@ -98,9 +98,9 @@ class EagleSoapActionApplier : ISoapAuthApplier  (sealed, internal)
 
 ### Phase 3: EagleSOAPIntegration
 
-**New file:** `KN.KloudIdentity.Mapper/MapperCore/IntegrationMethods/EagleInvestment/EagleSOAPIntegration.cs`
+**New file:** `KN.KloudIdentity.Mapper/MapperCore/IntegrationMethods/EagleSOAPIntegration.cs`
 
-**Namespace:** `KN.KloudIdentity.Mapper.MapperCore.IntegrationMethods.EagleInvestment`
+**Namespace:** `KN.KloudIdentity.Mapper.MapperCore`
 
 **Class:** `public class EagleSOAPIntegration : SOAPIntegration`
 
@@ -541,9 +541,9 @@ All other SOAP applications continue resolving to `SOAPIntegration` via `Default
 KN.KloudIdentity.Mapper/
 └── MapperCore/
     └── IntegrationMethods/
-        └── EagleInvestment/
-            ├── EagleSoapActionApplier.cs   (Phase 2)
-            └── EagleSOAPIntegration.cs     (Phase 3)
+        ├── SOAPAuth/
+        │   └── EagleSoapActionApplier.cs   (Phase 2)
+        └── EagleSOAPIntegration.cs         (Phase 3)
 
 KN.KloudIdentity.MapperTests/
 └── SOAPIntegration/
