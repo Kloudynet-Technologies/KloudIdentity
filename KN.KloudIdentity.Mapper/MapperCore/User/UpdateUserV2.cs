@@ -1,4 +1,3 @@
-using System;
 using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
@@ -65,7 +64,11 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         var attributes = GetUserAttributes(appConfig.UserAttributeSchemas, appConfig.IntegrationMethodOutbound);
 
         // Step 2: Map and prepare payload
-        var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, user);
+
+        // For SOAP, we need to get the specific mapping config for the Update action. For other integration methods, we can pass the whole appConfig.
+        var mappingConfig = GetMappingConfigForSoapAction(appConfig, SOAPActions.Update);
+
+        var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, user, mappingConfig);
         Log.Information(
             "Payload mapped and prepared successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
             user.Identifier, appId, correlationId);
@@ -74,7 +77,12 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         if (!user.Active)
         {
             // Custom logic for deprovisioning
-            await integrationOp.DeleteAsync(user.Identifier, appConfig, correlationId);
+            var deleteIdentifier = integrationOp.IntegrationMethod == IntegrationMethods.Linux
+                ? user.ExternalIdentifier
+                : user.Identifier;
+
+            await integrationOp.DeleteAsync(deleteIdentifier, appConfig, correlationId);
+
             Log.Information(
                 "Deprovisioning logic applied successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
                 user.Identifier, appId, correlationId);

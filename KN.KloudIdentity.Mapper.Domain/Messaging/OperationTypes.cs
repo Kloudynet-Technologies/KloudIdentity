@@ -8,5 +8,6 @@ public enum OperationTypes
     Patch,
     Get,
     List,
-    Delete
+    Delete,
+    UserGroup
 }

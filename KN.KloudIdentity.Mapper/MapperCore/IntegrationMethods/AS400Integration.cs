@@ -139,6 +139,12 @@ public class AS400Integration(
         return await Task.FromResult(payload);
     }
 
+    public Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource,
+        AppConfig appConfig, CancellationToken cancellationToken = default)
+    {
+        return MapAndPreparePayloadAsync(schema, resource, cancellationToken);
+    }
+
     private string GetValueFromResource(IList<AttributeSchema> schema, Core2EnterpriseUser resource,
         string destinationField)
     {
