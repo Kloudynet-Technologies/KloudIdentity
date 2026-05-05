@@ -22,6 +22,24 @@ Eagle Investment Systems exposes a hybrid API for user management: **SOAP for al
 
 The solution is a **subclass** `EagleSOAPIntegration : SOAPIntegration` that overrides only the behaviours that differ, with a companion `ISoapAuthApplier` (`EagleSoapActionApplier`) to inject the `SOAPAction` header into the existing applier chain without modifying the chain's architecture.
 
+**Eagle Identifier Model:**
+
+Eagle's `userId` is **caller-provided**, not server-generated (confirmed from Eagle API documentation, pages 3, 16, 24). Eagle stores the value you supply in `<eag1:userId>` as its permanent internal identifier. Eagle never assigns a replacement server-side ID.
+
+This has the following implications for the identifier lifecycle:
+
+| Stage | Value | Source |
+|-------|-------|--------|
+| Outbound EML payload | `<eag1:userId>` element | SCIM attribute mapped in AppConfig `UserAttributeSchemas` |
+| After `ProvisionAsync` | `Core2EnterpriseUser.Identifier` | Extracted from payload XML via `ExtractUserIdFromPayload` before HTTP call |
+| GET read | `?userid={identifier}` query parameter | Same value stored as SCIM `Identifier` |
+| UPDATE / DELETE EML | `<eag1:userId>` element | Same value, re-mapped from AppConfig schema |
+
+
+**AppConfig dependency:** The attribute schema in AppConfig **must** wire a stable, immutable SCIM attribute (e.g. `ExternalId` or `Identifier`) to the Eagle `<userId>` EML element. If a mutable attribute (e.g. `UserName`, `DisplayName`) is mapped instead, the GET and DELETE lifecycles will break if the attribute value ever changes.
+
+---
+
 **Endpoint & Inputs:**
 
 | Operation | Protocol | URI Pattern |
