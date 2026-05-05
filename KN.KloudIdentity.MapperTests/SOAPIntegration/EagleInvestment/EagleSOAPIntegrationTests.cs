@@ -330,6 +330,30 @@ public class EagleSOAPIntegrationTests
     }
 
     [Fact]
+    public async Task DeleteAsync_WhenNoDeleteAttributesConfigured_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig(); // schema = empty → no DELETE-typed attributes
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.DeleteAsync("user-001", appConfig, "corr-del-guard-1"));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenIdentifierMappingMissing_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig(
+            schema:
+            [
+                new() { DestinationField = "Email", SourceValue = "UserName", MappingType = MappingTypes.Direct, HttpRequestType = HttpRequestTypes.DELETE }
+            ]);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.DeleteAsync("user-001", appConfig, "corr-del-guard-2"));
+    }
+
+    [Fact]
     public async Task DeleteAsync_EmlBodyContainsActionDelete_FromTemplate()
     {
         var handler = new TestHttpMessageHandler(_ =>

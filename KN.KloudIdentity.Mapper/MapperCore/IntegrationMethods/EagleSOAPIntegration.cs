@@ -146,7 +146,9 @@ public class EagleSOAPIntegration : SOAPIntegration
             .Where(p => p.HttpRequestType == HttpRequestTypes.DELETE)
             .ToList();
 
-        // Inject {{CorrelationId}} into template + ACK check
+        if (attributes.Count == 0 || !attributes.Any(a => a.SourceValue.Equals("Identifier", StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"DELETE attribute schema must include an Identifier mapping. AppId: {appConfig.AppId}");
+
         var resource = new Core2EnterpriseUser { Identifier = identifier };
         var injected = template.Template.Replace("{{CorrelationId}}", Guid.NewGuid().ToString(), StringComparison.Ordinal);
         var soapPayload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(injected, attributes, resource);
