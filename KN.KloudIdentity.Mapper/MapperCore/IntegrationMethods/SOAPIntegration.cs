@@ -227,7 +227,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
         /// <summary>
         /// Validates that actionStep and its endpoint are provided.
         /// </summary>
-        private static void ValidateActionStep(ActionStep actionStep, string operationName)
+        protected static void ValidateActionStep(ActionStep actionStep, string operationName)
         {
             ArgumentNullException.ThrowIfNull(actionStep, nameof(actionStep));
 
@@ -241,7 +241,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
         /// <summary>
         /// Maps an ActionStep HttpVerb to the corresponding SOAPActions enum for template lookup.
         /// </summary>
-        private static SOAPActions MapHttpVerbToSoapAction(HttpVerbs httpVerb, string operationName)
+        protected static SOAPActions MapHttpVerbToSoapAction(HttpVerbs httpVerb, string operationName)
         {
             return httpVerb switch
             {
@@ -258,7 +258,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
         /// <summary>
         /// Resolves the SOAP template from app configuration by action type.
         /// </summary>
-        private static SOAPTemplate ResolveSoapTemplate(AppConfig appConfig, SOAPActions action)
+        protected static SOAPTemplate ResolveSoapTemplate(AppConfig appConfig, SOAPActions action)
         {
             var template = appConfig.SOAPTemplates?.FirstOrDefault(t => t.Action == action);
             if (template == null)
@@ -305,7 +305,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
         /// <param name="correlationId">Correlation ID for logging.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Response body as string.</returns>
-        private async Task<string> SendSoapRequestAsync(Uri uri, string payload, AppConfig appConfig, SCIMDirections direction, string correlationId, CancellationToken cancellationToken = default)
+        protected virtual async Task<string> SendSoapRequestAsync(Uri uri, string payload, AppConfig appConfig, SCIMDirections direction, string correlationId, CancellationToken cancellationToken = default)
         {
             var soapAuthOptions = ResolveSoapAuthenticationOptions(appConfig);
             var (httpClient, handler, token) = await CreateHttpClientAsync(appConfig, direction, soapAuthOptions, cancellationToken);
@@ -483,7 +483,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             return options != null;
         }
 
-        private static dynamic NormalizeAuthenticationDetails(dynamic authenticationDetails)
+        protected static dynamic NormalizeAuthenticationDetails(dynamic authenticationDetails)
         {
             if (authenticationDetails is null)
             {
