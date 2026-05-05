@@ -8,7 +8,7 @@ namespace KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 public interface IMetaverseIntegrationClient
 {
     /// <summary>
-    /// Sends a request to the metaverse integration service to perform a create operation for the specified application and payload.
+    /// Sends a request to the metaverse integration service to perform the specified action for the provided payload.
     /// </summary>
     Task<T> SendAsync<T>(string payload, string correlationId, ActionType action,
         CancellationToken cancellationToken = default);

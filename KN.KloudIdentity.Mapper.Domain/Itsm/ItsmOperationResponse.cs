@@ -16,11 +16,3 @@ public class ItsmOperationResponse
     public DateTime? UpdatedAtUtc { get; set; }
     public string? OperationStatus { get; set; }
 }
-
-public enum OperationStatus
-{
-    Accepted,
-    InProgress,
-    Completed,
-    Failed
-}

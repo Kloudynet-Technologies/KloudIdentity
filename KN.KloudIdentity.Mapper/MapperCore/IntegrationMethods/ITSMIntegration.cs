@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Web.Http;
 using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
@@ -17,7 +16,7 @@ using Serilog;
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
 /// <summary>
-/// The DisconnectedIntegration class is intended for use with applications that lack user provisioning functionality.
+/// The ITSMIntegration class is intended for use with applications that lack user provisioning functionality.
 /// </summary>
 public class ITSMIntegration(
     IMetaverseIntegrationClient metaverseIntegrationClient,
@@ -60,7 +59,7 @@ public class ITSMIntegration(
         EnrichPayloadWithMetadata(payload, appConfig);
 
         var result = await metaverseIntegrationClient.SendAsync<ItsmOperationResponse>(
-            payload.ToString(),
+            payload.ToString(Formatting.None),
             correlationId,
             ActionType.CreateUser,
             cancellationToken);
@@ -95,7 +94,7 @@ public class ITSMIntegration(
         EnrichPayloadWithMetadata(payload, appConfig);
 
         var response = await metaverseIntegrationClient.SendAsync<ItsmOperationResponse>(
-            payload.ToString(),
+            payload.ToString(Formatting.None),
             correlationId,
             ActionType.GetUser,
             cancellationToken);
@@ -118,7 +117,7 @@ public class ITSMIntegration(
         EnrichPayloadWithMetadata(payload, appConfig);
 
         var response = await metaverseIntegrationClient.SendAsync<ItsmOperationResponse>(
-            payload.ToString(),
+            payload.ToString(Formatting.None),
             correlationId,
             ActionType.EditUser,
             CancellationToken.None);
@@ -145,7 +144,7 @@ public class ITSMIntegration(
         }
 
         var response = await metaverseIntegrationClient.SendAsync<ItsmOperationResponse>(
-            payload.ToString(),
+            payload.ToString(Formatting.None),
             correlationId,
             ActionType.EditUser,
             CancellationToken.None);
@@ -171,7 +170,7 @@ public class ITSMIntegration(
         EnrichPayloadWithMetadata(payload, appConfig);
 
         await metaverseIntegrationClient.SendAsync<ItsmOperationResponse>(
-            payload.ToString(),
+            payload.ToString(Formatting.None),
             correlationId,
             ActionType.DisableUser,
             CancellationToken.None);
@@ -237,17 +236,18 @@ public class ITSMIntegration(
             additionalProps.Merge(existing, new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Union });
             jObj["ExtendedProperties"] = additionalProps;
         }
-        catch
+        catch (Exception ex)
         {
             Log.Error(
+                ex,
                 "Failed to parse IntegrationDetails for appId {AppId}. Ensure it is a valid JSON string matching ItsmIntegrationMethod structure.",
                 appConfig.AppId);
             throw new ArgumentException(
-                "Invalid IntegrationDetails format. Expected a JSON string matching ItsmIntegrationMethod structure.");
+                "Invalid IntegrationDetails format. Expected a JSON string matching ItsmIntegrationMethod structure.", ex);
         }
     }
 
-    #region Not Implemented: Action-based methods (not required for DisconnectedIntegration)
+    #region Not Implemented: Action-based methods (not required for ITSM integration)
 
     public Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, string appId, AppConfig appConfig,
         ActionStep actionStep, string correlationId,

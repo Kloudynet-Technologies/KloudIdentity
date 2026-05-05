@@ -2,7 +2,6 @@
 
 using System.Text.Json;
 using KN.KI.RabbitMQ.MessageContracts;
-using KN.KloudIdentity.Mapper.Domain.Itsm;
 using KN.KloudIdentity.Mapper.Domain.Messaging;
 using KN.KloudIdentity.Mapper.Infrastructure.Exceptions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
