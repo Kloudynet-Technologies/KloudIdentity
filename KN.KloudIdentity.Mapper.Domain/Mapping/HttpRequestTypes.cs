@@ -5,5 +5,6 @@ public enum HttpRequestTypes
     POST,
     PUT,
     PATCH,
-    GET
+    GET,
+    DELETE
 }

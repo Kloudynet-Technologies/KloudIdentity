@@ -72,7 +72,7 @@ public class CreateUserV4(
         {
             // Attribute mapping
             var userAttributes = step.UserAttributeSchemas?.ToList() ?? [];
-            var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource);
+            var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource, _appConfig);
             Log.Information(
                 "Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Step: {Step}, Payload: {Payload}",
                 appId, correlationID, step.StepOrder, JsonConvert.SerializeObject(payload));
@@ -161,8 +161,11 @@ public class CreateUserV4(
                                 throw new NotSupportedException($"Integration method {_appConfig.IntegrationMethodOutbound} is not supported.");
 
         // Step 2: Attribute mapping
+        // For SOAP, we need to get the specific mapping config for the Create action. For other integration methods, we can pass the whole appConfig.
+        var mappingConfig = GetMappingConfigForSoapAction(_appConfig, SOAPActions.Create);
+
         var userAttributes = GetUserAttributes(_appConfig.UserAttributeSchemas, _appConfig.IntegrationMethodOutbound);
-        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource);
+        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource, mappingConfig);
         Log.Information(
             "Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Payload: {Payload}",
             appId, correlationID, JsonConvert.SerializeObject(payload));
