@@ -35,20 +35,13 @@ public class MetaverseIntegrationClient(
             null
         );
 
-        try
-        {
-            var response = await requestClient.GetResponse<IInterserviceResponseMsg>(
-                message,
-                timeout: RequestTimeout.After(s: 60),
-                cancellationToken: cancellationToken
-            );
+        var response = await requestClient.GetResponse<IInterserviceResponseMsg>(
+            message,
+            timeout: RequestTimeout.After(s: 60),
+            cancellationToken: cancellationToken
+        );
 
-            return ProcessResponse<T>(response.Message);
-        }
-        catch (Exception ex)
-        {
-            throw;
-        }
+        return ProcessResponse<T>(response.Message);
     }
 
     private static T ProcessResponse<T>(IInterserviceResponseMsg? response)
