@@ -440,6 +440,16 @@ public class EagleSOAPIntegrationTests
     }
 
     [Fact]
+    public async Task ProvisionAsync_WhenUserIdIsUnresolvedPlaceholder_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.ProvisionAsync("<env><userId>{{Identifier}}</userId></env>", appConfig, "corr-placeholder"));
+    }
+
+    [Fact]
     public async Task MapAndPreparePayloadAsync_OriginalTemplateNotMutated_AfterCall()
     {
         var sut = CreateSut();

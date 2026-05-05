@@ -254,11 +254,13 @@ public class EagleSOAPIntegration : SOAPIntegration
 
         var idNode = xmlDoc.SelectSingleNode("//*[local-name()='userId']");
         if (idNode == null || string.IsNullOrEmpty(idNode.InnerText))
-        {
-            throw new InvalidOperationException("Eagle EML payload does not contain a user identifier element (<id>).");
-        }
+            throw new InvalidOperationException("Eagle EML payload does not contain a <userId> element.");
 
-        return idNode.InnerText;
+        var userId = idNode.InnerText;
+        if (userId.Contains("{{", StringComparison.Ordinal))
+            throw new InvalidOperationException($"Eagle EML payload <userId> contains an unresolved placeholder '{userId}'. Verify the Identifier attribute mapping in AppConfig.");
+
+        return userId;
     }
 
     //Issues HTTP GET to Eagle REST endpoint; returns mapped user
