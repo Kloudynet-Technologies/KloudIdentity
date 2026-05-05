@@ -2,6 +2,7 @@
 
 public class AppConstant
 {
-    public  const string LoggerName = "KN.KloudIdentity.SCIM";
+    public const string LoggerName = "KN.KloudIdentity.SCIM";
     public const string User = "system";
+    public const string NtlmSoapClientName = "soap-ntlm";
 }

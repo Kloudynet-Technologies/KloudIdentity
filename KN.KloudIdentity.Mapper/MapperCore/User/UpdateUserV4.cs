@@ -78,6 +78,7 @@ public class UpdateUserV4(
         foreach (var step in actionSteps)
         {
             var attributes = step.UserAttributeSchemas?.ToList() ?? [];
+            
             var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, user);
             Log.Information(
                 "[UpdateUserV4] Payload mapped and prepared successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
@@ -109,7 +110,11 @@ public class UpdateUserV4(
             appId) ?? throw new NotSupportedException($"Integration method {_appConfig.IntegrationMethodOutbound} is not supported.");
 
         var userAttributes = GetUserAttributes(_appConfig.UserAttributeSchemas, _appConfig.IntegrationMethodOutbound);
-        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, user);
+
+        // For SOAP, we need to get the specific mapping config for the Update action. For other integration methods, we can pass the whole appConfig.
+        var mappingConfig = GetMappingConfigForSoapAction(_appConfig, SOAPActions.Update);
+        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, user, mappingConfig);
+        
         Log.Information(
             "[UpdateUserV4] Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Payload: {Payload}",
             appId, correlationId, JsonConvert.SerializeObject(payload));
