@@ -10,9 +10,9 @@ public enum ActionType
     ListAs400Groups,
     LicenseStatusCheck,
     ListApplicationConfigs,
-    DisconnectedUserProvisioning,
-    DisconnectedUserRetrieval,
-    DisconnectedUserUpdate,
-    DisconnectedUserReplace,
-    DisconnectedUserDeletion
+    // SCIM user lifecycle actions
+    GetUser,
+    CreateUser,
+    EditUser,
+    DisableUser,
 }
