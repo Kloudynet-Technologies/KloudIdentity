@@ -48,7 +48,7 @@ public class UpdateUserV4(
         user.Apply(patchRequest);
         user.Identifier = patch.ResourceIdentifier.Identifier;
 
-        if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST)
+        if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP)
             await ExecuteMultistepForRESTAsync(user, appId, correlationId);
         else
             await ExecuteGenericUserUpdateLogicAsync(user, appId, correlationId);
@@ -78,8 +78,12 @@ public class UpdateUserV4(
         foreach (var step in actionSteps)
         {
             var attributes = step.UserAttributeSchemas?.ToList() ?? [];
-            
-            var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, user);
+
+            // For SOAP, we need to get the specific mapping config for the Update action. For other integration methods, we can pass the whole appConfig.
+            var mappingConfig = GetMappingConfigForSoapAction(_appConfig, SOAPActions.Update);
+            var config = _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP ? mappingConfig : _appConfig;
+
+            var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, user, config);
             Log.Information(
                 "[UpdateUserV4] Payload mapped and prepared successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
                 user.Identifier, appId, correlationId);
