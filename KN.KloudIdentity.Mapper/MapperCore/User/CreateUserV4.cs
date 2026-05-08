@@ -48,7 +48,7 @@ public class CreateUserV4(
         }
 
         // Step 3: Handle multistep API calls if applicable
-        resource = _appConfig.IntegrationMethodOutbound == IntegrationMethods.REST
+        resource = (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP)
             ? await ExecuteMultistepForRESTAsync(resource, appId, correlationID)
             : await ExecuteGenericUserCreationLogicAsync(resource, appId, correlationID);
 
@@ -72,7 +72,13 @@ public class CreateUserV4(
         {
             // Attribute mapping
             var userAttributes = step.UserAttributeSchemas?.ToList() ?? [];
-            var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource, _appConfig);
+
+            // For SOAP, we need to get the specific mapping config for the Create action. For other integration methods, we can pass the whole appConfig.
+            var mappingConfig = GetMappingConfigForSoapAction(_appConfig, SOAPActions.Create);
+
+            var config = _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP ? mappingConfig : _appConfig;
+            var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource, config);            
+            
             Log.Information(
                 "Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Step: {Step}, Payload: {Payload}",
                 appId, correlationID, step.StepOrder, JsonConvert.SerializeObject(payload));
@@ -203,6 +209,7 @@ public class CreateUserV4(
         {
             case IntegrationMethods.REST:
             case IntegrationMethods.SQL:
+            case IntegrationMethods.SOAP:
                 return userAttributeSchemas
                     .Where(x => x.HttpRequestType == HttpRequestTypes.POST)
                     .ToList();

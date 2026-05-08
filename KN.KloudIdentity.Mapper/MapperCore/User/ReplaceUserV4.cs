@@ -36,7 +36,7 @@ public class ReplaceUserV4(
         // Step 1: Get app config
         _appConfig = await GetAppConfigForTenantAsync(tenantContext.TenantId, appId, CancellationToken.None);
 
-        if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST)
+        if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP)
             await ExecuteMultistepForRESTAsync(resource, appId, correlationID);
         else
             await ExecuteGenericUserReplaceLogicAsync(resource, appId, correlationID);
@@ -73,8 +73,11 @@ public class ReplaceUserV4(
 
             // Map the user resource to the outbound payload
             var mappingConfig = GetMappingConfigForSoapAction(_appConfig, SOAPActions.Update);
+
+            var config = _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP ? mappingConfig : _appConfig;
+
+            var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, resource, config);
             
-            var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, resource, mappingConfig);
             Log.Information($"[ReplaceUserV4] Payload mapped and prepared successfully for ActionStep {step.StepOrder}, AppId: {appId}, CorrelationID: {correlationID}");
 
             var payloadValidationResult = await integrationOp.ValidatePayloadAsync(payload, _appConfig, correlationID);
