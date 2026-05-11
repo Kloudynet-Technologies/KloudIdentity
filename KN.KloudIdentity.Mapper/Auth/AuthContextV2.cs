@@ -63,6 +63,11 @@ public class AuthContextV2 : IAuthContext
         foreach (var step in flow.Steps.OrderBy(s => s.StepOrder))
         {
             var method = step.AuthenticationMethod;
+
+            if (method == AuthenticationMethods.SoapWsSecurity
+                || method == AuthenticationMethods.SoapNtlm)
+                continue;
+
             var strategy = _authStrategies.FirstOrDefault(x => x.AuthenticationMethod == method)
                            ?? throw new AuthenticationException($"Authentication method {method} is not supported.");
 

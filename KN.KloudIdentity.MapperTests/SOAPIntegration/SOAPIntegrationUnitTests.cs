@@ -348,7 +348,7 @@ public class SOAPIntegrationUnitTests
                             UseNtlm = true,
                             UseDefaultCredentials = false
                         }
-                    })]
+                    }, method: AuthenticationMethods.SoapNtlm)]
                 });
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -537,7 +537,7 @@ public class SOAPIntegrationUnitTests
                     Username = "flow-direct-user",
                     Password = "flow-direct-pass"
                 }
-            })]
+            }, method: AuthenticationMethods.SoapWsSecurity)]
         };
 
         var appConfig = CreateAppConfig(authenticationFlow: flow);
@@ -584,7 +584,7 @@ public class SOAPIntegrationUnitTests
                         Password = "flow-nested-pass"
                     }
                 }
-            })]
+            }, method: AuthenticationMethods.SoapWsSecurity)]
         };
 
         var appConfig = CreateAppConfig(authenticationFlow: flow);
@@ -627,7 +627,7 @@ public class SOAPIntegrationUnitTests
                     Username = "flow-step-user",
                     Password = "flow-step-pass"
                 }
-            })]
+            }, method: AuthenticationMethods.SoapWsSecurity)]
         };
 
         var appConfig = CreateAppConfig(authenticationFlow: flow);
@@ -1033,12 +1033,15 @@ public class SOAPIntegrationUnitTests
         };
     }
 
-    private static AuthenticationFlowStep CreateSoapFlowStep(dynamic authenticationDetails, int stepOrder = 1) =>
+    private static AuthenticationFlowStep CreateSoapFlowStep(
+        dynamic authenticationDetails,
+        int stepOrder = 1,
+        AuthenticationMethods method = AuthenticationMethods.SoapWsSecurity) =>
         new()
         {
             StepTitle = "SOAP Auth",
             StepOrder = stepOrder,
-            AuthenticationMethod = AuthenticationMethods.None,
+            AuthenticationMethod = method,
             IsRequired = true,
             AuthenticationDetails = authenticationDetails
         };
