@@ -493,6 +493,156 @@ public class SOAPIntegrationUnitTests
         Assert.IsType<global::KN.KloudIdentity.Mapper.MapperCore.SOAPIntegration>(resolved);
     }
 
+    #region SOAPAuthenticationOptions resolution from AuthenticationFlow steps
+
+    [Fact]
+    public async Task SOAPAuthOptions_ResolvedFromFlowStep_DirectShape_AddsWsseHeaderToPayload()
+    {
+        // AuthenticationDetails is a SOAPAuthenticationOptions object directly (no wrapper key).
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""
+                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                      <soap:Body><CreateUserResponse><Identifier>U-DS-1</Identifier></CreateUserResponse></soap:Body>
+                    </soap:Envelope>
+                    """, Encoding.UTF8, "text/xml")
+            });
+
+        var sut = CreateSut(handler);
+        var flow = new AuthenticationFlow
+        {
+            AppId = "soap-app",
+            Name = "SOAP Direct Shape Flow",
+            Steps = [CreateSoapFlowStep(new SOAPAuthenticationOptions
+            {
+                WsSecurity = new WsSecuritySoapAuthOptions
+                {
+                    Enabled = true,
+                    Username = "flow-direct-user",
+                    Password = "flow-direct-pass"
+                }
+            })]
+        };
+
+        var appConfig = CreateAppConfig(authenticationFlow: flow);
+
+        const string payload = """
+            <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+              <soap:Body><CreateUser /></soap:Body>
+            </soap:Envelope>
+            """;
+
+        await sut.ProvisionAsync(payload, appConfig, "corr-flow-direct");
+
+        Assert.Contains("wsse:Security", handler.LastRequestBody);
+        Assert.Contains("flow-direct-user", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task SOAPAuthOptions_ResolvedFromFlowStep_NestedKeyShape_AddsWsseHeaderToPayload()
+    {
+        // AuthenticationDetails wraps SOAPAuthenticationOptions under the "SOAPAuthenticationOptions" key.
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""
+                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                      <soap:Body><CreateUserResponse><Identifier>U-NK-1</Identifier></CreateUserResponse></soap:Body>
+                    </soap:Envelope>
+                    """, Encoding.UTF8, "text/xml")
+            });
+
+        var sut = CreateSut(handler);
+        var flow = new AuthenticationFlow
+        {
+            AppId = "soap-app",
+            Name = "SOAP Nested Key Flow",
+            Steps = [CreateSoapFlowStep(new
+            {
+                SOAPAuthenticationOptions = new SOAPAuthenticationOptions
+                {
+                    WsSecurity = new WsSecuritySoapAuthOptions
+                    {
+                        Enabled = true,
+                        Username = "flow-nested-user",
+                        Password = "flow-nested-pass"
+                    }
+                }
+            })]
+        };
+
+        var appConfig = CreateAppConfig(authenticationFlow: flow);
+
+        const string payload = """
+            <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+              <soap:Body><CreateUser /></soap:Body>
+            </soap:Envelope>
+            """;
+
+        await sut.ProvisionAsync(payload, appConfig, "corr-flow-nested");
+
+        Assert.Contains("wsse:Security", handler.LastRequestBody);
+        Assert.Contains("flow-nested-user", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task SOAPAuthOptions_FlowStepTakesPriorityOver_AppConfigProperty()
+    {
+        // Both flow step and AppConfig.SOAPAuthenticationOptions are set with different usernames.
+        // Asserts the flow step value (priority-1) wins over the typed property (priority-2).
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""
+                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                      <soap:Body><CreateUserResponse><Identifier>U-PRI-1</Identifier></CreateUserResponse></soap:Body>
+                    </soap:Envelope>
+                    """, Encoding.UTF8, "text/xml")
+            });
+
+        var sut = CreateSut(handler);
+        var flow = new AuthenticationFlow
+        {
+            AppId = "soap-app",
+            Name = "SOAP Priority Flow",
+            Steps = [CreateSoapFlowStep(new SOAPAuthenticationOptions
+            {
+                WsSecurity = new WsSecuritySoapAuthOptions
+                {
+                    Enabled = true,
+                    Username = "flow-step-user",
+                    Password = "flow-step-pass"
+                }
+            })]
+        };
+
+        var appConfig = CreateAppConfig(
+            authenticationFlow: flow,
+            soapAuthenticationOptions: new SOAPAuthenticationOptions
+            {
+                WsSecurity = new WsSecuritySoapAuthOptions
+                {
+                    Enabled = true,
+                    Username = "appconfig-user",
+                    Password = "appconfig-pass"
+                }
+            });
+
+        const string payload = """
+            <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+              <soap:Body><CreateUser /></soap:Body>
+            </soap:Envelope>
+            """;
+
+        await sut.ProvisionAsync(payload, appConfig, "corr-flow-priority");
+
+        Assert.Contains("flow-step-user", handler.LastRequestBody);
+        Assert.DoesNotContain("appconfig-user", handler.LastRequestBody);
+    }
+
+    #endregion
+
     #region V2 ActionStep-aware tests
 
     [Fact]
@@ -834,8 +984,8 @@ public class SOAPIntegrationUnitTests
 
         var authContextMock = new Mock<IAuthContext>();
         authContextMock
-            .Setup(context => context.GetTokenAsync(It.IsAny<object>(), It.IsAny<SCIMDirections>()))
-            .Returns(Task.FromResult(token));
+            .Setup(context => context.GetTokenListAsync(It.IsAny<object>(), It.IsAny<SCIMDirections>()))
+            .ReturnsAsync(new Dictionary<int, string> { { 1, token } });
 
         var options = Options.Create(new AppSettings());
         var configuration = new ConfigurationBuilder().Build();
@@ -853,7 +1003,8 @@ public class SOAPIntegrationUnitTests
         ICollection<AttributeSchema>? schema = null,
         AuthenticationMethods authMethodOutbound = AuthenticationMethods.None,
         dynamic? authDetails = null,
-        SOAPAuthenticationOptions? soapAuthenticationOptions = null)
+        SOAPAuthenticationOptions? soapAuthenticationOptions = null,
+        AuthenticationFlow? authenticationFlow = null)
     {
         return new AppConfig
         {
@@ -876,9 +1027,22 @@ public class SOAPIntegrationUnitTests
                 }
             },
             SOAPTemplates = templates,
-            SOAPAuthenticationOptions = soapAuthenticationOptions
+#pragma warning disable CS0618
+            SOAPAuthenticationOptions = soapAuthenticationOptions,
+#pragma warning restore CS0618
+            AuthenticationFlow = authenticationFlow
         };
     }
+
+    private static AuthenticationFlowStep CreateSoapFlowStep(dynamic authenticationDetails, int stepOrder = 1) =>
+        new()
+        {
+            StepTitle = "SOAP Auth",
+            StepOrder = stepOrder,
+            AuthenticationMethod = AuthenticationMethods.None,
+            IsRequired = true,
+            AuthenticationDetails = authenticationDetails
+        };
 
     private sealed class TestHttpMessageHandler : HttpMessageHandler
     {

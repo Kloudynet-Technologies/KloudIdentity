@@ -26,6 +26,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore
     /// </summary>
     public class SOAPIntegration : IIntegrationBaseV2
     {
+        private static readonly JsonSerializerOptions CaseInsensitiveJsonOptions = new() { PropertyNameCaseInsensitive = true };
+
         private readonly IAuthContext _authContext;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
@@ -58,8 +60,9 @@ namespace KN.KloudIdentity.Mapper.MapperCore
 
         public virtual async Task<dynamic> GetAuthenticationAsync(AppConfig config, SCIMDirections direction = SCIMDirections.Outbound, CancellationToken cancellationToken = default, params dynamic[] args)
         {
-            // Reuse REST logic for token retrieval if needed
-            return await _authContext.GetTokenAsync(config, direction);
+            Log.Information($"Getting authentication token for direction: {direction} for app: {config.AppId}");
+
+            return await _authContext.GetTokenListAsync(config, direction);
         }
 
         // Overload that matches the interface (does not require AppConfig)
@@ -360,16 +363,33 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             string? token = null;
             if (ShouldResolveToken(appConfig, soapAuthOptions, direction))
             {
-                token = await GetAuthenticationAsync(appConfig, direction, cancellationToken);
-            }
+                var tokens = await GetAuthenticationAsync(appConfig, direction, cancellationToken) as Dictionary<int, string>;
+                if (tokens != null && !isNtlmEnabled)
+                {
+                    var steps = appConfig.AuthenticationFlow?.Steps;
+                    foreach (var authToken in tokens)
+                    {
+                        var step = steps?.FirstOrDefault(s => s.StepOrder == authToken.Key);
+                        var authMethod = step?.AuthenticationMethod
+                            ?? (direction == SCIMDirections.Inbound
+                                ? appConfig.AuthenticationMethodInbound
+                                : appConfig.AuthenticationMethodOutbound);
+                        var authDetails = step?.AuthenticationDetails != null
+                            ? NormalizeAuthenticationDetails(step.AuthenticationDetails)
+                            : NormalizeAuthenticationDetails(appConfig.AuthenticationDetails);
 
-            if (!isNtlmEnabled && !string.IsNullOrWhiteSpace(token) && appConfig.AuthenticationMethodOutbound != AuthenticationMethods.None)
-            {
-                Utils.HttpClientExtensions.SetAuthenticationHeaders(
-                   client,
-                   appConfig.AuthenticationMethodOutbound,
-                   NormalizeAuthenticationDetails(appConfig.AuthenticationDetails),
-                   token);
+                        if (authMethod != AuthenticationMethods.None)
+                        {
+                            Utils.HttpClientExtensions.SetAuthenticationHeaders(
+                                client, 
+                                authMethod, 
+                                authDetails, 
+                                authToken.Value
+                            );
+                        }
+                    }
+                }
+                token = tokens?.Values.FirstOrDefault();
             }
 
             var customHttpClient = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
@@ -423,46 +443,26 @@ namespace KN.KloudIdentity.Mapper.MapperCore
 
         private static SOAPAuthenticationOptions? ResolveSoapAuthenticationOptions(AppConfig appConfig)
         {
-            if (appConfig.SOAPAuthenticationOptions != null)
+            // Priority 1: AuthenticationFlow steps — walk in StepOrder, first match wins.
+            // For SOAP integrations AuthenticationDetails on AppConfig will be null;
+            // all auth configuration is passed through flow step AuthenticationDetails.
+            var steps = appConfig.AuthenticationFlow?.Steps;
+            if (steps != null)
             {
-                return appConfig.SOAPAuthenticationOptions;
-            }
-
-            if (appConfig.AuthenticationDetails == null)
-            {
-                return null;
-            }
-
-            try
-            {
-                var authDetailsJson = JsonSerializer.Serialize(appConfig.AuthenticationDetails);
-                using var document = JsonDocument.Parse(authDetailsJson);
-                var root = document.RootElement;
-                SOAPAuthenticationOptions? options;
-
-                if (TryReadSoapAuthOptions(root, "SOAPAuthenticationOptions", out options)
-                    || TryReadSoapAuthOptions(root, "SoapAuthenticationOptions", out options)
-                    || TryReadSoapAuthOptions(root, "soapAuthenticationOptions", out options)
-                    || TryReadSoapAuthOptions(root, "soapAuthOptions", out options))
+                foreach (var step in steps.OrderBy(s => s.StepOrder))
                 {
-                    return options;
+                    if (step.AuthenticationDetails == null) continue;
+                    if (TryExtractSoapAuthFromDetails(step.AuthenticationDetails, out SOAPAuthenticationOptions? stepOptions))
+                        return stepOptions;
                 }
             }
-            catch (JsonException ex)
-            {
-                Log.Error(ex, "Failed to parse SOAP authentication options from AuthenticationDetails. AppId: {AppId}", appConfig.AppId);
-                return null;
-            }
-            catch (InvalidOperationException ex)
-            {
-                Log.Error(ex, "Failed to parse SOAP authentication options from AuthenticationDetails. AppId: {AppId}", appConfig.AppId);
-                return null;
-            }
-            catch
-            {
-                Log.Error("Failed to parse SOAP authentication options from AuthenticationDetails due to an unexpected error. AppId: {AppId}", appConfig.AppId);
-                return null;
-            }
+
+            // Priority 2: Typed property on AppConfig — backward compat for existing configurations
+            // that have not yet been migrated to AuthenticationFlow steps.
+#pragma warning disable CS0618
+            if (appConfig.SOAPAuthenticationOptions != null)
+                return appConfig.SOAPAuthenticationOptions;
+#pragma warning restore CS0618
 
             return null;
         }
@@ -475,12 +475,53 @@ namespace KN.KloudIdentity.Mapper.MapperCore
                 return false;
             }
 
-            options = value.Deserialize<SOAPAuthenticationOptions>(new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            options = value.Deserialize<SOAPAuthenticationOptions>(CaseInsensitiveJsonOptions);
 
             return options != null;
+        }
+
+        private static bool TryDeserializeSoapAuthDirectly(JsonElement root, out SOAPAuthenticationOptions? options)
+        {
+            options = root.Deserialize<SOAPAuthenticationOptions>(CaseInsensitiveJsonOptions);
+
+            if (options == null)
+                return false;
+
+            // Only accept if at least one section is populated — prevents false positives
+            // when unrelated auth details happen to deserialize without error.
+            return options.Transport != null
+                || options.WsSecurity != null
+                || options.TokenPlacement != null;
+        }
+
+        private static bool TryExtractSoapAuthFromDetails(dynamic authDetails, out SOAPAuthenticationOptions? options)
+        {
+            options = null;
+            try
+            {
+                var json = JsonSerializer.Serialize(authDetails);
+                using var document = JsonDocument.Parse(json);
+                var root = document.RootElement;
+
+                if (TryDeserializeSoapAuthDirectly(root, out options))
+                    return true;
+
+                if (TryReadSoapAuthOptions(root, "SOAPAuthenticationOptions", out options)
+                    || TryReadSoapAuthOptions(root, "SoapAuthenticationOptions", out options)
+                    || TryReadSoapAuthOptions(root, "soapAuthenticationOptions", out options)
+                    || TryReadSoapAuthOptions(root, "soapAuthOptions", out options))
+                    return true;
+            }
+            catch (JsonException ex)
+            {
+                Log.Error(ex, "Failed to extract SOAPAuthenticationOptions from AuthenticationDetails.");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Log.Error(ex, "Failed to extract SOAPAuthenticationOptions from AuthenticationDetails.");
+            }
+
+            return false;
         }
 
         protected static dynamic NormalizeAuthenticationDetails(dynamic authenticationDetails)
