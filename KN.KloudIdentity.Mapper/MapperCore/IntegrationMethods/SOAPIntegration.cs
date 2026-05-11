@@ -455,14 +455,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
                     if (TryExtractSoapAuthFromDetails(step.AuthenticationDetails, out SOAPAuthenticationOptions? stepOptions))
                         return stepOptions;
                 }
-            }
-
-            // Priority 2: Typed property on AppConfig — backward compat for existing configurations
-            // that have not yet been migrated to AuthenticationFlow steps.
-#pragma warning disable CS0618
-            if (appConfig.SOAPAuthenticationOptions != null)
-                return appConfig.SOAPAuthenticationOptions;
-#pragma warning restore CS0618
+            }         
 
             return null;
         }
