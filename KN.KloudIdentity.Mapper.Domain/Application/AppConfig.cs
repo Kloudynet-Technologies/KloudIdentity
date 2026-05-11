@@ -46,7 +46,4 @@ public record AppConfig
         }
     }
     public ICollection<SOAPTemplate>? SOAPTemplates { get; set; }
-
-    [Obsolete("Configure SOAPAuthenticationOptions via AuthenticationFlow step AuthenticationDetails instead.")]
-    public SOAPAuthenticationOptions? SOAPAuthenticationOptions { get; set; }
 }

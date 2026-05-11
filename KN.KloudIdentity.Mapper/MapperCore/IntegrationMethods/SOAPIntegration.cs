@@ -442,10 +442,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
         }
 
         private static SOAPAuthenticationOptions? ResolveSoapAuthenticationOptions(AppConfig appConfig)
-        {
-            // Priority 1: AuthenticationFlow steps — walk in StepOrder, first match wins.
-            // For SOAP integrations AuthenticationDetails on AppConfig will be null;
-            // all auth configuration is passed through flow step AuthenticationDetails.
+        {         
             var steps = appConfig.AuthenticationFlow?.Steps;
             if (steps != null)
             {
@@ -455,7 +452,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
                     if (TryExtractSoapAuthFromDetails(step.AuthenticationDetails, out SOAPAuthenticationOptions? stepOptions))
                         return stepOptions;
                 }
-            }         
+            }          
 
             return null;
         }

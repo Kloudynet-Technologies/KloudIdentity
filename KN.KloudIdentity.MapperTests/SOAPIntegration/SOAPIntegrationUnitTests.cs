@@ -336,14 +336,19 @@ public class SOAPIntegrationUnitTests
         var sut = CreateSut();
         var appConfig = CreateAppConfig(
                 authMethodOutbound: AuthenticationMethods.None,
-                soapAuthenticationOptions: new SOAPAuthenticationOptions
+                authenticationFlow: new AuthenticationFlow
                 {
-                    Transport = new BasicOrNtlmSoapAuthOptions
+                    AppId = "soap-app",
+                    Name = "NTLM Flow",
+                    Steps = [CreateSoapFlowStep(new SOAPAuthenticationOptions
                     {
-                        Enabled = true,
-                        UseNtlm = true,
-                        UseDefaultCredentials = false
-                    }
+                        Transport = new BasicOrNtlmSoapAuthOptions
+                        {
+                            Enabled = true,
+                            UseNtlm = true,
+                            UseDefaultCredentials = false
+                        }
+                    })]
                 });
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -370,15 +375,20 @@ public class SOAPIntegrationUnitTests
         var sut = CreateSut(handler);
         var appConfig = CreateAppConfig(
                 authMethodOutbound: AuthenticationMethods.None,
-                soapAuthenticationOptions: new SOAPAuthenticationOptions
+                authenticationFlow: new AuthenticationFlow
                 {
-                    WsSecurity = new WsSecuritySoapAuthOptions
+                    AppId = "soap-app",
+                    Name = "WsSecurity Flow",
+                    Steps = [CreateSoapFlowStep(new SOAPAuthenticationOptions
                     {
-                        Enabled = true,
-                        Username = "ws-user",
-                        Password = "ws-pass",
-                        IncludeTimestamp = true
-                    }
+                        WsSecurity = new WsSecuritySoapAuthOptions
+                        {
+                            Enabled = true,
+                            Username = "ws-user",
+                            Password = "ws-pass",
+                            IncludeTimestamp = true
+                        }
+                    })]
                 });
 
         const string payload = """
@@ -417,18 +427,23 @@ public class SOAPIntegrationUnitTests
         var sut = CreateSut(handler, "token-123");
         var appConfig = CreateAppConfig(
                 authMethodOutbound: AuthenticationMethods.Bearer,
-                soapAuthenticationOptions: new SOAPAuthenticationOptions
+                authenticationFlow: new AuthenticationFlow
                 {
-                    TokenPlacement = new SoapTokenPlacementOptions
+                    AppId = "soap-app",
+                    Name = "Token Placement Flow",
+                    Steps = [CreateSoapFlowStep(new SOAPAuthenticationOptions
                     {
-                        Enabled = true,
-                        UseAuthorizationHeader = true,
-                        CustomHttpHeaders = new Dictionary<string, string>
+                        TokenPlacement = new SoapTokenPlacementOptions
                         {
-                            ["X-SOAP-Token"] = "{{token}}"
-                        },
-                        SoapHeaderTemplate = "<auth:Token xmlns:auth='urn:test'>{{token}}</auth:Token>"
-                    }
+                            Enabled = true,
+                            UseAuthorizationHeader = true,
+                            CustomHttpHeaders = new Dictionary<string, string>
+                            {
+                                ["X-SOAP-Token"] = "{{token}}"
+                            },
+                            SoapHeaderTemplate = "<auth:Token xmlns:auth='urn:test'>{{token}}</auth:Token>"
+                        }
+                    })]
                 });
 
         const string payload = """
@@ -587,10 +602,8 @@ public class SOAPIntegrationUnitTests
     }
 
     [Fact]
-    public async Task SOAPAuthOptions_FlowStepTakesPriorityOver_AppConfigProperty()
+    public async Task SOAPAuthOptions_ResolvedFromFlowStep_WsSecurityCredentialsAreApplied()
     {
-        // Both flow step and AppConfig.SOAPAuthenticationOptions are set with different usernames.
-        // Asserts the flow step value (priority-1) wins over the typed property (priority-2).
         var handler = new TestHttpMessageHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -617,17 +630,7 @@ public class SOAPIntegrationUnitTests
             })]
         };
 
-        var appConfig = CreateAppConfig(
-            authenticationFlow: flow,
-            soapAuthenticationOptions: new SOAPAuthenticationOptions
-            {
-                WsSecurity = new WsSecuritySoapAuthOptions
-                {
-                    Enabled = true,
-                    Username = "appconfig-user",
-                    Password = "appconfig-pass"
-                }
-            });
+        var appConfig = CreateAppConfig(authenticationFlow: flow);
 
         const string payload = """
             <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -637,8 +640,8 @@ public class SOAPIntegrationUnitTests
 
         await sut.ProvisionAsync(payload, appConfig, "corr-flow-priority");
 
+        Assert.Contains("wsse:Security", handler.LastRequestBody);
         Assert.Contains("flow-step-user", handler.LastRequestBody);
-        Assert.DoesNotContain("appconfig-user", handler.LastRequestBody);
     }
 
     #endregion
@@ -1003,7 +1006,6 @@ public class SOAPIntegrationUnitTests
         ICollection<AttributeSchema>? schema = null,
         AuthenticationMethods authMethodOutbound = AuthenticationMethods.None,
         dynamic? authDetails = null,
-        SOAPAuthenticationOptions? soapAuthenticationOptions = null,
         AuthenticationFlow? authenticationFlow = null)
     {
         return new AppConfig
@@ -1027,9 +1029,6 @@ public class SOAPIntegrationUnitTests
                 }
             },
             SOAPTemplates = templates,
-#pragma warning disable CS0618
-            SOAPAuthenticationOptions = soapAuthenticationOptions,
-#pragma warning restore CS0618
             AuthenticationFlow = authenticationFlow
         };
     }
