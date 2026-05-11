@@ -1,3 +1,5 @@
+using KN.KloudIdentity.Mapper.Domain.Authentication;
+
 namespace KN.KloudIdentity.Mapper.Domain.Application;
 
 public record SOAPAuthenticationOptions
@@ -15,6 +17,8 @@ public record BasicOrNtlmSoapAuthOptions
     public string? Username { get; init; }
     public string? Password { get; init; }
     public string? Domain { get; init; }
+    public string? KeyVaultReference { get; init; }
+    public EncryptedData? EncryptedData { get; init; }
 }
 
 public record WsSecuritySoapAuthOptions
@@ -23,6 +27,8 @@ public record WsSecuritySoapAuthOptions
     public string? Username { get; init; }
     public string? Password { get; init; }
     public bool IncludeTimestamp { get; init; }
+    public string? KeyVaultReference { get; init; }
+    public EncryptedData? EncryptedData { get; init; }
 }
 
 public record SoapTokenPlacementOptions

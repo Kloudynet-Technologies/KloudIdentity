@@ -46,5 +46,4 @@ public record AppConfig
         }
     }
     public ICollection<SOAPTemplate>? SOAPTemplates { get; set; }
-    public SOAPAuthenticationOptions? SOAPAuthenticationOptions { get; set; }
 }
