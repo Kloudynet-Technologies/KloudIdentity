@@ -9,5 +9,7 @@ public enum AuthenticationMethods
     APIKey = 4,
     SAML = 5,
     OAuth2ClientCrd = 6,
-    DotRez = 7
+    DotRez = 7,
+    SoapWsSecurity = 8,
+    SoapNtlm = 9
 }
