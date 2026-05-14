@@ -36,7 +36,7 @@ public class ReplaceUserV4(
         // Step 1: Get app config
         _appConfig = await GetAppConfigForTenantAsync(tenantContext.TenantId, appId, CancellationToken.None);
 
-        if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP)
+        if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAPEagle)
             await ExecuteMultistepForRESTAsync(resource, appId, correlationID);
         else
             await ExecuteGenericUserReplaceLogicAsync(resource, appId, correlationID);
@@ -141,6 +141,7 @@ public class ReplaceUserV4(
         {
             case IntegrationMethods.REST:
             case IntegrationMethods.SQL:
+            case IntegrationMethods.SOAPEagle:
                 return userAttributeSchemas
                     .Where(x => x.HttpRequestType == HttpRequestTypes.PUT)
                     .ToList();

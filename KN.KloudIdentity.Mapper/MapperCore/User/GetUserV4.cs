@@ -32,7 +32,7 @@ public class GetUserV4(
         // Retrieve full application configuration
         _appConfig = await GetAppConfigForTenantAsync(tenantContext.TenantId, appId, CancellationToken.None);
 
-        var retrievedUser = (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP)
+        var retrievedUser = (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAPEagle)
             ? await ExecuteMultistepForRESTAsync(identifier, appId, correlationID)
             : await ExecuteGenericUserRetrievalLogicAsync(identifier, appId, correlationID);
 

@@ -48,7 +48,7 @@ public class UpdateUserV4(
         user.Apply(patchRequest);
         user.Identifier = patch.ResourceIdentifier.Identifier;
 
-        if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP)
+        if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAPEagle)
             await ExecuteMultistepForRESTAsync(user, appId, correlationId);
         else
             await ExecuteGenericUserUpdateLogicAsync(user, appId, correlationId);
@@ -150,6 +150,7 @@ public class UpdateUserV4(
         {
             case IntegrationMethods.REST:
             case IntegrationMethods.SQL:
+            case IntegrationMethods.SOAPEagle:
                 var patchAttrs = userAttributeSchemas
                     .Where(x => x.HttpRequestType == HttpRequestTypes.PATCH)
                     .ToList();

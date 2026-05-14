@@ -48,7 +48,7 @@ public class CreateUserV4(
         }
 
         // Step 3: Handle multistep API calls if applicable
-        resource = (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP)
+        resource = (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAPEagle)
             ? await ExecuteMultistepForRESTAsync(resource, appId, correlationID)
             : await ExecuteGenericUserCreationLogicAsync(resource, appId, correlationID);
 
@@ -210,6 +210,7 @@ public class CreateUserV4(
             case IntegrationMethods.REST:
             case IntegrationMethods.SQL:
             case IntegrationMethods.SOAP:
+            case IntegrationMethods.SOAPEagle:
                 return userAttributeSchemas
                     .Where(x => x.HttpRequestType == HttpRequestTypes.POST)
                     .ToList();

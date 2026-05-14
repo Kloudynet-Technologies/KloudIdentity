@@ -32,6 +32,7 @@ public class EagleSOAPIntegration : SOAPIntegration
                [new EagleSoapActionApplier(), .. (soapAuthAppliers ?? DefaultAppliers())])
     {
         _httpClientFactory = httpClientFactory;
+        IntegrationMethod = IntegrationMethods.SOAPEagle;
     }
 
     private static IEnumerable<ISoapAuthApplier> DefaultAppliers() =>
