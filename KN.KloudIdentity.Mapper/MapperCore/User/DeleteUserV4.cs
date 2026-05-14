@@ -34,7 +34,7 @@ public class DeleteUserV4(
 
         _appConfig = await GetAppConfigForTenantAsync(tenantContext.TenantId, appId, CancellationToken.None);
 
-        if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST)
+        if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP)
             await ExecuteMultistepForRESTAsync(resourceIdentifier.Identifier, appId, correlationId);
         else
             await ExecuteGenericUserDeletionLogicAsync(resourceIdentifier.Identifier, appId, correlationId);

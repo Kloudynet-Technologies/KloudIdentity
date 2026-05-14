@@ -9,5 +9,6 @@ public enum IntegrationMethods
     Linux = 4,
     AS400 = 5,
     SQL = 6,
-    ITSM = 7
+    ITSM = 7,
+    SOAPEagle = 8, 
 }
