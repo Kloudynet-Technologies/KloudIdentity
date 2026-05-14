@@ -323,7 +323,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
                 Handler = handler,
                 Token = token,
                 AuthOptions = soapAuthOptions,
-                Payload = payload
+                Payload = WrapInSoapEnvelope(payload)
             };
 
             foreach (var applier in _soapAuthAppliers)
@@ -448,7 +448,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             {
                 foreach (var step in steps.OrderBy(s => s.StepOrder))
                 {
-                    if (step.AuthenticationDetails == null) continue;
+                    if (step.AuthenticationDetails is null) continue;
                     if (TryExtractSoapAuthFromDetails(step.AuthenticationDetails, out SOAPAuthenticationOptions? stepOptions))
                         return stepOptions;
                 }
@@ -512,6 +512,20 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             }
 
             return false;
+        }
+
+        private static string WrapInSoapEnvelope(string payload)
+        {
+            var trimmed = payload.TrimStart();
+            if (trimmed.StartsWith("<soap:Envelope", StringComparison.OrdinalIgnoreCase)
+                || trimmed.StartsWith("<Envelope", StringComparison.OrdinalIgnoreCase))
+                return payload;
+
+            return $"<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+                   $"<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
+                   $"<soap:Header/>" +
+                   $"<soap:Body>{payload}</soap:Body>" +
+                   $"</soap:Envelope>";
         }
 
         protected static dynamic NormalizeAuthenticationDetails(dynamic authenticationDetails)
