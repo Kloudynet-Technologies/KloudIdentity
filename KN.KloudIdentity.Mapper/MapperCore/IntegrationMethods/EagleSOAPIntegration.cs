@@ -293,27 +293,31 @@ public class EagleSOAPIntegration : SOAPIntegration
         var url = baseUrl.TrimEnd('/') + "?userid=" + Uri.EscapeDataString(identifier);
         var client = _httpClientFactory.CreateClient();
 
-        if (appConfig.AuthenticationFlow?.Steps?.Count > 0)
-        {
-            if (await GetAuthenticationAsync(
-                    appConfig, SCIMDirections.Outbound, cancellationToken)
-                is Dictionary<int, string> tokenDict)
-            {
-                var steps = appConfig.AuthenticationFlow.Steps;
-                foreach (var authToken in tokenDict)
-                {
-                    var step = steps.FirstOrDefault(s => s.StepOrder == authToken.Key);
-                    var authMethod = step?.AuthenticationMethod ?? AuthenticationMethods.None;
-                    var authDetails = step?.AuthenticationDetails != null
-                        ? NormalizeAuthenticationDetails(step.AuthenticationDetails)
-                        : NormalizeAuthenticationDetails(appConfig.AuthenticationDetails);
+        var requiresAuth = appConfig.AuthenticationFlow?.Steps?.Count > 0
+            || appConfig.AuthenticationMethodOutbound != AuthenticationMethods.None;
 
-                    if (authMethod != AuthenticationMethods.None
-                        && !string.IsNullOrWhiteSpace(authToken.Value))
-                    {
-                        Utils.HttpClientExtensions.SetAuthenticationHeaders(
-                            client, authMethod, authDetails, authToken.Value);
-                    }
+        if (requiresAuth)
+        {
+            if (await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, cancellationToken) is not Dictionary<int, string> tokenDict
+                || tokenDict.Count == 0)
+                throw new InvalidOperationException(
+                    $"Authentication is required for Eagle REST GET (AppId: {appConfig.AppId}) but no token was resolved. " +
+                    "Verify that AuthenticationFlow.Steps is correctly configured.");
+
+            var steps = appConfig.AuthenticationFlow?.Steps;
+            foreach (var authToken in tokenDict)
+            {
+                var step = steps?.FirstOrDefault(s => s.StepOrder == authToken.Key);
+                var authMethod = step?.AuthenticationMethod ?? appConfig.AuthenticationMethodOutbound;
+                var authDetails = step?.AuthenticationDetails != null
+                    ? NormalizeAuthenticationDetails(step.AuthenticationDetails)
+                    : NormalizeAuthenticationDetails(appConfig.AuthenticationDetails);
+
+                if (authMethod != AuthenticationMethods.None
+                    && !string.IsNullOrWhiteSpace(authToken.Value))
+                {
+                    Utils.HttpClientExtensions.SetAuthenticationHeaders(
+                        client, authMethod, authDetails, authToken.Value);
                 }
             }
         }

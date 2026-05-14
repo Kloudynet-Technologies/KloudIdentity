@@ -604,6 +604,10 @@ public class EagleSOAPIntegrationTests
                 resource, "eagle-app", appConfig, step, "corr-replace-02"));
     }
 
+    #endregion
+
+    #region Get with Authentication Flow
+
     [Fact]
     public async Task GetAsync_WithAuthFlow_SetsAuthorizationHeaderOnRestRequest()
     {

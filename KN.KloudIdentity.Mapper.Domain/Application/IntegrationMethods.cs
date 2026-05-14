@@ -10,5 +10,5 @@ public enum IntegrationMethods
     AS400 = 5,
     SQL = 6,
     ITSM = 7,
-    SOAPEagle = 8, 
+    SOAPEagle = 8
 }
