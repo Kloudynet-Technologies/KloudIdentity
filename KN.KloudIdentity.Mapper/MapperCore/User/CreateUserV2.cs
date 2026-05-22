@@ -59,11 +59,8 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
 
         // Step 2: Attribute mapping
 
-        // For SOAP, we need to get the specific mapping config for the Create action. For other integration methods, we can pass the whole appConfig.
-        var mappingConfig = GetMappingConfigForSoapAction(appConfig, SOAPActions.Create);
-
         var userAttributes = GetUserAttributes(appConfig.UserAttributeSchemas, appConfig.IntegrationMethodOutbound);
-        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource, mappingConfig);
+        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource, appConfig);
         Log.Information(
             "Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Payload: {Payload}",
             appId, correlationID, JsonConvert.SerializeObject(payload));

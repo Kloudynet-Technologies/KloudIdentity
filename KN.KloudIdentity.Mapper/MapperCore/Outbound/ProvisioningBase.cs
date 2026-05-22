@@ -1,10 +1,8 @@
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Application;
-using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using Serilog;
-using System.Linq;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Outbound;
 
@@ -79,25 +77,4 @@ public class ProvisioningBase(
         return config;
     }
 
-    /// <summary>
-    /// Returns an app config scoped to a single SOAP action template for payload mapping.
-    /// For non-SOAP integrations, returns the original configuration instance.
-    /// </summary>
-    protected AppConfig GetMappingConfigForSoapAction(AppConfig appConfig, SOAPActions action)
-    {
-        if (appConfig.IntegrationMethodOutbound != IntegrationMethods.SOAP
-            && appConfig.IntegrationMethodOutbound != IntegrationMethods.SOAPEagle)
-        {
-            return appConfig;
-        }
-
-        var scopedTemplates = appConfig.SOAPTemplates?
-            .Where(template => template.Action == action)
-            .ToList();
-
-        return appConfig with
-        {
-            SOAPTemplates = scopedTemplates
-        };
-    }
 }

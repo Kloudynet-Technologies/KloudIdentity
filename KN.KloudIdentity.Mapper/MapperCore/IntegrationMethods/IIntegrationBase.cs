@@ -37,6 +37,22 @@ public interface IIntegrationBase
     }
 
     /// <summary>
+    /// Attribute mapping and prepares the payload asynchronously using an action step (SOAP integrations).
+    /// Non-SOAP integrations fall back to the AppConfig-only overload.
+    /// </summary>
+    /// <param name="schema">Attribute mapping schema data</param>
+    /// <param name="resource">Entra ID object</param>
+    /// <param name="appConfig">App configuration context</param>
+    /// <param name="actionStep">Action step containing the SOAP template</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource,
+        AppConfig appConfig, ActionStep actionStep, CancellationToken cancellationToken = default)
+    {
+        return MapAndPreparePayloadAsync(schema, resource, appConfig, cancellationToken);
+    }
+
+    /// <summary>
     /// Gets the authentication token asynchronously.
     /// </summary>
     /// <param name="config">App configuration</param>

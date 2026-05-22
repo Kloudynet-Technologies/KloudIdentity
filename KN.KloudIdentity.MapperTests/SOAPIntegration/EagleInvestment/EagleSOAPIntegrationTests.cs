@@ -28,14 +28,11 @@ public class EagleSOAPIntegrationTests
     public async Task MapAndPreparePayloadAsync_InjectsValidGuidAsCorrelationId()
     {
         var sut = CreateSut();
-        var appConfig = CreateAppConfig(
-            templates:
-            [
-                new("<env><correlationId>{{CorrelationId}}</correlationId></env>", SOAPActions.Create)
-            ]);
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(template: "<env><correlationId>{{CorrelationId}}</correlationId></env>");
 
         var payload = await sut.MapAndPreparePayloadAsync(
-            new List<AttributeSchema>(), new Core2EnterpriseUser(), appConfig);
+            new List<AttributeSchema>(), new Core2EnterpriseUser(), appConfig, step);
 
         string result = Assert.IsType<string>(payload);
         var xmlDoc = new XmlDocument { XmlResolver = null };
@@ -50,16 +47,13 @@ public class EagleSOAPIntegrationTests
     public async Task MapAndPreparePayloadAsync_TwoConsecutiveCalls_ProduceDifferentCorrelationIds()
     {
         var sut = CreateSut();
-        var appConfig = CreateAppConfig(
-            templates:
-            [
-                new("<env><correlationId>{{CorrelationId}}</correlationId></env>", SOAPActions.Create)
-            ]);
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(template: "<env><correlationId>{{CorrelationId}}</correlationId></env>");
 
         var payload1 = await sut.MapAndPreparePayloadAsync(
-            new List<AttributeSchema>(), new Core2EnterpriseUser(), appConfig);
+            new List<AttributeSchema>(), new Core2EnterpriseUser(), appConfig, step);
         var payload2 = await sut.MapAndPreparePayloadAsync(
-            new List<AttributeSchema>(), new Core2EnterpriseUser(), appConfig);
+            new List<AttributeSchema>(), new Core2EnterpriseUser(), appConfig, step);
 
         static string ExtractCorrelationId(string xml)
         {
@@ -77,10 +71,11 @@ public class EagleSOAPIntegrationTests
     public async Task MapAndPreparePayloadAsync_WithNoTemplate_ThrowsInvalidOperationException()
     {
         var sut = CreateSut();
-        var appConfig = CreateAppConfig() with { SOAPTemplates = null };
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(template: null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            sut.MapAndPreparePayloadAsync(new List<AttributeSchema>(), new Core2EnterpriseUser(), appConfig));
+            sut.MapAndPreparePayloadAsync(new List<AttributeSchema>(), new Core2EnterpriseUser(), appConfig, step));
     }
 
     [Fact]
@@ -92,16 +87,12 @@ public class EagleSOAPIntegrationTests
             new() { DestinationField = "Identifier", SourceValue = "Identifier", MappingType = MappingTypes.Direct },
             new() { DestinationField = "UserName",   SourceValue = "UserName",   MappingType = MappingTypes.Direct }
         };
-        var appConfig = CreateAppConfig(
-            templates:
-            [
-                new(
-                    "<env><correlationId>{{CorrelationId}}</correlationId><userId>{{Identifier}}</userId><userName>{{UserName}}</userName></env>",
-                    SOAPActions.Create)
-            ]);
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(
+            template: "<env><correlationId>{{CorrelationId}}</correlationId><userId>{{Identifier}}</userId><userName>{{UserName}}</userName></env>");
         var resource = new Core2EnterpriseUser { Identifier = "eagle-123", UserName = "john.doe" };
 
-        var payload = await sut.MapAndPreparePayloadAsync(schema, resource, appConfig);
+        var payload = await sut.MapAndPreparePayloadAsync(schema, resource, appConfig, step);
 
         string result = Assert.IsType<string>(payload);
         var xmlDoc = new XmlDocument { XmlResolver = null };
@@ -267,6 +258,7 @@ public class EagleSOAPIntegrationTests
         var appConfig = CreateAppConfig();
         var step = CreateActionStep(
             httpVerb: HttpVerbs.DELETE,
+            template: "<env><correlationId>{{CorrelationId}}</correlationId><userId>{{Identifier}}</userId></env>",
             attributes:
             [
                 new() { DestinationField = "Identifier", SourceValue = "Identifier", MappingType = MappingTypes.Direct, HttpRequestType = HttpRequestTypes.DELETE }
@@ -333,24 +325,14 @@ public class EagleSOAPIntegrationTests
     public async Task DeleteAsync_WhenNoDeleteAttributesConfigured_ThrowsInvalidOperationException()
     {
         var sut = CreateSut();
-        var appConfig = CreateAppConfig(); // schema = empty → no DELETE-typed attributes
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(
+            httpVerb: HttpVerbs.DELETE,
+            template: "<env><userId>{{Identifier}}</userId></env>",
+            attributes: null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            sut.DeleteAsync("user-001", appConfig, "corr-del-guard-1"));
-    }
-
-    [Fact]
-    public async Task DeleteAsync_WhenIdentifierMappingMissing_ThrowsInvalidOperationException()
-    {
-        var sut = CreateSut();
-        var appConfig = CreateAppConfig(
-            schema:
-            [
-                new() { DestinationField = "Email", SourceValue = "UserName", MappingType = MappingTypes.Direct, HttpRequestType = HttpRequestTypes.DELETE }
-            ]);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            sut.DeleteAsync("user-001", appConfig, "corr-del-guard-2"));
+            sut.DeleteAsync("user-001", "eagle-app", appConfig, step, "corr-del-guard-1"));
     }
 
     [Fact]
@@ -364,19 +346,16 @@ public class EagleSOAPIntegrationTests
                     Encoding.UTF8, "text/xml")
             });
         var sut = CreateSut(handler);
-        var appConfig = CreateAppConfig(
-            templates:
-            [
-                new("<env><action>CREATE</action><correlationId>{{CorrelationId}}</correlationId></env>", SOAPActions.Create),
-                new("<env><action>CHANGE</action><correlationId>{{CorrelationId}}</correlationId></env>",  SOAPActions.Update),
-                new("<env><action>DELETE</action><correlationId>{{CorrelationId}}</correlationId><userId>{{Identifier}}</userId></env>", SOAPActions.Delete)
-            ],
-            schema:
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(
+            httpVerb: HttpVerbs.DELETE,
+            template: "<env><action>DELETE</action><correlationId>{{CorrelationId}}</correlationId><userId>{{Identifier}}</userId></env>",
+            attributes:
             [
                 new() { DestinationField = "Identifier", SourceValue = "Identifier", MappingType = MappingTypes.Direct, HttpRequestType = HttpRequestTypes.DELETE }
             ]);
 
-        await sut.DeleteAsync("user-del-001", appConfig, "corr-t18");
+        await sut.DeleteAsync("user-del-001", "eagle-app", appConfig, step, "corr-t18");
 
         Assert.Contains("<action>DELETE</action>", handler.LastRequestBody);
         Assert.Contains("user-del-001", handler.LastRequestBody);
@@ -394,10 +373,11 @@ public class EagleSOAPIntegrationTests
             });
         var sut = CreateSut(handler);
         var appConfig = CreateAppConfig();
+        var step = CreateActionStep(httpVerb: HttpVerbs.PATCH);
         const string payload = "<env><action>CHANGE</action><userId>user-upd-001</userId></env>";
         var resource = new Core2EnterpriseUser { Identifier = "user-upd-001" };
 
-        await sut.UpdateAsync(payload, resource, appConfig, "corr-t19");
+        await sut.UpdateAsync(payload, resource, "eagle-app", appConfig, step, "corr-t19");
 
         Assert.Contains("<action>CHANGE</action>", handler.LastRequestBody);
     }
@@ -453,18 +433,15 @@ public class EagleSOAPIntegrationTests
     public async Task MapAndPreparePayloadAsync_OriginalTemplateNotMutated_AfterCall()
     {
         var sut = CreateSut();
-        var appConfig = CreateAppConfig(
-            templates:
-            [
-                new("<env><correlationId>{{CorrelationId}}</correlationId></env>", SOAPActions.Create)
-            ]);
-        var originalTemplate = appConfig.SOAPTemplates!.First().Template;
+        const string originalTemplate = "<env><correlationId>{{CorrelationId}}</correlationId></env>";
+        var step = CreateActionStep(template: originalTemplate);
+        var appConfig = CreateAppConfig();
 
         await sut.MapAndPreparePayloadAsync(
-            [], new Core2EnterpriseUser(), appConfig);
+            [], new Core2EnterpriseUser(), appConfig, step);
 
-        Assert.Equal(originalTemplate, appConfig.SOAPTemplates!.First().Template);
-        Assert.Contains("{{CorrelationId}}", appConfig.SOAPTemplates!.First().Template);
+        Assert.Equal(originalTemplate, step.Template);
+        Assert.Contains("{{CorrelationId}}", step.Template);
     }
 
     #endregion
@@ -698,7 +675,6 @@ public class EagleSOAPIntegrationTests
     }
 
     private static AppConfig CreateAppConfig(
-        ICollection<SOAPTemplate>? templates = null,
         ICollection<AttributeSchema>? schema = null,
         AuthenticationMethods authMethodOutbound = AuthenticationMethods.None,
         dynamic? authDetails = null,
@@ -724,7 +700,6 @@ public class EagleSOAPIntegrationTests
                     Get     = new Uri("https://eagle.test/eagle/v2/users")
                 }
             ],
-            SOAPTemplates = templates ?? DefaultSOAPTemplates(),
             AuthenticationFlow = authenticationFlow
         };
     }
@@ -745,6 +720,7 @@ public class EagleSOAPIntegrationTests
     private static ActionStep CreateActionStep(
         string endpoint = "https://eagle.test/EagleMLWebService20",
         HttpVerbs httpVerb = HttpVerbs.POST,
+        string? template = null,
         ICollection<AttributeSchema>? attributes = null)
     {
         return new ActionStep
@@ -753,16 +729,10 @@ public class EagleSOAPIntegrationTests
             HttpVerb = httpVerb,
             StepOrder = 1,
             IsMandatory = true,
+            Template = template,
             UserAttributeSchemas = attributes
         };
     }
-
-    private static List<SOAPTemplate> DefaultSOAPTemplates() =>
-    [
-        new("<env><correlationId>{{CorrelationId}}</correlationId><userId>{{Identifier}}</userId></env>", SOAPActions.Create),
-        new("<env><correlationId>{{CorrelationId}}</correlationId><userId>{{Identifier}}</userId></env>", SOAPActions.Update),
-        new("<env><correlationId>{{CorrelationId}}</correlationId><userId>{{Identifier}}</userId></env>", SOAPActions.Delete)
-    ];
 
     private static string EagleAckXml(bool isNegative, string correlationId) =>
         $"""

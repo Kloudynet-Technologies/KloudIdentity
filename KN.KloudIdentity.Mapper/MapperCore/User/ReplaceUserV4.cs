@@ -71,12 +71,11 @@ public class ReplaceUserV4(
 
             var attributes = step.UserAttributeSchemas?.ToList() ?? [];
 
-            // Map the user resource to the outbound payload
-            var mappingConfig = GetMappingConfigForSoapAction(_appConfig, SOAPActions.Update);
-
-            var config = _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP ? mappingConfig : _appConfig;
-
-            var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, resource, config);
+            var isSoap = _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP
+                         || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAPEagle;
+            var payload = isSoap
+                ? await integrationOp.MapAndPreparePayloadAsync(attributes, resource, _appConfig, step, CancellationToken.None)
+                : await integrationOp.MapAndPreparePayloadAsync(attributes, resource, _appConfig);
             
             Log.Information($"[ReplaceUserV4] Payload mapped and prepared successfully for ActionStep {step.StepOrder}, AppId: {appId}, CorrelationID: {correlationID}");
 
@@ -106,10 +105,7 @@ public class ReplaceUserV4(
 
         var userAttributes = GetUserAttributes(_appConfig.UserAttributeSchemas, _appConfig.IntegrationMethodOutbound);
 
-        // For SOAP, we need to get the specific mapping config for the Update action. For other integration methods, we can pass the whole appConfig.
-        var mappingConfig = GetMappingConfigForSoapAction(_appConfig, SOAPActions.Update);
-
-        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource, mappingConfig);
+        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource, _appConfig);
         Log.Information(
             "[ReplaceUserV4] Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Payload: {Payload}",
             appId, correlationID, JsonConvert.SerializeObject(payload));
