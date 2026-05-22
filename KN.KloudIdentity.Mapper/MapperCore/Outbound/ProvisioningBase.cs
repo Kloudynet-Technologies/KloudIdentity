@@ -85,7 +85,8 @@ public class ProvisioningBase(
     /// </summary>
     protected AppConfig GetMappingConfigForSoapAction(AppConfig appConfig, SOAPActions action)
     {
-        if (appConfig.IntegrationMethodOutbound != IntegrationMethods.SOAP)
+        if (appConfig.IntegrationMethodOutbound != IntegrationMethods.SOAP
+            && appConfig.IntegrationMethodOutbound != IntegrationMethods.SOAPEagle)
         {
             return appConfig;
         }

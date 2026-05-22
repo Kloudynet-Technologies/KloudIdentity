@@ -32,6 +32,7 @@ public class EagleSOAPIntegration : SOAPIntegration
                [new EagleSoapActionApplier(), .. (soapAuthAppliers ?? DefaultAppliers())])
     {
         _httpClientFactory = httpClientFactory;
+        IntegrationMethod = IntegrationMethods.SOAPEagle;
     }
 
     private static IEnumerable<ISoapAuthApplier> DefaultAppliers() =>
@@ -100,6 +101,25 @@ public class EagleSOAPIntegration : SOAPIntegration
 
         var responseBody = await SendSoapRequestAsync(userUri, payload, appConfig, SCIMDirections.Outbound, correlationId);
         CheckEagleAck(responseBody, appConfig.AppId);
+    }
+
+    public override async Task<Core2EnterpriseUser> ReplaceAsync(
+        dynamic payload,
+        Core2EnterpriseUser resource,
+        string appId,
+        AppConfig appConfig,
+        ActionStep actionStep,
+        string correlationId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateActionStep(actionStep, "REPLACE");
+
+        var responseBody = await SendSoapRequestAsync(
+            new Uri(actionStep.EndPoint), payload, appConfig,
+            SCIMDirections.Outbound, correlationId, cancellationToken);
+
+        CheckEagleAck(responseBody, appConfig.AppId);
+        return resource; // preserve caller's resource.Identifier — Eagle ACK carries correlationId, not the user ID
     }
 
     public override async Task UpdateAsync(
@@ -271,16 +291,35 @@ public class EagleSOAPIntegration : SOAPIntegration
         CancellationToken cancellationToken)
     {
         var url = baseUrl.TrimEnd('/') + "?userid=" + Uri.EscapeDataString(identifier);
-        string? token = await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
         var client = _httpClientFactory.CreateClient();
 
-        if (!string.IsNullOrWhiteSpace(token) && appConfig.AuthenticationMethodOutbound != AuthenticationMethods.None)
+        var requiresAuth = appConfig.AuthenticationFlow?.Steps?.Count > 0
+            || appConfig.AuthenticationMethodOutbound != AuthenticationMethods.None;
+
+        if (requiresAuth)
         {
-            Utils.HttpClientExtensions.SetAuthenticationHeaders(
-                client,
-                appConfig.AuthenticationMethodOutbound,
-                NormalizeAuthenticationDetails(appConfig.AuthenticationDetails),
-                token);
+            if (await GetAuthenticationAsync(appConfig, SCIMDirections.Outbound, cancellationToken) is not Dictionary<int, string> tokenDict
+                || tokenDict.Count == 0)
+                throw new InvalidOperationException(
+                    $"Authentication is required for Eagle REST GET (AppId: {appConfig.AppId}) but no token was resolved. " +
+                    "Verify that AuthenticationFlow.Steps is correctly configured.");
+
+            var steps = appConfig.AuthenticationFlow?.Steps;
+            foreach (var authToken in tokenDict)
+            {
+                var step = steps?.FirstOrDefault(s => s.StepOrder == authToken.Key);
+                var authMethod = step?.AuthenticationMethod ?? appConfig.AuthenticationMethodOutbound;
+                var authDetails = step?.AuthenticationDetails != null
+                    ? NormalizeAuthenticationDetails(step.AuthenticationDetails)
+                    : NormalizeAuthenticationDetails(appConfig.AuthenticationDetails);
+
+                if (authMethod != AuthenticationMethods.None
+                    && !string.IsNullOrWhiteSpace(authToken.Value))
+                {
+                    Utils.HttpClientExtensions.SetAuthenticationHeaders(
+                        client, authMethod, authDetails, authToken.Value);
+                }
+            }
         }
 
         var response = await client.GetAsync(url, cancellationToken);

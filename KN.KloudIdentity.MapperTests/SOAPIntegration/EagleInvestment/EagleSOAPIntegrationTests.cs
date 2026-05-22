@@ -567,6 +567,102 @@ public class EagleSOAPIntegrationTests
 
     #endregion
 
+    #region Replace V2
+
+    [Fact]
+    public async Task ReplaceAsyncV2_WithValidAck_CompletesAndPreservesOriginalIdentifier()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(httpVerb: HttpVerbs.PUT);
+        var resource = new Core2EnterpriseUser { Identifier = "user-replace-001" };
+
+        var result = await sut.ReplaceAsync(
+            "<env><userId>user-replace-001</userId></env>",
+            resource, "eagle-app", appConfig, step, "corr-replace-01");
+
+        Assert.Equal("user-replace-001", result.Identifier);
+    }
+
+    [Fact]
+    public async Task ReplaceAsyncV2_WhenAckIsNegative_ThrowsInvalidOperationException()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    EagleAckXml(isNegative: true, correlationId: "c-neg"),
+                    Encoding.UTF8, "text/xml")
+            });
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(httpVerb: HttpVerbs.PUT);
+        var resource = new Core2EnterpriseUser { Identifier = "user-002" };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.ReplaceAsync("<env><userId>user-002</userId></env>",
+                resource, "eagle-app", appConfig, step, "corr-replace-02"));
+    }
+
+    #endregion
+
+    #region Get with Authentication Flow
+
+    [Fact]
+    public async Task GetAsync_WithAuthFlow_SetsAuthorizationHeaderOnRestRequest()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    EagleRestUserJson("u1", "Alice"), Encoding.UTF8, "application/json")
+            });
+        var sut = CreateSut(handler, token: "bearer-token-xyz");
+        var appConfig = CreateAppConfig(authenticationFlow: new AuthenticationFlow
+        {
+            Steps =
+            [
+                CreateSoapFlowStep(
+                    authenticationDetails: new { Token = "bearer-token-xyz" },
+                    method: AuthenticationMethods.Bearer)
+            ]
+        });
+
+        await sut.GetAsync("u1", appConfig, "corr-auth-flow-get");
+
+        Assert.True(handler.LastHeaders.ContainsKey("Authorization"));
+        Assert.Contains("bearer-token-xyz", handler.LastHeaders["Authorization"]);
+    }
+
+    [Fact]
+    public async Task GetAsyncV2_WithAuthFlow_SetsAuthorizationHeaderOnRestRequest()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    EagleRestUserJson("u2", "Bob"), Encoding.UTF8, "application/json")
+            });
+        var sut = CreateSut(handler, token: "bearer-token-xyz");
+        var appConfig = CreateAppConfig(authenticationFlow: new AuthenticationFlow
+        {
+            Steps =
+            [
+                CreateSoapFlowStep(
+                    authenticationDetails: new { Token = "bearer-token-xyz" },
+                    method: AuthenticationMethods.Bearer)
+            ]
+        });
+        var step = CreateActionStep(endpoint: "https://eagle-v2.test/users", httpVerb: HttpVerbs.GET);
+
+        await sut.GetAsync("u2", appConfig, step, "corr-auth-flow-get-v2");
+
+        Assert.True(handler.LastHeaders.ContainsKey("Authorization"));
+        Assert.Contains("bearer-token-xyz", handler.LastHeaders["Authorization"]);
+    }
+
+    #endregion
+
     #region Test Infrastructure
 
     private static EagleSOAPIntegration CreateSut(TestHttpMessageHandler? handler = null, string token = "test-token")
@@ -586,8 +682,8 @@ public class EagleSOAPIntegrationTests
 
         var authContextMock = new Mock<IAuthContext>();
         authContextMock
-            .Setup(ctx => ctx.GetTokenAsync(It.IsAny<object>(), It.IsAny<SCIMDirections>()))
-            .Returns(Task.FromResult(token));
+            .Setup(ctx => ctx.GetTokenListAsync(It.IsAny<object>(), It.IsAny<SCIMDirections>()))
+            .ReturnsAsync(new Dictionary<int, string> { { 1, token } });
 
         var options = Options.Create(new AppSettings());
         var configuration = new ConfigurationBuilder().Build();
@@ -604,15 +700,16 @@ public class EagleSOAPIntegrationTests
     private static AppConfig CreateAppConfig(
         ICollection<SOAPTemplate>? templates = null,
         ICollection<AttributeSchema>? schema = null,
-        AuthenticationMethods authMethodOutbound = AuthenticationMethods.Basic,
-        dynamic? authDetails = null)
+        AuthenticationMethods authMethodOutbound = AuthenticationMethods.None,
+        dynamic? authDetails = null,
+        AuthenticationFlow? authenticationFlow = null)
     {
         return new AppConfig
         {
             AppId = "eagle-app",
             IntegrationMethodOutbound = IntegrationMethods.SOAP,
             AuthenticationMethodOutbound = authMethodOutbound,
-            AuthenticationDetails = authDetails ?? new { Username = "eagleuser", Password = "eaglepass" },
+            AuthenticationDetails = authDetails ?? new { },
             UserAttributeSchemas = schema ?? new List<AttributeSchema>(),
             UserURIs =
             [
@@ -627,9 +724,23 @@ public class EagleSOAPIntegrationTests
                     Get     = new Uri("https://eagle.test/eagle/v2/users")
                 }
             ],
-            SOAPTemplates = templates ?? DefaultSOAPTemplates()
+            SOAPTemplates = templates ?? DefaultSOAPTemplates(),
+            AuthenticationFlow = authenticationFlow
         };
     }
+
+    private static AuthenticationFlowStep CreateSoapFlowStep(
+        dynamic authenticationDetails,
+        int stepOrder = 1,
+        AuthenticationMethods method = AuthenticationMethods.SoapWsSecurity) =>
+        new()
+        {
+            StepTitle = "SOAP Auth",
+            StepOrder = stepOrder,
+            AuthenticationMethod = method,
+            IsRequired = true,
+            AuthenticationDetails = authenticationDetails
+        };
 
     private static ActionStep CreateActionStep(
         string endpoint = "https://eagle.test/EagleMLWebService20",
