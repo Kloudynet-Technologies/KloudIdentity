@@ -52,6 +52,10 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
         // Step 1: Get app config
         var appConfig = await GetAppConfigAsync(appId);
 
+        if (appConfig.IntegrationMethodOutbound is IntegrationMethods.SOAP or IntegrationMethods.SOAPEagle)
+            throw new NotSupportedException(
+                $"CreateUserV2 does not support SOAP integrations. Use CreateUserV4 for AppId: {appId}.");
+
         // Resolve integration method operations
         var integrationOp = _integrationBaseFactory.GetIntegration(appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST, appId) ??
                                 throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");

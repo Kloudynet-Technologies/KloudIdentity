@@ -165,6 +165,12 @@ public class EagleSOAPIntegration : SOAPIntegration
         var attributes = actionStep.UserAttributeSchemas?.ToList()
             ?? throw new InvalidOperationException($"No attributes configured on ActionStep {actionStep.StepOrder} for DELETE. AppId: {appConfig.AppId}");
 
+        if (attributes.Count == 0)
+            throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} has no attributes for DELETE. AppId: {appConfig.AppId}");
+
+        if (!attributes.Any(a => a.DestinationField == "Identifier"))
+            throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} is missing an Identifier attribute mapping for DELETE. AppId: {appConfig.AppId}");
+
         var resource = new Core2EnterpriseUser { Identifier = identifier };
         var injected = template.Replace("{{CorrelationId}}", Guid.NewGuid().ToString(), StringComparison.Ordinal);
         var soapPayload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(injected, attributes, resource);

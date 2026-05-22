@@ -45,6 +45,10 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
         // Step 1: Get app config
         var appConfig = await GetAppConfigAsync(appId);
 
+        if (appConfig.IntegrationMethodOutbound is IntegrationMethods.SOAP or IntegrationMethods.SOAPEagle)
+            throw new NotSupportedException(
+                $"ReplaceUserV2 does not support SOAP integrations. Use ReplaceUserV4 for AppId: {appId}.");
+
         // Resolve integration method operations
         var integrationOp =
             _integrationBaseFactory.GetIntegration(appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST,

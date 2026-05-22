@@ -1,18 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.Text.Json;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
-using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
@@ -66,15 +58,15 @@ namespace KN.KloudIdentity.Mapper.MapperCore
         }
 
         // Overload that matches the interface (does not require AppConfig)
-        public virtual async Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource, CancellationToken cancellationToken = default)
+        public virtual Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException("AppConfig is required for SOAP payload mapping. Use the overload that accepts AppConfig.");
         }
 
         /// <summary>
-        /// Maps user attributes to a SOAP XML payload using the template on the ActionStep.
+        /// Not supported for SOAP. Use the overload that accepts an ActionStep.
         /// </summary>
-        public virtual async Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource, AppConfig appConfig, CancellationToken cancellationToken = default)
+        public virtual Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource, AppConfig appConfig, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException("SOAP payload mapping requires an ActionStep. Use the overload that accepts ActionStep.");
         }
@@ -151,6 +143,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             var attributes = actionStep.UserAttributeSchemas?.ToList()
                 ?? throw new InvalidOperationException($"No attributes configured on ActionStep {actionStep.StepOrder} for GET. AppId: {appConfig.AppId}");
 
+            if (attributes.Count == 0)
+                throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} has no attributes for GET. AppId: {appConfig.AppId}");
+
+            if (!attributes.Any(a => a.DestinationField == "Identifier"))
+                throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} is missing an Identifier attribute mapping for GET. AppId: {appConfig.AppId}");
+
             var resource = new Core2EnterpriseUser { Identifier = identifier };
             var soapPayload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(template, attributes, resource);
 
@@ -193,6 +191,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore
 
             var attributes = actionStep.UserAttributeSchemas?.ToList()
                 ?? throw new InvalidOperationException($"No attributes configured on ActionStep {actionStep.StepOrder} for DELETE. AppId: {appConfig.AppId}");
+
+            if (attributes.Count == 0)
+                throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} has no attributes for DELETE. AppId: {appConfig.AppId}");
+
+            if (!attributes.Any(a => a.DestinationField == "Identifier"))
+                throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} is missing an Identifier attribute mapping for DELETE. AppId: {appConfig.AppId}");
 
             var resource = new Core2EnterpriseUser { Identifier = identifier };
             var soapPayload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(template, attributes, resource);

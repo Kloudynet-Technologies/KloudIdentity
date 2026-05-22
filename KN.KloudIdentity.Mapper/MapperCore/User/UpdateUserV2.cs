@@ -55,6 +55,10 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         // Step 1: Get app config
         var appConfig = await GetAppConfigAsync(appId);
 
+        if (appConfig.IntegrationMethodOutbound is IntegrationMethods.SOAP or IntegrationMethods.SOAPEagle)
+            throw new NotSupportedException(
+                $"UpdateUserV2 does not support SOAP integrations. Use UpdateUserV4 for AppId: {appId}.");
+
         var integrationOp =
             _integrationBaseFactory.GetIntegration(appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST,
                 appId) ??

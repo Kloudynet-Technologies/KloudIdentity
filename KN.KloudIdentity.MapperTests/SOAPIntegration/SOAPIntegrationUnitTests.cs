@@ -736,6 +736,39 @@ public class SOAPIntegrationUnitTests
     }
 
     [Fact]
+    public async Task GetAsyncV2_WithEmptyAttributesOnStep_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(
+            endpoint: "https://soap.example.test/v2/users/get",
+            httpVerb: HttpVerbs.GET,
+            template: "<GetUser><Identifier>{{Identifier}}</Identifier></GetUser>",
+            attributes: new List<AttributeSchema>());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetAsync("U-1", appConfig, step, "corr-v2-6b"));
+    }
+
+    [Fact]
+    public async Task GetAsyncV2_WithMissingIdentifierMapping_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(
+            endpoint: "https://soap.example.test/v2/users/get",
+            httpVerb: HttpVerbs.GET,
+            template: "<GetUser><Email>{{Email}}</Email></GetUser>",
+            attributes: new List<AttributeSchema>
+            {
+                new() { DestinationField = "Email", SourceValue = "UserName", MappingType = MappingTypes.Direct, HttpRequestType = HttpRequestTypes.GET }
+            });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetAsync("U-1", appConfig, step, "corr-v2-6c"));
+    }
+
+    [Fact]
     public async Task GetAsyncV2_WithValidStepAndTemplate_ReturnsMappedUser()
     {
         var handler = new TestHttpMessageHandler(_ =>
@@ -875,6 +908,39 @@ public class SOAPIntegrationUnitTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             sut.DeleteAsync("U-1", "soap-app", appConfig, step, "corr-v2-14"));
+    }
+
+    [Fact]
+    public async Task DeleteAsyncV2_WithEmptyAttributesOnStep_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(
+            endpoint: "https://soap.example.test/v2/users/delete",
+            httpVerb: HttpVerbs.DELETE,
+            template: "<DeleteUser><Identifier>{{Identifier}}</Identifier></DeleteUser>",
+            attributes: new List<AttributeSchema>());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.DeleteAsync("U-1", "soap-app", appConfig, step, "corr-v2-14b"));
+    }
+
+    [Fact]
+    public async Task DeleteAsyncV2_WithMissingIdentifierMapping_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(
+            endpoint: "https://soap.example.test/v2/users/delete",
+            httpVerb: HttpVerbs.DELETE,
+            template: "<DeleteUser><Email>{{Email}}</Email></DeleteUser>",
+            attributes: new List<AttributeSchema>
+            {
+                new() { DestinationField = "Email", SourceValue = "UserName", MappingType = MappingTypes.Direct, HttpRequestType = HttpRequestTypes.DELETE }
+            });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.DeleteAsync("U-1", "soap-app", appConfig, step, "corr-v2-14c"));
     }
 
     [Fact]
