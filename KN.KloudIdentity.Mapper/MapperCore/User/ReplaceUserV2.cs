@@ -45,6 +45,10 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
         // Step 1: Get app config
         var appConfig = await GetAppConfigAsync(appId);
 
+        if (appConfig.IntegrationMethodOutbound is IntegrationMethods.SOAP or IntegrationMethods.SOAPEagle)
+            throw new NotSupportedException(
+                $"ReplaceUserV2 does not support SOAP integrations. Use ReplaceUserV4 for AppId: {appId}.");
+
         // Resolve integration method operations
         var integrationOp =
             _integrationBaseFactory.GetIntegration(appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST,
@@ -55,11 +59,7 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
         var attributes = GetUserAttributes(appConfig.UserAttributeSchemas, appConfig.IntegrationMethodOutbound);
 
         // Step 2: Map and prepare payload
-
-        // For SOAP, we need to get the specific mapping config for the Update action. For other integration methods, we can pass the whole appConfig.
-        var mappingConfig = GetMappingConfigForSoapAction(appConfig, SOAPActions.Update);
-
-        var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, resource, mappingConfig);
+        var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, resource, appConfig);
         Log.Information(
             "Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Payload: {Payload}",
             appId, correlationID, JsonConvert.SerializeObject(payload));

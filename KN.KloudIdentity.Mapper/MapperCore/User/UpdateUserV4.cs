@@ -79,11 +79,10 @@ public class UpdateUserV4(
         {
             var attributes = step.UserAttributeSchemas?.ToList() ?? [];
 
-            // For SOAP, we need to get the specific mapping config for the Update action. For other integration methods, we can pass the whole appConfig.
-            var mappingConfig = GetMappingConfigForSoapAction(_appConfig, SOAPActions.Update);
-            var config = _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP ? mappingConfig : _appConfig;
-
-            var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, user, config);
+            var payload = (_appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP
+                           || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAPEagle)
+                ? await integrationOp.MapAndPreparePayloadAsync(attributes, user, _appConfig, step, CancellationToken.None)
+                : await integrationOp.MapAndPreparePayloadAsync(attributes, user, _appConfig);
             Log.Information(
                 "[UpdateUserV4] Payload mapped and prepared successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
                 user.Identifier, appId, correlationId);
@@ -115,9 +114,7 @@ public class UpdateUserV4(
 
         var userAttributes = GetUserAttributes(_appConfig.UserAttributeSchemas, _appConfig.IntegrationMethodOutbound);
 
-        // For SOAP, we need to get the specific mapping config for the Update action. For other integration methods, we can pass the whole appConfig.
-        var mappingConfig = GetMappingConfigForSoapAction(_appConfig, SOAPActions.Update);
-        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, user, mappingConfig);
+        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, user, _appConfig);
         
         Log.Information(
             "[UpdateUserV4] Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Payload: {Payload}",

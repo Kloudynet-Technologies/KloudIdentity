@@ -52,6 +52,10 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
         // Step 1: Get app config
         var appConfig = await GetAppConfigAsync(appId);
 
+        if (appConfig.IntegrationMethodOutbound is IntegrationMethods.SOAP or IntegrationMethods.SOAPEagle)
+            throw new NotSupportedException(
+                $"CreateUserV2 does not support SOAP integrations. Use CreateUserV4 for AppId: {appId}.");
+
         // Resolve integration method operations
         var integrationOp = _integrationBaseFactory.GetIntegration(appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST, appId) ??
                                 throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
@@ -59,11 +63,8 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
 
         // Step 2: Attribute mapping
 
-        // For SOAP, we need to get the specific mapping config for the Create action. For other integration methods, we can pass the whole appConfig.
-        var mappingConfig = GetMappingConfigForSoapAction(appConfig, SOAPActions.Create);
-
         var userAttributes = GetUserAttributes(appConfig.UserAttributeSchemas, appConfig.IntegrationMethodOutbound);
-        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource, mappingConfig);
+        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource, appConfig);
         Log.Information(
             "Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Payload: {Payload}",
             appId, correlationID, JsonConvert.SerializeObject(payload));

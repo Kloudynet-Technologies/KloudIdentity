@@ -45,5 +45,4 @@ public record AppConfig
             throw new InvalidOperationException($"UserAttributeSchemas must be provided for {IntegrationMethodOutbound} integration method.");
         }
     }
-    public ICollection<SOAPTemplate>? SOAPTemplates { get; set; }
 }

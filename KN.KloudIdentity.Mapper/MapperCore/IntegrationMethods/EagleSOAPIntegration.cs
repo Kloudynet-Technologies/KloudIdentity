@@ -42,16 +42,15 @@ public class EagleSOAPIntegration : SOAPIntegration
         IList<AttributeSchema> schema,
         Core2EnterpriseUser resource,
         AppConfig appConfig,
+        ActionStep actionStep,
         CancellationToken cancellationToken = default)
     {
-        var template = appConfig.SOAPTemplates?.FirstOrDefault()
-            ?? throw new InvalidOperationException($"SOAP template required. AppId: {appConfig.AppId}");
+        var template = actionStep.Template
+            ?? throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} has no template. AppId: {appConfig.AppId}");
 
-        // Inject {{CorrelationId}} before delegating to base
-        var injected = template.Template.Replace("{{CorrelationId}}", Guid.NewGuid().ToString(), StringComparison.Ordinal);
-        var patchedConfig = appConfig with { SOAPTemplates = [new SOAPTemplate(injected, template.Action)] };
-
-        return await base.MapAndPreparePayloadAsync(schema, resource, patchedConfig, cancellationToken);
+        var injected = template.Replace("{{CorrelationId}}", Guid.NewGuid().ToString(), StringComparison.Ordinal);
+        string payload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(injected, schema, resource);
+        return await Task.FromResult(payload);
     }
 
     public override async Task<Core2EnterpriseUser?> ProvisionAsync(
@@ -90,17 +89,13 @@ public class EagleSOAPIntegration : SOAPIntegration
         return new Core2EnterpriseUser { Identifier = userId };
     }
 
-    public override async Task ReplaceAsync(
+    public override Task ReplaceAsync(
         dynamic payload,
         Core2EnterpriseUser resource,
         AppConfig appConfig,
         string correlationId)
     {
-        var userUri = appConfig.UserURIs?.FirstOrDefault()?.Put
-            ?? throw new InvalidOperationException("Eagle Replace endpoint not configured.");
-
-        var responseBody = await SendSoapRequestAsync(userUri, payload, appConfig, SCIMDirections.Outbound, correlationId);
-        CheckEagleAck(responseBody, appConfig.AppId);
+        throw new NotSupportedException("Use the ActionStep overload for SOAPEagle operations.");
     }
 
     public override async Task<Core2EnterpriseUser> ReplaceAsync(
@@ -122,18 +117,13 @@ public class EagleSOAPIntegration : SOAPIntegration
         return resource; // preserve caller's resource.Identifier — Eagle ACK carries correlationId, not the user ID
     }
 
-    public override async Task UpdateAsync(
+    public override Task UpdateAsync(
         dynamic payload,
         Core2EnterpriseUser resource,
         AppConfig appConfig,
         string correlationId)
     {
-        var userUri = appConfig.UserURIs?.FirstOrDefault()?.Patch
-                   ?? appConfig.UserURIs?.FirstOrDefault()?.Put
-                   ?? throw new InvalidOperationException("Eagle Update endpoint not configured.");
-
-        var responseBody = await SendSoapRequestAsync(userUri, payload, appConfig, SCIMDirections.Outbound, correlationId);
-        CheckEagleAck(responseBody, appConfig.AppId);
+        throw new NotSupportedException("Use the ActionStep overload for SOAPEagle operations.");
     }
 
     public override async Task UpdateAsync(
@@ -151,30 +141,12 @@ public class EagleSOAPIntegration : SOAPIntegration
         CheckEagleAck(responseBody, appConfig.AppId);
     }
 
-    public override async Task DeleteAsync(
+    public override Task DeleteAsync(
         string identifier,
         AppConfig appConfig,
         string correlationId)
     {
-        var userUri = appConfig.UserURIs?.FirstOrDefault()?.Delete
-            ?? throw new InvalidOperationException("Eagle Delete endpoint not configured.");
-
-        var template = appConfig.SOAPTemplates?.FirstOrDefault(t => t.Action == SOAPActions.Delete)
-            ?? throw new InvalidOperationException($"SOAP template for DELETE action not configured. AppId: {appConfig.AppId}");
-
-        var attributes = (appConfig.UserAttributeSchemas ?? Array.Empty<AttributeSchema>())
-            .Where(p => p.HttpRequestType == HttpRequestTypes.DELETE)
-            .ToList();
-
-        if (attributes.Count == 0 || !attributes.Any(a => a.SourceValue.Equals("Identifier", StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException($"DELETE attribute schema must include an Identifier mapping. AppId: {appConfig.AppId}");
-
-        var resource = new Core2EnterpriseUser { Identifier = identifier };
-        var injected = template.Template.Replace("{{CorrelationId}}", Guid.NewGuid().ToString(), StringComparison.Ordinal);
-        var soapPayload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(injected, attributes, resource);
-
-        var responseBody = await SendSoapRequestAsync(userUri, soapPayload, appConfig, SCIMDirections.Outbound, correlationId);
-        CheckEagleAck(responseBody, appConfig.AppId);
+        throw new NotSupportedException("Use the ActionStep overload for SOAPEagle operations.");
     }
    
     public override async Task DeleteAsync(
@@ -187,14 +159,20 @@ public class EagleSOAPIntegration : SOAPIntegration
     {
         ValidateActionStep(actionStep, "DELETE");
 
-        var template = ResolveSoapTemplate(appConfig, MapHttpVerbToSoapAction(actionStep.HttpVerb, "DELETE"));
+        var template = actionStep.Template
+            ?? throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} has no template for DELETE. AppId: {appConfig.AppId}");
+
         var attributes = actionStep.UserAttributeSchemas?.ToList()
             ?? throw new InvalidOperationException($"No attributes configured on ActionStep {actionStep.StepOrder} for DELETE. AppId: {appConfig.AppId}");
 
-        var resource = new Core2EnterpriseUser { Identifier = identifier };
+        if (attributes.Count == 0)
+            throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} has no attributes for DELETE. AppId: {appConfig.AppId}");
 
-         // Inject {{CorrelationId}} into template + ACK check
-        var injected = template.Template.Replace("{{CorrelationId}}", Guid.NewGuid().ToString(), StringComparison.Ordinal);
+        if (!attributes.Any(a => a.DestinationField == "Identifier"))
+            throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} is missing an Identifier attribute mapping for DELETE. AppId: {appConfig.AppId}");
+
+        var resource = new Core2EnterpriseUser { Identifier = identifier };
+        var injected = template.Replace("{{CorrelationId}}", Guid.NewGuid().ToString(), StringComparison.Ordinal);
         var soapPayload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(injected, attributes, resource);
 
         var responseBody = await SendSoapRequestAsync(new Uri(actionStep.EndPoint), soapPayload, appConfig, SCIMDirections.Outbound, correlationId, cancellationToken);

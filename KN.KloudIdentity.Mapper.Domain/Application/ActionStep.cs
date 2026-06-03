@@ -36,6 +36,11 @@ public class ActionStep
     public bool? IsMandatory { get; init; } = true;
 
     /// <summary>
+    /// SOAP XML template with {{Placeholder}} markers. Only used for SOAP integration methods.
+    /// </summary>
+    public string? Template { get; init; }
+
+    /// <summary>
     /// List of User Attribute Schemas
     /// </summary>
     public virtual ICollection<AttributeSchema>? UserAttributeSchemas { get; init; }
