@@ -28,7 +28,8 @@ namespace KN.KloudIdentity.Mapper.Utils
 
             if (method == AuthenticationMethods.APIKey)
             {
-                if (authConfig.AuthHeaderName == null)
+                var auth = JsonConvert.DeserializeObject<APIKeyAuthentication>(authConfig.ToString());
+                if (auth.AuthHeaderName == null)
                 {
                     throw new ArgumentNullException(
                         nameof(authConfig.AuthHeaderName),
@@ -36,9 +37,9 @@ namespace KN.KloudIdentity.Mapper.Utils
                     );
                 }
 
-                httpClient.DefaultRequestHeaders.Add(authConfig.AuthHeaderName.ToString(), token);
+                httpClient.DefaultRequestHeaders.Add(auth.AuthHeaderName, token);
             }
-            else if (method == AuthenticationMethods.OIDC_ClientCrd)
+            else if (method == AuthenticationMethods.OAuth2)
             {
                 var auth = JsonConvert.DeserializeObject<OAuth2Authentication>(authConfig.ToString());
                 var tokenPrefix = string.IsNullOrWhiteSpace(auth.TokenPrefix)

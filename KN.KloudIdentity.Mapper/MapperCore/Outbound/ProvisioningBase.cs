@@ -1,10 +1,7 @@
-using System;
 using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Application;
-using KN.KloudIdentity.Mapper.Domain.Mapping;
-using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
-using Microsoft.SCIM;
 using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Outbound;
@@ -13,18 +10,12 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound;
 /// Represents the base class for provisioning.
 /// This contains all the common methods and properties for provisioning.
 /// </summary>
-public class ProvisioningBase : IProvisioningBase
+public class ProvisioningBase(
+    IAppConfigSnapshotRepository appConfigSnapshotRepository,
+    IOutboundPayloadProcessor outboundPayloadProcessor
+    )
+    : IProvisioningBase
 {
-    private readonly IGetFullAppConfigQuery _getFullAppConfigQuery;
-    private readonly IOutboundPayloadProcessor _outboundPayloadProcessor;
-
-    public ProvisioningBase(IGetFullAppConfigQuery getFullAppConfigQuery,
-        IOutboundPayloadProcessor outboundPayloadProcessor)
-    {
-        _getFullAppConfigQuery = getFullAppConfigQuery;
-        _outboundPayloadProcessor = outboundPayloadProcessor;
-    }
-
     /// <summary>
     /// Executes custom logic asynchronously.
     /// </summary>
@@ -40,7 +31,7 @@ public class ProvisioningBase : IProvisioningBase
             return payload;
         }
 
-        payload = await _outboundPayloadProcessor.ProcessAsync(
+        payload = await outboundPayloadProcessor.ProcessAsync(
             payload,
             appConfig.ExternalEndpointInfo,
             correlationID,
@@ -50,14 +41,32 @@ public class ProvisioningBase : IProvisioningBase
     }
 
     /// <summary>
+    /// Gets the application configuration for a specific tenant and application ID asynchronously.
+    /// </summary>
+    /// <param name="tenantId"></param>
+    /// <param name="appId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    /// <exception cref="NotFoundException">Thrown when no application configuration exists for the specified tenant and application ID.</exception>
+    public virtual async Task<AppConfig> GetAppConfigForTenantAsync(string tenantId, string appId, CancellationToken cancellationToken)
+    {
+        var config = await appConfigSnapshotRepository.GetAppConfigByAppIdAsync(tenantId, appId, cancellationToken);
+        if (config == null)
+            throw new NotFoundException($"ProvisioningBase: App configuration not found for tenant ID {tenantId} and app ID {appId}.");
+        
+        return config;
+    }
+
+    /// <summary>
     /// Gets the application configuration asynchronously.
     /// </summary>
     /// <param name="appId">Application ID</param>
     /// <returns></returns>
     /// <exception cref="NotFoundException"></exception>
+    [Obsolete("Please use GetAppConfigForTenantAsync instead")]
     public virtual async Task<AppConfig> GetAppConfigAsync(string appId)
     {
-        var config = await _getFullAppConfigQuery.GetAsync(appId);
+        var config = await appConfigSnapshotRepository.GetAppConfigByAppIdAsync(appId);
 
         if (config == null)
         {
@@ -67,4 +76,5 @@ public class ProvisioningBase : IProvisioningBase
 
         return config;
     }
+
 }

@@ -11,8 +11,10 @@ public class AppSettings
     public UserMigrationOptions UserMigration { get; set; } = new UserMigrationOptions();
     public LicenseValidationOptions LicenseValidation { get; set; } = new LicenseValidationOptions();
     public List<AppIntegrationConfig> AppIntegrationConfigs { get; set; } = [];
-    public IntegrationMappings IntegrationMappings { get; set; } = new IntegrationMappings();    
+    public IntegrationMappings IntegrationMappings { get; set; } = new IntegrationMappings();
     public List<LoggingConfigs> LoggingConfigs { get; set; } = new List<LoggingConfigs>();
+    public AzureKeyVaultSettings AzureKeyVault { get; set; } = new AzureKeyVaultSettings();
+    public string EncryptionKey { get; set; } = string.Empty;
 }
 
 public class RabbitMQOptions
@@ -42,6 +44,8 @@ public class UserMigrationOptions
     public Dictionary<string, bool> AppFeatureEnabledMap { get; set; } = new Dictionary<string, bool>();
     public Dictionary<string, string> AppCorrelationPropertyMap { get; set; } = new Dictionary<string, string>();
     public string AzureStorageConnectionString { get; set; } = string.Empty;
+    public string AzureStorageAccountUrl { get; set; } = string.Empty;
+    public string AuthMethod { get; set; } = string.Empty;
 }
 
 public class LicenseValidationOptions
@@ -55,15 +59,22 @@ public class AppIntegrationConfig
     public string AppId { get; set; } = string.Empty;
     public HttpSettings? HttpSettings { get; set; }
     public string ClientType { get; set; } = string.Empty;
-}   
+    public string TechnicianUrl { get; set; } = string.Empty;
+}
 
 public class HttpSettings
 {
     public Dictionary<string, string>? Headers { get; set; }
     public string? ContentType { get; set; }
 }
+
 public class IntegrationMappings
 {
     public Dictionary<string, string> AppIdToIntegration { get; set; } = new Dictionary<string, string>();
     public Dictionary<string, string> DefaultIntegration { get; set; } = new Dictionary<string, string>();
+}
+
+public class AzureKeyVaultSettings
+{
+    public string Url { get; set; } = string.Empty;
 }

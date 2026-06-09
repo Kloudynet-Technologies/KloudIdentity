@@ -4,8 +4,11 @@
 
 using System.Net;
 using System.Security.Authentication;
+using KN.KloudIdentity.Mapper.Common.Encryption;
+using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
-using Microsoft.SCIM;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
 namespace KN.KloudIdentity.Mapper;
@@ -13,20 +16,25 @@ namespace KN.KloudIdentity.Mapper;
 /// <summary>
 /// OAuth2 authentication strategy.
 /// </summary>
-public class OAuth2Strategy : IAuthStrategy
+public class OAuth2Strategy(
+    IOptions<AppSettings> appSettings,
+    ISecretManager secretManager
+) : IAuthStrategy
 {
-    public AuthenticationMethods AuthenticationMethod => AuthenticationMethods.OIDC_ClientCrd;
+    public AuthenticationMethods AuthenticationMethod => AuthenticationMethods.OAuth2;
 
     /// <summary>
     /// Gets the auth token for OAuth2.
     /// </summary>
     /// <param name="authConfig"></param>
     /// <returns></returns>
-
     public virtual async Task<string> GetTokenAsync(dynamic authConfig)
     {
         OAuth2Authentication oauth2Auth;
         ValidateParameters(authConfig, out oauth2Auth);
+
+        var encryptedClientSecret = await secretManager.GetSecretAsync(oauth2Auth.KeyVaultReference!);
+        oauth2Auth.ClientSecret = DecryptPassword(encryptedClientSecret, oauth2Auth.EncryptedData!);
 
         switch (oauth2Auth.GrantType)
         {
@@ -48,19 +56,19 @@ public class OAuth2Strategy : IAuthStrategy
     public virtual async Task<string> GetClientCredentialsTokenAsync(OAuth2Authentication oauth2Auth)
     {
         var requestContent = new Dictionary<string, string>
-                            {
-                                { "client_id", oauth2Auth.ClientId },
-                                { "client_secret", oauth2Auth.ClientSecret },
-                                { "scope", string.Join(",", oauth2Auth.Scopes) },
-                                { "grant_type", "client_credentials" }
-                            };
+        {
+            { "client_id", oauth2Auth.ClientId },
+            { "client_secret", oauth2Auth.ClientSecret },
+            { "scope", string.Join(",", oauth2Auth.Scopes) },
+            { "grant_type", "client_credentials" }
+        };
 
         var tokenResponse = await RequestTokenAsync(oauth2Auth, requestContent);
 
         return tokenResponse?.AccessToken;
     }
 
-    public virtual async Task<string> GetAuthorizationCodeTokenAsync(OAuth2Authentication oauth2Auth)
+    public virtual Task<string> GetAuthorizationCodeTokenAsync(OAuth2Authentication oauth2Auth)
     {
         // Implementation for Authorization Code grant type
         throw new NotImplementedException();
@@ -69,12 +77,12 @@ public class OAuth2Strategy : IAuthStrategy
     public virtual async Task<string> GetRefreshTokenAsync(OAuth2Authentication oauth2Auth)
     {
         var requestContent = new Dictionary<string, string>
-                            {
-                                { "client_id", oauth2Auth.ClientId },
-                                { "client_secret", oauth2Auth.ClientSecret },
-                                { "refresh_token", oauth2Auth.RefreshToken },
-                                { "grant_type", "refresh_token" }
-                            };
+        {
+            { "client_id", oauth2Auth.ClientId },
+            { "client_secret", oauth2Auth.ClientSecret },
+            { "refresh_token", oauth2Auth.RefreshToken },
+            { "grant_type", "refresh_token" }
+        };
 
         var tokenResponse = await RequestTokenAsync(oauth2Auth, requestContent);
 
@@ -85,11 +93,11 @@ public class OAuth2Strategy : IAuthStrategy
     {
         var client = new HttpClient();
         var requestContent = new Dictionary<string, string>
-                            {
-                                { "client_id", oauth2Auth.ClientId },
-                                { "scope", string.Join(" ", oauth2Auth.Scopes) },
-                                { "grant_type", "device_code" }
-                            };
+        {
+            { "client_id", oauth2Auth.ClientId },
+            { "scope", string.Join(" ", oauth2Auth.Scopes) },
+            { "grant_type", "device_code" }
+        };
 
         var response = await client.PostAsync(oauth2Auth.TokenUrl, new FormUrlEncodedContent(requestContent));
         var responseContent = await response.Content.ReadAsStringAsync();
@@ -101,14 +109,17 @@ public class OAuth2Strategy : IAuthStrategy
 
         var deviceCodeResponse = JsonConvert.DeserializeObject<DeviceCodeResponse>(responseContent);
 
-        Console.WriteLine($"Please visit {deviceCodeResponse.VerificationUri} and enter the code {deviceCodeResponse.UserCode} to authenticate.");
+        Console.WriteLine(
+            $"Please visit {deviceCodeResponse.VerificationUri} and enter the code {deviceCodeResponse.UserCode} to authenticate.");
 
         // Polling the token endpoint until the user has completed authentication
         while (true)
         {
-            await Task.Delay(deviceCodeResponse.Interval * 1000); // Delay according to the interval provided by the response
+            await Task.Delay(deviceCodeResponse.Interval *
+                             1000); // Delay according to the interval provided by the response
 
-            response = await client.PostAsync(oauth2Auth.TokenUrl, new FormUrlEncodedContent(new Dictionary<string, string>
+            response = await client.PostAsync(oauth2Auth.TokenUrl, new FormUrlEncodedContent(
+                new Dictionary<string, string>
                 {
                     { "client_id", oauth2Auth.ClientId },
                     { "device_code", deviceCodeResponse.DeviceCode },
@@ -153,7 +164,8 @@ public class OAuth2Strategy : IAuthStrategy
         throw new NotImplementedException();
     }
 
-    private async Task<TokenResponse> RequestTokenAsync(OAuth2Authentication oauth2Auth, Dictionary<string, string> requestContent)
+    private async Task<TokenResponse> RequestTokenAsync(OAuth2Authentication oauth2Auth,
+        Dictionary<string, string> requestContent)
     {
         var client = new HttpClient();
 
@@ -193,11 +205,6 @@ public class OAuth2Strategy : IAuthStrategy
             throw new ArgumentNullException(nameof(oauth2Auth.ClientId));
         }
 
-        if (string.IsNullOrWhiteSpace(oauth2Auth.ClientSecret))
-        {
-            throw new ArgumentNullException(nameof(oauth2Auth.ClientSecret));
-        }
-
         if (string.IsNullOrWhiteSpace(oauth2Auth.Authority))
         {
             throw new ArgumentNullException(nameof(oauth2Auth.Authority));
@@ -217,5 +224,17 @@ public class OAuth2Strategy : IAuthStrategy
             if (string.IsNullOrWhiteSpace(oauth2Auth.RefreshToken))
                 throw new ArgumentNullException(nameof(oauth2Auth.RefreshToken));
         }
+    }
+
+    private string DecryptPassword(string encryptedPassword, EncryptedData encryptedData)
+    {
+        var encryptionKey = appSettings.Value.EncryptionKey;
+        if (string.IsNullOrWhiteSpace(encryptionKey))
+        {
+            throw new ArgumentException("Encryption key is not configured in EncryptionKey.");
+        }
+
+        var decryptedPassword = EncryptionHelper.Decrypt(encryptedPassword, encryptionKey, encryptedData.IV);
+        return decryptedPassword;
     }
 }

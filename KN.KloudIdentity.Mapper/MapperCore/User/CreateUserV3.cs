@@ -3,6 +3,7 @@ using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,13 +22,13 @@ public class CreateUserV3 : CreateUserV2, ICreateResourceV2
     private readonly IAzureStorageManager? _azureStorageManager;
 
     public CreateUserV3(
-        IGetFullAppConfigQuery getFullAppConfigQuery,
+        IAppConfigSnapshotRepository snapshotRepository,
         IIntegrationBaseFactory integrationFactory,
         IOutboundPayloadProcessor outboundPayloadProcessor,
         IKloudIdentityLogger logger,
         IOptions<AppSettings> options,
         IReplaceResourceV2 replaceResourceV2,
-        IServiceProvider serviceProvider) : base(getFullAppConfigQuery, integrationFactory, outboundPayloadProcessor,
+        IServiceProvider serviceProvider) : base(snapshotRepository, integrationFactory, outboundPayloadProcessor,
         logger)
     {
         _integrationFactory = integrationFactory;

@@ -4,7 +4,6 @@
 
 using System.Collections;
 using System.Dynamic;
-using KN.KloudIdentity.Mapper.Config;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using Microsoft.SCIM;
 using Newtonsoft.Json.Linq;

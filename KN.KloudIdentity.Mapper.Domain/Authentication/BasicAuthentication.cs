@@ -10,10 +10,14 @@ public record BasicAuthentication
     /// <summary>
     /// Password
     /// </summary>
-    public string Password { get; init; }
+    public string Password { get; set; }
 
     /// <summary>
     /// Authorization header name [Optional]
     /// </summary>
     public string? AuthHeaderName { get; init; }
+    
+    public string? KeyVaultReference { get; init; }
+    
+    public EncryptedData EncryptedData { get; init; }
 }

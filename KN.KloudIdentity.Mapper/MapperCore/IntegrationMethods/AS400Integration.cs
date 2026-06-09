@@ -23,7 +23,7 @@ public class AS400Integration(
     IReqStagQueuePublisher reqStagQueuePublisher,
     IOptions<AppSettings> appSettings,
     IListAs400GroupsQuery listAs400GroupsQuery)
-    : IIntegrationBase
+    : IIntegrationBaseV2
 {
     public IntegrationMethods IntegrationMethod { get; init; } = IntegrationMethods.AS400;
 
@@ -137,6 +137,12 @@ public class AS400Integration(
         };
 
         return await Task.FromResult(payload);
+    }
+
+    public Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource,
+        AppConfig appConfig, CancellationToken cancellationToken = default)
+    {
+        return MapAndPreparePayloadAsync(schema, resource, cancellationToken);
     }
 
     private string GetValueFromResource(IList<AttributeSchema> schema, Core2EnterpriseUser resource,
@@ -293,7 +299,7 @@ public class AS400Integration(
     {
         var groups = string.IsNullOrEmpty(payload["groupProfile"])
             ? []
-            : (List<As400Group>)await listAs400GroupsQuery.ListAsync(appConfig.AppId, cancellationToken);
+            : (List<As400Group>)await listAs400GroupsQuery.ListAsync(appConfig.AppId, appConfig.TenantId, cancellationToken);
 
         ValidateUsername(payload["username"]);
         ValidateUserClass(payload["userClass"]);
@@ -406,4 +412,38 @@ public class AS400Integration(
     {
         return basePath.TrimEnd('/') + endpoint;
     }
+
+    #region Not Implemented: Action-based methods (not required for AS400 integration)
+
+    public Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, string appId, AppConfig appConfig,
+        ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException("Action-based provisioning is not supported for AS400 integration.");
+    }
+
+    public Task<Core2EnterpriseUser> GetAsync(string identifier, AppConfig appConfig, ActionStep actionStep,
+        string correlationId, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException("Action-based retrieval is not supported for AS400 integration.");
+    }
+
+    public Task<Core2EnterpriseUser> ReplaceAsync(dynamic payload, Core2EnterpriseUser resource, string appId,
+        AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException("Action-based replacement is not supported for AS400 integration.");
+    }
+
+    public Task UpdateAsync(dynamic payload, Core2EnterpriseUser resource, string appId, AppConfig appConfig,
+        ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException("Action-based update is not supported for AS400 integration.");
+    }
+
+    public Task DeleteAsync(string identifier, string appId, AppConfig appConfig, ActionStep actionStep,
+        string correlationId, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException("Action-based deletion is not supported for AS400 integration.");
+    }
+
+    #endregion
 }

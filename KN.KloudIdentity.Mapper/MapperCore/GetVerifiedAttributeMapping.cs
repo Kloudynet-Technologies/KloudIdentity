@@ -17,7 +17,7 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
         _getFullAppConfigQuery = getFullAppConfigQuery;
     }
 
-    public async Task<JObject> GetVerifiedAsync(string appId, ObjectTypes type, HttpRequestTypes httpRequestType)
+    public async Task<JObject> GetVerifiedAsync(string appId, ObjectTypes type, int stepId)
     {
         Log.Information($"Getting verified attribute for {appId}");
 
@@ -31,14 +31,25 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
                 $"Application configuration for App ID '{appId}' was not found. Please verify the App ID and try again.");
         }
 
+        // Find the step by stepId from all actions
+        var step = appConfig.Actions?
+            .SelectMany(a => a.ActionSteps ?? Enumerable.Empty<ActionStep>())
+            .FirstOrDefault(s => s.Id == stepId);
+
+        if (step == null)
+        {
+            Log.Error("Action step not found for App ID: {AppId} and Step ID: {StepId}", appId, stepId);
+            throw new NotFoundException($"Action step not found for App ID: {appId} and Step ID: {stepId}");
+        }
+
+
         if (type == ObjectTypes.Group)
         {
-            var groupAttributes = appConfig.GroupAttributeSchemas?.Where(x => x.HttpRequestType == httpRequestType)
-                .ToList();
+            var groupAttributes = step.GroupAttributeSchema?.ToList();
 
             if (groupAttributes == null)
             {
-                Log.Error($"Group attributes not found for App ID: {appId} and HttpRequestType: {httpRequestType}");
+                Log.Error($"Group attributes not found for App ID: {appId} and Step Id: {stepId}");
                 throw new NotFoundException("Group attributes not found");
             }
 
@@ -46,12 +57,11 @@ public class GetVerifiedAttributeMapping : IGetVerifiedAttributeMapping
         }
         else if (type == ObjectTypes.User)
         {
-            var userAttributes = appConfig.UserAttributeSchemas.Where(x => x.HttpRequestType == httpRequestType)
-                .ToList();
+            var userAttributes = step.UserAttributeSchemas?.ToList();
 
             if (userAttributes == null)
             {
-                Log.Error($"User attributes not found for App ID: {appId} and HttpRequestType: {httpRequestType}");
+                Log.Error($"User attributes not found for App ID: {appId} and Step Id: {stepId}");
                 throw new NotFoundException("User attributes not found");
             }
 

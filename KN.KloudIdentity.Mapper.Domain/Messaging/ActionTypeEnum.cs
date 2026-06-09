@@ -9,4 +9,10 @@ public enum ActionType
     GetInboundConfigurations,
     ListAs400Groups,
     LicenseStatusCheck,
+    ListApplicationConfigs,
+    // SCIM user lifecycle actions
+    GetUser,
+    CreateUser,
+    EditUser,
+    DisableUser,
 }

@@ -5,8 +5,11 @@ public enum AuthenticationMethods
     None = 0,
     Basic = 1,
     Bearer = 2,
-    OIDC_ClientCrd = 3,
+    OAuth2 = 3,
     APIKey = 4,
     SAML = 5,
-    DotRez = 6
+    OAuth2ClientCrd = 6,
+    DotRez = 7,
+    SoapWsSecurity = 8,
+    SoapNtlm = 9
 }

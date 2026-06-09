@@ -5,6 +5,7 @@ using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
@@ -17,20 +18,16 @@ namespace KN.KloudIdentity.Mapper.MapperCore.User;
 
 public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
 {
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IKloudIdentityLogger _logger;
     private readonly IIntegrationBaseFactory _integrationBaseFactory;
 
-    public ReplaceUserV2(IAuthContext authContext,
-        IHttpClientFactory httpClientFactory,
-        IGetFullAppConfigQuery getFullAppConfigQuery,
+    public ReplaceUserV2(IAppConfigSnapshotRepository snapshotRepository,
         IKloudIdentityLogger logger,
         IIntegrationBaseFactory integrationBaseFactory,
         IOutboundPayloadProcessor outboundPayloadProcessor
     )
-        : base(getFullAppConfigQuery, outboundPayloadProcessor)
+        : base(snapshotRepository, outboundPayloadProcessor)
     {
-        _httpClientFactory = httpClientFactory;
         _logger = logger;
         _integrationBaseFactory = integrationBaseFactory;
     }
@@ -48,6 +45,10 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
         // Step 1: Get app config
         var appConfig = await GetAppConfigAsync(appId);
 
+        if (appConfig.IntegrationMethodOutbound is IntegrationMethods.SOAP or IntegrationMethods.SOAPEagle)
+            throw new NotSupportedException(
+                $"ReplaceUserV2 does not support SOAP integrations. Use ReplaceUserV4 for AppId: {appId}.");
+
         // Resolve integration method operations
         var integrationOp =
             _integrationBaseFactory.GetIntegration(appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST,
@@ -58,7 +59,7 @@ public class ReplaceUserV2 : ProvisioningBase, IReplaceResourceV2
         var attributes = GetUserAttributes(appConfig.UserAttributeSchemas, appConfig.IntegrationMethodOutbound);
 
         // Step 2: Map and prepare payload
-        var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, resource);
+        var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, resource, appConfig);
         Log.Information(
             "Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Payload: {Payload}",
             appId, correlationID, JsonConvert.SerializeObject(payload));

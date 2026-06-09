@@ -3,8 +3,7 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.BackgroundJobs;
-using KN.KloudIdentity.Mapper.Config;
-using KN.KloudIdentity.Mapper.Config.Db;
+using KN.KloudIdentity.Mapper.Common.AppConfig;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Commands;
@@ -38,53 +37,62 @@ public static class ServiceExtension
     public static void ConfigureMapperServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddHttpClient();
-        services.AddMemoryCache();
-        services.AddScoped<Context>();
+        services.AddHttpClient(AppConstant.NtlmSoapClientName)
+                .ConfigurePrimaryHttpMessageHandler(() =>
+                    new HttpClientHandler
+                    {
+                        UseDefaultCredentials = true
+                        // or static credentials if your app uses fixed service credentials
+                    });
 
-        services.AddScoped<AutoMapperConfig>();
-        services.AddScoped<IAuthContext, AuthContextV1>();
+        services.AddMemoryCache();
+        services.AddScoped<IAuthContext, AuthContextV2>();
         services.AddScoped<IAuthStrategy, ApiKeyStrategy>();
         services.AddScoped<IAuthStrategy, BasicAuthStrategy>();
+        services.AddScoped<IAuthStrategy, BearerAuthStratergy>();
         services.AddScoped<IAuthStrategy, OAuth2Strategy>();
         services.AddScoped<IAuthStrategy, DotRezAuthStrategy>();
+        services.AddScoped<ISoapAuthApplier, SoapTransportAuthApplier>();
+        services.AddScoped<ISoapAuthApplier, WsSecuritySoapAuthApplier>();
+        services.AddScoped<ISoapAuthApplier, SoapTokenHeaderApplier>();
 
-        services.AddScoped<IConfigReader, ConfigReaderSQL>();
+        services.AddScoped<IList<IIntegrationBaseV2>>(provider => provider.GetServices<IIntegrationBaseV2>().ToList());
 
-        services.AddScoped<IList<IIntegrationBase>>(provider =>
-        {
-            return provider.GetServices<IIntegrationBase>().ToList();
-        });
-                
         var appSettingsSection = configuration.GetSection("KI");
         var appSettings = appSettingsSection.Get<AppSettings>();
         var connectionString = appSettings?.UserMigration?.AzureStorageConnectionString;
+        var authMethod = appSettings?.UserMigration?.AuthMethod;
 
-        if (!string.IsNullOrWhiteSpace(connectionString))
+        if (!string.IsNullOrWhiteSpace(authMethod))
         {
             services.AddSingleton<IAzureStorageManager>(provider =>
             {
                 var options = provider.GetRequiredService<IOptions<AppSettings>>().Value;
-                return new AzureStorageManager(connectionString, options);
+                return new AzureStorageManager(connectionString, authMethod, options, configuration);
             });
         }
 
-        services.AddScoped<ICreateResourceV2, CreateUserV3>();
-       
-        services.AddScoped<IIntegrationBase, RestIntegrationManageEngine>(); 
-        services.AddScoped<IIntegrationBase, RESTIntegrationV2>();
-        
+        services.AddScoped<ICreateResourceV2, CreateUserV4>();
+
+        services.AddScoped<IIntegrationBase, RestIntegrationManageEngine>();
+        services.AddScoped<IIntegrationBaseV2, RESTIntegrationV4>();
+        services.AddScoped<IIntegrationBaseV2, ITSMIntegration>();
+
         services.AddScoped<IIntegrationBase, RESTIntegration>();
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
-        services.AddScoped<IIntegrationBase, AS400Integration>();
+        services.AddScoped<IIntegrationBaseV2, AS400Integration>();
         services.AddScoped<IIntegrationBase, SQLIntegration>();
+        services.AddScoped<IIntegrationBaseV2, SOAPIntegration>();
+        services.AddScoped<IIntegrationBaseV2, EagleSOAPIntegration>();
 
         services.AddScoped<IIntegrationBaseFactory, IntegrationBaseFactory>();
 
         services.AddScoped<IReqStagQueuePublisher, ReqStagQueuePublisherV1>();
-        services.AddScoped<IGetResourceV2, GetUserV2>();
-        services.AddScoped<IReplaceResourceV2, ReplaceUserV2>();
-        services.AddScoped<IUpdateResourceV2, UpdateUserV2>();
-        services.AddScoped<IDeleteResourceV2, DeleteUserV2>();
+        services.AddScoped<IGetResourceV2, GetUserV4>();
+        services.AddScoped<IReplaceResourceV2, ReplaceUserV4>();
+
+        services.AddScoped<IUpdateResourceV2, UpdateUserV4>();
+        services.AddScoped<IDeleteResourceV2, DeleteUserV4>();
 
         services.AddScoped<ICreateResource<Core2Group>, CreateGroup>();
         services.AddScoped<IDeleteResource<Core2Group>, DeleteGroup>();
@@ -112,5 +120,8 @@ public static class ServiceExtension
         services.AddScoped<IListAs400GroupsQuery, ListAs400GroupsQuery>();
 
         services.AddScoped<ILicenseValidationQuery, LicenseValidationQuery>();
+
+        services.AddScoped<IAddOrEditAppConfig, AddOrEditAppConfig>();
+        services.AddScoped<IDeleteAppConfig, DeleteAppConfig>();
     }
 }

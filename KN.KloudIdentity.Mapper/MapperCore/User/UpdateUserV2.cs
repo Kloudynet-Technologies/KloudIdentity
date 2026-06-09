@@ -1,10 +1,10 @@
-using System;
 using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
@@ -19,10 +19,10 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
     private readonly IKloudIdentityLogger _logger;
 
     public UpdateUserV2(
-        IGetFullAppConfigQuery getFullAppConfigQuery,
+        IAppConfigSnapshotRepository snapshotRepository,
         IIntegrationBaseFactory integrationBaseFactory,
         IOutboundPayloadProcessor outboundPayloadProcessor,
-        IKloudIdentityLogger logger) : base(getFullAppConfigQuery, outboundPayloadProcessor)
+        IKloudIdentityLogger logger) : base(snapshotRepository, outboundPayloadProcessor)
     {
         _integrationBaseFactory = integrationBaseFactory;
         _logger = logger;
@@ -55,6 +55,10 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         // Step 1: Get app config
         var appConfig = await GetAppConfigAsync(appId);
 
+        if (appConfig.IntegrationMethodOutbound is IntegrationMethods.SOAP or IntegrationMethods.SOAPEagle)
+            throw new NotSupportedException(
+                $"UpdateUserV2 does not support SOAP integrations. Use UpdateUserV4 for AppId: {appId}.");
+
         var integrationOp =
             _integrationBaseFactory.GetIntegration(appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST,
                 appId) ??
@@ -64,16 +68,32 @@ public class UpdateUserV2 : ProvisioningBase, IUpdateResourceV2
         var attributes = GetUserAttributes(appConfig.UserAttributeSchemas, appConfig.IntegrationMethodOutbound);
 
         // Step 2: Map and prepare payload
-        var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, user);
+        var payload = await integrationOp.MapAndPreparePayloadAsync(attributes, user, appConfig);
         Log.Information(
             "Payload mapped and prepared successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
             user.Identifier, appId, correlationId);
 
-        // Step 3: Update user
-        await integrationOp.UpdateAsync(payload, user, appConfig, correlationId);
-        Log.Information(
-            "User updated successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
-            user.Identifier, appId, correlationId);
+        // Step 3: Update or delete user
+        if (!user.Active)
+        {
+            // Custom logic for deprovisioning
+            var deleteIdentifier = integrationOp.IntegrationMethod == IntegrationMethods.Linux
+                ? user.ExternalIdentifier
+                : user.Identifier;
+
+            await integrationOp.DeleteAsync(deleteIdentifier, appConfig, correlationId);
+
+            Log.Information(
+                "Deprovisioning logic applied successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
+                user.Identifier, appId, correlationId);
+        }
+        else
+        {
+            await integrationOp.UpdateAsync(payload, user, appConfig, correlationId);
+            Log.Information(
+                "User updated successfully for Identifier: {Identifier}, AppId: {AppId}, CorrelationID: {CorrelationID}",
+                user.Identifier, appId, correlationId);
+        }
 
         _ = CreateLogAsync(appConfig.AppId, user.Identifier, correlationId);
     }

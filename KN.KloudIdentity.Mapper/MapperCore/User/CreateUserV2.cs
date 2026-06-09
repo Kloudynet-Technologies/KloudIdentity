@@ -5,6 +5,7 @@ using KN.KloudIdentity.Mapper.Common.Exceptions;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPIs.Abstractions;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound;
 using KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic;
 using KN.KloudIdentity.Mapper.Utils;
@@ -24,10 +25,10 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
     private readonly IIntegrationBaseFactory _integrationBaseFactory;
 
     public CreateUserV2(
-        IGetFullAppConfigQuery getFullAppConfigQuery,
+        IAppConfigSnapshotRepository snapshotRepository,
         IIntegrationBaseFactory integrationBaseFactory,
         IOutboundPayloadProcessor outboundPayloadProcessor,
-        IKloudIdentityLogger logger) : base(getFullAppConfigQuery, outboundPayloadProcessor)
+        IKloudIdentityLogger logger) : base(snapshotRepository, outboundPayloadProcessor)
     {
         _integrationBaseFactory = integrationBaseFactory;
         _logger = logger;
@@ -51,13 +52,19 @@ public class CreateUserV2 : ProvisioningBase, ICreateResourceV2
         // Step 1: Get app config
         var appConfig = await GetAppConfigAsync(appId);
 
+        if (appConfig.IntegrationMethodOutbound is IntegrationMethods.SOAP or IntegrationMethods.SOAPEagle)
+            throw new NotSupportedException(
+                $"CreateUserV2 does not support SOAP integrations. Use CreateUserV4 for AppId: {appId}.");
+
         // Resolve integration method operations
         var integrationOp = _integrationBaseFactory.GetIntegration(appConfig.IntegrationMethodOutbound ?? IntegrationMethods.REST, appId) ??
                                 throw new NotSupportedException($"Integration method {appConfig.IntegrationMethodOutbound} is not supported.");
 
+
         // Step 2: Attribute mapping
+
         var userAttributes = GetUserAttributes(appConfig.UserAttributeSchemas, appConfig.IntegrationMethodOutbound);
-        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource);
+        var payload = await integrationOp.MapAndPreparePayloadAsync(userAttributes, resource, appConfig);
         Log.Information(
             "Payload mapped and prepared successfully for AppId: {AppId}, CorrelationID: {CorrelationID}, Payload: {Payload}",
             appId, correlationID, JsonConvert.SerializeObject(payload));

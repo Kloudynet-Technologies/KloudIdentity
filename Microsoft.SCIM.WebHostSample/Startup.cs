@@ -3,7 +3,9 @@
 //------------------------------------------------------------
 
 using Hangfire.SqlServer;
+using KN.KloudIdentity.Mapper.Common.AppConfig;
 using KN.KloudIdentity.Mapper.Common.License;
+using KN.KloudIdentity.Mapper.Infrastructure.DI;
 using Microsoft.Data.SqlClient;
 using Serilog;
 
@@ -13,7 +15,6 @@ namespace Microsoft.SCIM.WebHostSample
     using System.Threading.Tasks;
     using KN.KloudIdentity.Mapper.Utils;
     using KN.KloudIdentity.Mapper.Common.Exceptions;
-    using KN.KloudIdentity.Mapper.Config.Db;
     using Microsoft.AspNetCore.Authentication;
     using Microsoft.AspNetCore.Authentication.JwtBearer;
     using Microsoft.AspNetCore.Builder;
@@ -70,8 +71,6 @@ namespace Microsoft.SCIM.WebHostSample
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<Context>();
-
             void ConfigureMvcNewtonsoftJsonOptions(MvcNewtonsoftJsonOptions options) =>
                 options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
 
@@ -128,7 +127,7 @@ namespace Microsoft.SCIM.WebHostSample
 
             services.AddOptions<AppSettings>().Bind(configuration.GetSection("KI"));
 
-            services.AddApplicationInsightsTelemetry();
+         //   services.AddApplicationInsightsTelemetry();
 
             services.AddAuthentication(ConfigureAuthenticationOptions).AddJwtBearer(ConfigureJwtBearerOptons);
             services.AddControllers().AddNewtonsoftJson(ConfigureMvcNewtonsoftJsonOptions);
@@ -148,6 +147,7 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddSingleton(typeof(IMonitor), this.MonitoringBehavior);
 
             services.ConfigureMapperServices(configuration);
+            services.AddInfrastructure(configuration);
 
             services.AddHttpClient();
 
@@ -157,6 +157,7 @@ namespace Microsoft.SCIM.WebHostSample
                 x.AddRequestClient<IMgtPortalServiceRequestMsg>(new Uri("queue:mgtportal_in"));
                 x.AddRequestClient<IMetaverseServiceRequestMsg>(new Uri("queue:metaverse_in"));
                 x.AddConsumer<InterserviceConsumer>();
+                x.AddConsumer<AppConfigSnapshotUpdatedConsumer>(); // ✅ add this
                 x.UsingRabbitMq((context, cfg) =>
                 {
                     var options = context.GetRequiredService<IOptions<AppSettings>>().Value;
@@ -166,6 +167,18 @@ namespace Microsoft.SCIM.WebHostSample
                         h.Username(options.RabbitMQ.UserName);
                         h.Password(options.RabbitMQ.Password);
                     });
+                    
+                    cfg.UseMessageRetry(r =>
+                    {
+                        r.Exponential(
+                            retryLimit: 5,
+                            minInterval: TimeSpan.FromSeconds(1),
+                            maxInterval: TimeSpan.FromSeconds(30),
+                            intervalDelta: TimeSpan.FromSeconds(5));
+
+                        r.Ignore<ArgumentException>();
+                    });
+                    
                     cfg.ReceiveEndpoint("scimservice_in", e => { e.ConfigureConsumer<InterserviceConsumer>(context); });
 
                     cfg.ConfigureEndpoints(context);
@@ -227,7 +240,9 @@ namespace Microsoft.SCIM.WebHostSample
             services.AddScoped<NonSCIMGroupProvider>();
             services.AddScoped<NonSCIMUserProvider>();
             services.AddScoped<IProvider, NonSCIMAppProvider>();
+            services.AddScoped<ITenantContext, TenantContext>();
             services.AddScoped<ExtractAppIdFilter>();
+            services.AddHostedService<AppConfigStartupSync>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

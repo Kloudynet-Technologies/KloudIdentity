@@ -4,5 +4,5 @@ namespace KN.KloudIdentity.Mapper.MapperCore;
 
 public interface IIntegrationBaseFactory
 {
-    IIntegrationBase GetIntegration(IntegrationMethods integrationMethod, string appId = "");
+    IIntegrationBaseV2 GetIntegration(IntegrationMethods integrationMethod, string appId = "");
 }
