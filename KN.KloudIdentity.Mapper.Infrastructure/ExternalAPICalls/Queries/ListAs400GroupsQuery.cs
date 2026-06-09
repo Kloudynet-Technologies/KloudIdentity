@@ -20,20 +20,26 @@ public class ListAs400GroupsQuery : IListAs400GroupsQuery
         _requestClient = serviceScope.ServiceProvider.GetRequiredService<IRequestClient<IMetaverseServiceRequestMsg>>();
     }
 
-    public async Task<IList<As400Group>> ListAsync(string appId, CancellationToken cancellationToken = default)
+    public async Task<IList<As400Group>> ListAsync(string appId, string tenantId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(appId))
         {
             throw new ArgumentNullException(nameof(appId));
         }
 
-        return await SendMessageAndProcessResponse(appId);
+        if (string.IsNullOrWhiteSpace(tenantId))
+        {
+            throw new ArgumentNullException(nameof(tenantId));
+        }
+
+        return await SendMessageAndProcessResponse(appId, tenantId);
     }
 
-    private async Task<IList<As400Group>> SendMessageAndProcessResponse(string appId)
+    private async Task<IList<As400Group>> SendMessageAndProcessResponse(string appId, string tenantId)
     {
+        var payload = JsonConvert.SerializeObject(new { AppId = appId, TenantId = tenantId });
         var message = new MetaverseServiceRequestMsg(
-            appId,
+            payload,
             ActionType.ListAs400Groups.ToString(),
             Guid.NewGuid().ToString(),
             null
