@@ -3,6 +3,9 @@
 //------------------------------------------------------------
 
 using KN.KloudIdentity.Mapper.Domain.Shared;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.SQLServer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.SCIM.WebHostSample
 {
@@ -15,7 +18,18 @@ namespace Microsoft.SCIM.WebHostSample
     {
         public static void Main(string[] args)
         {
-            Program.CreateHostBuilder(args).Build().Run();
+            var host = Program.CreateHostBuilder(args).Build();
+
+            if (Array.Exists(args, a => a == "migrate"))
+            {
+                using var scope = host.Services.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<KNContext>();
+                context.Database.Migrate();
+                Console.WriteLine("Database migrated successfully.");
+                return;
+            }
+
+            host.Run();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
