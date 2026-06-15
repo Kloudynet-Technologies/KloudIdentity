@@ -28,6 +28,7 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly AppSettings _appSettings;
     private readonly IKloudIdentityLogger _logger;
+    private readonly IConfiguration _config;
 
     private static readonly ConcurrentDictionary<string, (string Token, DateTime ExpiresAt)> _tokenCache = new();
 
@@ -42,6 +43,7 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
         _httpClientFactory = httpClientFactory;
         _appSettings = appSettings.Value;
         _logger = logger;
+        _config = configuration;
         IntegrationMethod = IntegrationMethods.REST;
     }
 
@@ -73,11 +75,15 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("ApsToken", $"Value=\"{token}\"");
 
+        // Apply fixed headers (x-rs-version, x-rs-culture, x-rs-uiculture) from AppIntegrationConfigs
         var customConfig = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appConfig.AppId);
         if (customConfig?.HttpSettings?.Headers is { Count: > 0 })
         {
             client.SetCustomHeaders(customConfig.HttpSettings.Headers);
         }
+
+        // x-rs-key is resolved from App Config Key Vault reference — applied separately
+        client.DefaultRequestHeaders.Add("x-rs-key", GetApiKey());
 
         return client;
     }
@@ -253,6 +259,12 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
         AppConfig appConfig,
         string correlationId)
     {
+        if (resource.UserName == null)
+        {
+            Log.Warning("UpdateAsync skipped for appId {AppId}: resource.UserName is null.", appConfig.AppId);
+            return;
+        }
+        
         await ReplaceAsync(payload, resource, appConfig, correlationId);
     }
 
@@ -320,12 +332,15 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
 
         var client = _httpClientFactory.CreateClient();
 
-        // Apply fixed headers (x-rs-key, x-rs-version etc.) to the auth call too
+        // Apply fixed headers (x-rs-version, x-rs-culture, x-rs-uiculture) to the auth call too
         var customConfig = _appSettings.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == config.AppId);
         if (customConfig?.HttpSettings?.Headers is { Count: > 0 })
         {
             client.SetCustomHeaders(customConfig.HttpSettings.Headers);
         }
+
+        // x-rs-key resolved from App Config Key Vault reference
+        client.DefaultRequestHeaders.Add("x-rs-key", GetApiKey());
 
         var response = await client.PostAsync(
             authUrl,
@@ -364,5 +379,11 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
     {
         _tokenCache.TryRemove(appId, out _);
         Log.Warning("Tungsten ApsToken cache invalidated for appId {AppId} due to 401.", appId);
+    }
+
+    private string GetApiKey()
+    {
+        return _config["KI:Tungsten:ApiKey"]
+            ?? throw new InvalidOperationException("Tungsten API key (KI:Tungsten:ApiKey) not configured in App Configuration.");
     }
 }
