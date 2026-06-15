@@ -153,11 +153,19 @@ static ConcurrentDictionary<string, (string Token, DateTime ExpiresAt)>
 2. Set `Authorization: ApsToken Value="<token>"`
 3. Apply custom headers from `AppSettings.AppIntegrationConfigs` via `SetCustomHeaders`
 
-#### `ProvisionAsync` override
+#### `ProvisionAsync` override (upsert pattern)
 1. Get `OrganizationId` from `AppIntegrationConfigs[appId].OrganizationId`
-2. Build `User2` payload — `OrganizationId` merged into mapped payload
-3. POST to `UserURIs[0].Post`
-4. Parse response → `Identifier = response["UserName"]`
+2. Build payload — `OrganizationId` merged into mapped payload
+3. Extract `UserName` from payload (required before GET)
+4. **GET** `/users/rest/single/{orgId}/{userName}`:
+   - `404 NotFoundException` → user does not exist → proceed to **POST** (create)
+   - `200` → user already exists in Tungsten → call **`ReplaceAsync`** (update) and return existing `UserName`
+5. POST to `UserURIs[0].Post` (only reached if user was not found)
+6. Parse response → `Identifier = response["UserName"]`
+
+> **Why upsert?** If a user already exists in Tungsten with the same `UserName` (pre-existing or manually created),
+> a blind POST returns a conflict error and Entra provisioning gets stuck retrying. GET-first is idempotent and
+> handles re-runs safely without depending on Tungsten's conflict error code.
 
 #### `GetAsync` override
 1. Get `OrganizationId` from `AppIntegrationConfigs[appId].OrganizationId`
@@ -249,7 +257,8 @@ services.AddScoped<IIntegrationBase, TungstenAPEssentialsIntegration>();
 | `IsActive: true` silently ignored on create | New users stay inactive until logon email sent |
 | `x-rs-key` is region-specific | AU key returns `401 Invalid API key` against other regions |
 | DELETE returns `200` with full entity | Not `204` — parse body for audit log |
-| GET non-existent user returns `404` | Use as "safe to create" signal |
+| GET non-existent user returns `404` | Used as "safe to create" signal in upsert flow |
+| POST with existing `UserName` causes conflict | Use GET-first upsert: 404 → POST, 200 → PUT |
 
 ---
 

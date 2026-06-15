@@ -105,6 +105,28 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
         JObject jPayload = payload as JObject ?? JObject.FromObject(payload);
         jPayload["OrganizationId"] = organizationId;
 
+        // Extract UserName from payload — needed for GET-first upsert check
+        var userName = jPayload["UserName"]?.ToString();
+        if (string.IsNullOrWhiteSpace(userName))
+            throw new InvalidOperationException("Payload must contain UserName for Tungsten provisioning.");
+
+        // Upsert: check if user already exists in Tungsten before creating
+        try
+        {
+            var existing = await GetAsync(userName, appConfig, correlationId, cancellationToken);
+            if (existing != null)
+            {
+                Log.Information("Tungsten user already exists, updating instead. UserName: {UserName}, AppId: {AppId}, CorrelationID: {CorrelationID}",
+                    userName, appConfig.AppId, correlationId);
+                await ReplaceAsync(jPayload, new Core2EnterpriseUser { Identifier = userName }, appConfig, correlationId);
+                return new Core2EnterpriseUser { Identifier = userName };
+            }
+        }
+        catch (NotFoundException)
+        {
+            // User does not exist in Tungsten — proceed with create below
+        }
+
         var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
         var content = new StringContent(jPayload.ToString(Formatting.None), System.Text.Encoding.UTF8, "application/json");
         var response = await httpClient.PostAsync(userUri, content, cancellationToken);
@@ -123,7 +145,7 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
         }
 
         var json = JObject.Parse(responseBody);
-        var userName = json["UserName"]?.ToString();
+        userName = json["UserName"]?.ToString();
 
         if (string.IsNullOrWhiteSpace(userName))
         {
