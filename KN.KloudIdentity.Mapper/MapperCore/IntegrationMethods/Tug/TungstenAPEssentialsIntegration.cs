@@ -82,8 +82,9 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
             client.SetCustomHeaders(customConfig.HttpSettings.Headers);
         }
 
-        // x-rs-key is resolved from App Config Key Vault reference — applied separately
-        client.DefaultRequestHeaders.Add("x-rs-key", GetApiKey());
+        // x-rs-key may already be present via HttpSettings.Headers; only fall back to KI:Tungsten:ApiKey when absent
+        if (!client.DefaultRequestHeaders.Contains("x-rs-key"))
+            client.DefaultRequestHeaders.Add("x-rs-key", GetApiKey());
 
         return client;
     }
@@ -361,8 +362,9 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
             client.SetCustomHeaders(customConfig.HttpSettings.Headers);
         }
 
-        // x-rs-key resolved from App Config Key Vault reference
-        client.DefaultRequestHeaders.Add("x-rs-key", GetApiKey());
+        // x-rs-key may already be present via HttpSettings.Headers; only fall back to KI:Tungsten:ApiKey when absent
+        if (!client.DefaultRequestHeaders.Contains("x-rs-key"))
+            client.DefaultRequestHeaders.Add("x-rs-key", GetApiKey());
 
         var response = await client.PostAsync(
             authUrl,
