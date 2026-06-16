@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs cat)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(json.dumps\\(i,indent=2\\)\\) for i in data if i.get\\('AppId'\\)=='tungstenapessentials']\")"
+    ]
+  }
+}
