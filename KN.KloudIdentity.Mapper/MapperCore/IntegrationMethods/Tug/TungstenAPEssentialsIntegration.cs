@@ -107,7 +107,7 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
         jPayload["OrganizationId"] = organizationId;
 
         // Extract UserName from payload — needed for GET-first upsert check
-        var userName = jPayload["UserName"]?.ToString();
+        var userName = jPayload ["UserToCreate"]?["UserName"]?.ToString();
         if (string.IsNullOrWhiteSpace(userName))
             throw new InvalidOperationException("Payload must contain UserName for Tungsten provisioning.");
 
@@ -119,7 +119,7 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
             {
                 Log.Information("Tungsten user already exists, updating instead. UserName: {UserName}, AppId: {AppId}, CorrelationID: {CorrelationID}",
                     userName, appConfig.AppId, correlationId);
-                await ReplaceAsync(jPayload, new Core2EnterpriseUser { Identifier = userName }, appConfig, correlationId);
+               // await ReplaceAsync(jPayload, new Core2EnterpriseUser { Identifier = userName }, appConfig, correlationId);
                 return new Core2EnterpriseUser { Identifier = userName };
             }
         }
