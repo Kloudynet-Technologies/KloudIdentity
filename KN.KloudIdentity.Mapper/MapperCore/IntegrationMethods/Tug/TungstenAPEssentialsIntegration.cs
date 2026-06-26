@@ -147,6 +147,7 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
 
         var json = JObject.Parse(responseBody);
         userName = json["UserName"]?.ToString();
+        var id = json["Id"]?.ToString();
 
         if (string.IsNullOrWhiteSpace(userName))
         {
@@ -154,6 +155,15 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
                 appConfig.AppId, responseBody);
             throw new InvalidOperationException("Tungsten user creation response did not contain a UserName.");
         }
+
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            Log.Error("Tungsten create response missing Id. AppId: {AppId}, Response: {Response}",
+                appConfig.AppId, responseBody);
+            throw new InvalidOperationException("Tungsten user creation response did not contain an Id.");
+        }
+
+        await GrantOrganizationAccessAsync(id, appConfig, correlationId, cancellationToken);
 
         _ = Task.Run(async () =>
         {
@@ -329,6 +339,37 @@ public class TungstenAPEssentialsIntegration : RESTIntegration
         _ = CreateLogAsync(appConfig.AppId, "Delete User",
             $"Tungsten user deleted successfully for UserName {identifier}",
             LogType.Provision, LogSeverities.Information, correlationId);
+    }
+
+    private async Task GrantOrganizationAccessAsync(
+        string tungstenId,
+        AppConfig appConfig,
+        string correlationId,
+        CancellationToken cancellationToken)
+    {
+        var baseUrl = appConfig.UserURIs?.FirstOrDefault()?.BaseUrl?.TrimEnd('/')
+            ?? throw new InvalidOperationException($"BaseUrl not configured in UserURIs for appId: {appConfig.AppId}.");
+
+        var url = $"{baseUrl}/accounts/rest/users/userorganizationaccess/ids/{tungstenId}";
+
+        var httpClient = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
+        var content = new StringContent("{\"AccessAll\":true}", System.Text.Encoding.UTF8, "application/json");
+        var response = await httpClient.PostAsync(url, content, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                InvalidateCache(appConfig.AppId);
+
+            Log.Error("Tungsten grant organization access failed. AppId: {AppId}, TungstenId: {TungstenId}, Status: {Status}, Response: {Response}",
+                appConfig.AppId, tungstenId, response.StatusCode, responseBody);
+            throw new HttpRequestException(
+                $"Error granting organization access for Tungsten user {tungstenId}: {response.StatusCode} - {responseBody}");
+        }
+
+        Log.Information("Tungsten organization access granted. TungstenId: {TungstenId}, AppId: {AppId}, CorrelationID: {CorrelationID}",
+            tungstenId, appConfig.AppId, correlationId);
     }
 
     private async Task<string> FetchAndCacheTokenAsync(AppConfig config, CancellationToken cancellationToken)
