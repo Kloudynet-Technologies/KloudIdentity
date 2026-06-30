@@ -296,4 +296,100 @@ public class ASNBKioskIntegrationTests
             () => sut.GetAuthenticationAsync(appConfig));
         Assert.Contains("'/api' segment not found", ex.Message);
     }
+
+    // BasicAuthentication missing KeyVaultReference — must throw clear AuthenticationException
+    [Fact]
+    public async Task GetAuthenticationAsync_Throws_WhenKeyVaultReferenceIsMissing()
+    {
+        // Arrange
+        var sut = CreateSut(AsnbSuccessResponse());
+        var iv = Convert.ToBase64String(new byte[16]);
+        var appConfig = BuildValidAppConfig() with
+        {
+            AuthenticationFlow = new AuthenticationFlow
+            {
+                AppId = TestAppId,
+                Steps = new List<AuthenticationFlowStep>
+                {
+                    new AuthenticationFlowStep
+                    {
+                        StepTitle = "ASNB Basic Auth",
+                        StepOrder = 1,
+                        AuthenticationMethod = AuthenticationMethods.Basic,
+                        IsRequired = true,
+                        OnFailureAction = AuthOnFailureAction.None,
+                        AuthenticationDetails = JObject.FromObject(new BasicAuthentication
+                        {
+                            Username = TestUsername,
+                            AuthHeaderName = "Bearer",
+                            KeyVaultReference = null,
+                            EncryptedData = new EncryptedData { IV = iv }
+                        })
+                    }
+                }
+            }
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<AuthenticationException>(
+            () => sut.GetAuthenticationAsync(appConfig));
+        Assert.Contains("KeyVaultReference is required", ex.Message);
+    }
+
+    // BasicAuthentication missing EncryptedData.IV — must throw clear AuthenticationException
+    [Fact]
+    public async Task GetAuthenticationAsync_Throws_WhenEncryptedDataIVIsMissing()
+    {
+        // Arrange
+        var sut = CreateSut(AsnbSuccessResponse());
+        var appConfig = BuildValidAppConfig() with
+        {
+            AuthenticationFlow = new AuthenticationFlow
+            {
+                AppId = TestAppId,
+                Steps = new List<AuthenticationFlowStep>
+                {
+                    new AuthenticationFlowStep
+                    {
+                        StepTitle = "ASNB Basic Auth",
+                        StepOrder = 1,
+                        AuthenticationMethod = AuthenticationMethods.Basic,
+                        IsRequired = true,
+                        OnFailureAction = AuthOnFailureAction.None,
+                        AuthenticationDetails = JObject.FromObject(new BasicAuthentication
+                        {
+                            Username = TestUsername,
+                            AuthHeaderName = "Bearer",
+                            KeyVaultReference = TestSecretRef,
+                            EncryptedData = null
+                        })
+                    }
+                }
+            }
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<AuthenticationException>(
+            () => sut.GetAuthenticationAsync(appConfig));
+        Assert.Contains("EncryptedData.IV is required", ex.Message);
+    }
+
+    // Auth endpoint returns non-2xx — must throw AuthenticationException with status code and body
+    [Fact]
+    public async Task GetAuthenticationAsync_Throws_WhenAuthEndpointReturnsNonSuccess()
+    {
+        // Arrange
+        var unauthorizedResponse = new HttpResponseMessage(HttpStatusCode.Unauthorized)
+        {
+            Content = new StringContent("{\"message\":\"Invalid credentials\"}")
+        };
+        var sut = CreateSut(unauthorizedResponse);
+        var appConfig = BuildValidAppConfig();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<AuthenticationException>(
+            () => sut.GetAuthenticationAsync(appConfig));
+        Assert.Contains("ASNB Kiosk auth HTTP call failed", ex.Message);
+        Assert.Contains("Unauthorized", ex.Message);
+    }
 }

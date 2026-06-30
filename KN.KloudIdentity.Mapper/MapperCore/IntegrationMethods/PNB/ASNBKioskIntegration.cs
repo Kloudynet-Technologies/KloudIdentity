@@ -52,11 +52,18 @@ public class ASNBKioskIntegration : RESTIntegrationV4
             ?? throw new AuthenticationException(
                 $"Failed to deserialize BasicAuthentication details for app {config.AppId}.");
 
-        var encryptedPassword = await _secretManager.GetSecretAsync(auth.KeyVaultReference!);
+        if (string.IsNullOrWhiteSpace(auth.KeyVaultReference))
+            throw new AuthenticationException($"BasicAuthentication.KeyVaultReference is required for app {config.AppId}.");
+
+        if (auth.EncryptedData?.IV == null)
+            throw new AuthenticationException(
+                $"BasicAuthentication.EncryptedData.IV is required for app {config.AppId}.");
+
+        var encryptedPassword = await _secretManager.GetSecretAsync(auth.KeyVaultReference);
         var password = EncryptionHelper.Decrypt(
             encryptedPassword,
             _appSettings.EncryptionKey,
-            auth.EncryptedData!.IV);
+            auth.EncryptedData.IV);
 
         // Derive ASNB auth URL from any configured User action step endpoint.
         // Prefer GET (most stable URL shape), fall back to any other User action.
@@ -127,6 +134,6 @@ public class ASNBKioskIntegration : RESTIntegrationV4
                 $"Cannot derive ASNB auth URL: '/api' segment not found in endpoint '{getEndpoint}'.");
 
         var basePath = string.Join("/", segments.Take(apiIndex + 1));
-        return $"{uri.Scheme}://{uri.Host}/{basePath}{TokenAuthPath}";
+        return $"{uri.Scheme}://{uri.Authority}/{basePath}{TokenAuthPath}";
     }
 }
