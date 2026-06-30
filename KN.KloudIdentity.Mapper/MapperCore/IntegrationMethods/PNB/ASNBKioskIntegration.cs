@@ -100,7 +100,17 @@ public class ASNBKioskIntegration : RESTIntegrationV4
                 $"StatusCode: {response.StatusCode}, Body: {responseBody}");
 
         // Parse and validate the token
-        var responseJson = JObject.Parse(responseBody);
+        JObject responseJson;
+        try
+        {
+            responseJson = JObject.Parse(responseBody);
+        }
+        catch (JsonException ex)
+        {
+            throw new AuthenticationException(
+                $"ASNB Kiosk auth response was not valid JSON for app {config.AppId}. Body: {responseBody}",
+                ex);
+        }
 
         if (responseJson["success"]?.Value<bool>() != true)
         {
