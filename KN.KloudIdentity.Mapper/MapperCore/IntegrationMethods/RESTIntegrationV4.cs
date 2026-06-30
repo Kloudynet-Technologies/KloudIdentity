@@ -25,7 +25,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore;
 public class RESTIntegrationV4 : IIntegrationBaseV2
 {
     private readonly IAuthContext _authContext;
-    private readonly IHttpClientFactory _httpClientFactory;
+    protected readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private readonly IKloudIdentityLogger _logger;
     public IntegrationMethods IntegrationMethod { get; init; }
