@@ -995,11 +995,11 @@ namespace Microsoft.SCIM
             if (user.PhoneNumbers != null)
             {
                 phoneNumberExisting =
-                    phoneNumber =
-                        user
-                            .PhoneNumbers
-                            .SingleOrDefault((PhoneNumber item) =>
-                                string.Equals(subAttribute.ComparisonValue, item.ItemType, StringComparison.Ordinal));
+                    user
+                        .PhoneNumbers
+                        .SingleOrDefault((PhoneNumber item) =>
+                            string.Equals(subAttribute.ComparisonValue, item.ItemType, StringComparison.Ordinal));
+                phoneNumber = phoneNumberExisting ?? new PhoneNumber() { ItemType = subAttribute.ComparisonValue };
             }
             else
             {
