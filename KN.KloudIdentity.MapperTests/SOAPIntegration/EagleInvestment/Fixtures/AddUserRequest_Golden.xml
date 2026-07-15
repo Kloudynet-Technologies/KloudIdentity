@@ -1,0 +1,94 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:eag="http://www.eagleinvsys.com/2011/wsdl/EagleML-2-0" xmlns:eag1="http://www.eagleinvsys.com/2011/EagleML-2-0">
+    <soapenv:Header/>
+    <soapenv:Body>
+        <eag:runTaskRequest>
+            <EagleML eaglemlVersion="2-0" eaglemlType="UserAdministrationTransactionMessage" eaglemlRevision="290" xsi:schemaLocation="http://www.eagleinvsys.com/2011/EagleML-2-0 eagleml-main-2-0.xsd" xsi:type="UserAdministrationTransactionMessage" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.eagleinvsys.com/2011/EagleML-2-0">
+                <eag1:header>
+                    <sendTo>http://www.eagleinvsys.com/eagle_ml-2-0_default_cm_control_message</sendTo>
+                </eag1:header>
+                <eag1:taskIdentifier>
+                    <eag1:correlationId>PNB_VERIFY_ADD_20260713_001</eag1:correlationId>
+                    <eag1:businessTaskId>PNB_ADD_USER_VERIFY_TEST</eag1:businessTaskId>
+                </eag1:taskIdentifier>
+                <synchronousExecution>yes</synchronousExecution>
+                <userAdministrationTransaction>
+                    <header>
+                        <objectType>User</objectType>
+                    </header>
+                    <user>
+                        <objectType>User</objectType>
+                        <objectId>User</objectId>
+                        <objectDescription>USER</objectDescription>
+                        <updateTimestamp>2026-07-13T09:00:00+08:00</updateTimestamp>
+                        <updateSource>POSTMAN_VERIFY</updateSource>
+                        <userId>KI_PNB_VERIFY_01</userId>
+                        <emailAddress>pnb.verify01@pnb.com</emailAddress>
+                        <passwordSetDate>2026-07-13T09:00:00+08:00</passwordSetDate>
+                        <userFullName>PNB VERIFY USER 01</userFullName>
+                        <userDescription>CREATED VIA SOAP VERIFICATION TEST</userDescription>
+                        <companyName>Eagle Investment Systems</companyName>
+                        <authenticationMode>STAR</authenticationMode>
+                        <eagleGatewayFlag>N</eagleGatewayFlag>
+                        <ldapUserFlag>N</ldapUserFlag>
+                        <changePasswordFlag>Y</changePasswordFlag>
+                        <accountState>U</accountState>
+                        <currentLoginCount>0</currentLoginCount>
+                        <passwordNeverExpires>N</passwordNeverExpires>
+                        <passwordExpiryEveryNDays>90</passwordExpiryEveryNDays>
+                        <accountExpirationDate>2048-10-25</accountExpirationDate>
+                        <createDate>2026-07-06</createDate>
+                        <userType>U</userType>
+                        <accessLevel>2</accessLevel>
+                        <groups>
+                            <group>
+                                <groupCode>Business</groupCode>
+                                <groupName>STANDARD BUSINESS GROUP</groupName>
+                                <groupType>R</groupType>
+                            </group>
+                            <group>
+                                <groupCode>Application</groupCode>
+                                <groupName>EAGLE DEFAULT USER GROUP</groupName>
+                            </group>
+                            <group>
+                                <groupCode>PaceRole</groupCode>
+                                <groupName>DATA STEWARD ROLE</groupName>
+                            </group>
+                            <group>
+                                <groupCode>PaceRole</groupCode>
+                                <groupName>PORTAL USER ROLE</groupName>
+                            </group>
+                            <group>
+                                <groupCode>CenterRole</groupCode>
+                                <groupName>ACCOUNTING USER ROLE</groupName>
+                                <centerCode>NEWACCOUNTINGCENTER</centerCode>
+                                <isPrimaryRole>Y</isPrimaryRole>
+                            </group>
+                            <group>
+                                <groupCode>CenterRole</groupCode>
+                                <groupName>AUTOMATION CENTER VIEW ROLE</groupName>
+                                <centerCode>PROCESSCENTER</centerCode>
+                                <isPrimaryRole>Y</isPrimaryRole>
+                            </group>
+                            <group>
+                                <groupCode>CenterRole</groupCode>
+                                <groupName>SYS TECH SUPPORT ROLE</groupName>
+                                <centerCode>SYS</centerCode>
+                                <isPrimaryRole>Y</isPrimaryRole>
+                            </group>
+                            <group>
+                                <groupCode>CenterRole</groupCode>
+                                <groupName>BUSINESSUSERGROUP</groupName>
+                                <centerCode>REPPROFILE</centerCode>
+                            </group>
+                            <group>
+                                <groupCode>CenterRole</groupCode>
+                                <groupName>DEFAULT</groupName>
+                                <centerCode>SCHEDRES</centerCode>
+                            </group>
+                        </groups>
+                    </user>
+                </userAdministrationTransaction>
+            </EagleML>
+        </eag:runTaskRequest>
+    </soapenv:Body>
+</soapenv:Envelope>

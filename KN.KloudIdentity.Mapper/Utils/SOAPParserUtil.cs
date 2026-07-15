@@ -13,6 +13,8 @@ namespace KN.KloudIdentity.Mapper.Utils
     /// </summary>
     public class SOAPParserUtil<T> where T : Resource
     {
+        private const string UrnPrefix = "urn:kn:ki:schema:";
+
         /// <summary>
         /// Builds a SOAP XML payload by replacing placeholders in the template with values from the resource, using the mapping config.
         /// </summary>
@@ -31,8 +33,12 @@ namespace KN.KloudIdentity.Mapper.Utils
                 // Escape XML special characters to prevent invalid XML and injection
                 string escapedValue = System.Security.SecurityElement.Escape(stringValue) ?? string.Empty;
 
+                // DestinationField arrives URN-qualified (e.g., urn:kn:ki:schema:userId) while
+                // templates use the bare field name as placeholder (e.g., {{userId}})
+                string fieldName = mapping.DestinationField.Replace(UrnPrefix, string.Empty);
+
                 // Replace all occurrences of the placeholder (e.g., {{UserName}}) with the escaped value
-                result = result.Replace($"{{{{{mapping.DestinationField}}}}}", escapedValue);
+                result = result.Replace($"{{{{{fieldName}}}}}", escapedValue);
             }
             return result;
         }

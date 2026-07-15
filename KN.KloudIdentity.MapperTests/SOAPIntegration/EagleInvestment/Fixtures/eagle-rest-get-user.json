@@ -1,0 +1,14 @@
+{
+  "userAdministrationTransactionMessage": {
+    "userAdministrationTransaction": [
+      {
+        "user": {
+          "userId": "EAGLE_TEST_USER01",
+          "userFullName": "Eagle Test User",
+          "emailAddress": "eagle.testuser01@example.test",
+          "accountState": "U"
+        }
+      }
+    ]
+  }
+}
