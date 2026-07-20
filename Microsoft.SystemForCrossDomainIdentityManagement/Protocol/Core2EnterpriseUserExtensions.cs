@@ -992,7 +992,7 @@ namespace Microsoft.SCIM
 
             PhoneNumber phoneNumber;
             PhoneNumber phoneNumberExisting;
-             if (user.PhoneNumbers != null)
+            if (user.PhoneNumbers != null)
             {
                 phoneNumberExisting =
                     user
