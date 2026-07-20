@@ -6,6 +6,8 @@ using Hangfire.SqlServer;
 using KN.KloudIdentity.Mapper.Common.AppConfig;
 using KN.KloudIdentity.Mapper.Common.License;
 using KN.KloudIdentity.Mapper.Infrastructure.DI;
+using KN.KloudIdentity.Mapper.Infrastructure.Persistence.SQLServer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using Serilog;
 
@@ -252,15 +254,6 @@ namespace Microsoft.SCIM.WebHostSample
             {
                 app.UseDeveloperExceptionPage();
             }
-
-            // Migrate database
-            // using (var scope = app.ApplicationServices.CreateScope())
-            // {
-            //     var services = scope.ServiceProvider;
-
-            //     var context = services.GetRequiredService<Context>();
-            //     context.Database.Migrate();
-            // }
 
             app.UseCors("AllowAllOrigins");
 

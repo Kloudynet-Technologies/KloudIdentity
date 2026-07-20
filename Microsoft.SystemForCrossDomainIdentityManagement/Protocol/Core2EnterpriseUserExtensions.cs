@@ -999,7 +999,6 @@ namespace Microsoft.SCIM
                         .PhoneNumbers
                         .SingleOrDefault((PhoneNumber item) =>
                             string.Equals(subAttribute.ComparisonValue, item.ItemType, StringComparison.Ordinal));
-
                 phoneNumber = phoneNumberExisting ?? new PhoneNumber() { ItemType = subAttribute.ComparisonValue };
             }
             else
