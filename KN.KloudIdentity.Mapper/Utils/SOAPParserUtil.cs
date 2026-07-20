@@ -116,7 +116,8 @@ namespace KN.KloudIdentity.Mapper.Utils
             if (string.IsNullOrEmpty(propertyPath) || obj == null)
                 return null;
 
-            var parts = propertyPath.Split('.');
+            // Support both legacy dot paths (emails[0].value) and URN-style colon paths (emails[0]:value)
+            var parts = propertyPath.Split(':', '.');
             object? current = obj;
             foreach (var part in parts)
             {

@@ -16,6 +16,7 @@ using Moq;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Web.Http;
 using System.Xml;
 using System.Xml.Linq;
@@ -120,62 +121,6 @@ public class EagleSOAPIntegrationTests
     }
 
     [Fact]
-    public async Task ProvisionAsync_WhenAckIsNegative_ThrowsInvalidOperationException()
-    {
-        var handler = new TestHttpMessageHandler(_ =>
-            new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(
-                    EagleAckXml(isNegative: true, correlationId: "c-neg"),
-                    Encoding.UTF8, "text/xml")
-            });
-        var sut = CreateSut(handler);
-        var appConfig = CreateAppConfig();
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            sut.ProvisionAsync("<env><userId>user-001</userId></env>", appConfig, "corr-t06"));
-    }
-
-    [Fact]
-    public async Task ProvisionAsync_WithHttpFailure_ThrowsHttpRequestException()
-    {
-        var handler = new TestHttpMessageHandler(_ =>
-            new HttpResponseMessage(HttpStatusCode.BadRequest)
-            {
-                Content = new StringContent("bad request", Encoding.UTF8, "text/plain")
-            });
-        var sut = CreateSut(handler);
-        var appConfig = CreateAppConfig();
-
-        await Assert.ThrowsAsync<HttpRequestException>(() =>
-            sut.ProvisionAsync("<env><userId>user-001</userId></env>", appConfig, "corr-t07"));
-    }
-
-    [Fact]
-    public async Task ProvisionAsync_WithSoapFault_ThrowsHttpRequestException()
-    {
-        var handler = new TestHttpMessageHandler(_ =>
-            new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent("""
-                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-                      <soap:Body>
-                        <soap:Fault>
-                          <faultcode>soap:Server</faultcode>
-                          <faultstring>Eagle internal error</faultstring>
-                        </soap:Fault>
-                      </soap:Body>
-                    </soap:Envelope>
-                    """, Encoding.UTF8, "text/xml")
-            });
-        var sut = CreateSut(handler);
-        var appConfig = CreateAppConfig();
-
-        await Assert.ThrowsAsync<HttpRequestException>(() =>
-            sut.ProvisionAsync("<env><userId>user-001</userId></env>", appConfig, "corr-t08"));
-    }
-
-    [Fact]
     public async Task GetAsync_WhenRestEndpointNotConfigured_ThrowsInvalidOperationException()
     {
         var sut = CreateSut();
@@ -213,22 +158,68 @@ public class EagleSOAPIntegrationTests
         Assert.Equal(HttpStatusCode.NotFound, ex.Response.StatusCode);
     }
 
+    [Fact]
+    public async Task ProvisionAsyncV2_WhenAckIsNegative_ThrowsInvalidOperationException()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    EagleAckXml(isNegative: true, correlationId: "c-neg"),
+                    Encoding.UTF8, "text/xml")
+            });
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(httpVerb: HttpVerbs.POST);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.ProvisionAsync("<env><userId>user-001</userId></env>", "eagle-app", appConfig, step, "corr-t06-v2"));
+    }
+
+    [Fact]
+    public async Task ProvisionAsyncV2_WithHttpFailure_ThrowsHttpRequestException()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("bad request", Encoding.UTF8, "text/plain")
+            });
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(httpVerb: HttpVerbs.POST);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            sut.ProvisionAsync("<env><userId>user-001</userId></env>", "eagle-app", appConfig, step, "corr-t07-v2"));
+    }
+
+    [Fact]
+    public async Task ProvisionAsyncV2_WithSoapFault_ThrowsHttpRequestException()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""
+                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                      <soap:Body>
+                        <soap:Fault>
+                          <faultcode>soap:Server</faultcode>
+                          <faultstring>Eagle internal error</faultstring>
+                        </soap:Fault>
+                      </soap:Body>
+                    </soap:Envelope>
+                    """, Encoding.UTF8, "text/xml")
+            });
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(httpVerb: HttpVerbs.POST);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            sut.ProvisionAsync("<env><userId>user-001</userId></env>", "eagle-app", appConfig, step, "corr-t08-v2"));
+    }
+
     #endregion
 
     #region  Success Confirmation
-
-    [Fact]
-    public async Task ProvisionAsync_WithValidAck_ReturnsIdentifierFromPayload()
-    {
-        var sut = CreateSut();
-        var appConfig = CreateAppConfig();
-
-        var result = await sut.ProvisionAsync(
-            "<env><userId>john.doe</userId></env>", appConfig, "corr-t11");
-
-        Assert.NotNull(result);
-        Assert.Equal("john.doe", result.Identifier);
-    }
 
     [Fact]
     public async Task ProvisionAsyncV2_WithValidAckAndActionStep_ReturnsIdentifierFromPayload()
@@ -292,28 +283,30 @@ public class EagleSOAPIntegrationTests
     #region  Action Mapping
 
     [Fact]
-    public async Task ProvisionAsync_SetsSOAPActionHeader_RunTaskRequestSync()
+    public async Task ProvisionAsyncV2_SetsSOAPActionHeader_RunTaskRequestSync()
     {
         var handler = new TestHttpMessageHandler(_ =>
             XmlResponse(EagleAckXml(isNegative: false, correlationId: "c-hdr")));
         var sut = CreateSut(handler);
         var appConfig = CreateAppConfig();
+        var step = CreateActionStep(httpVerb: HttpVerbs.POST);
 
-        await sut.ProvisionAsync("<env><userId>u-001</userId></env>", appConfig, "corr-t16");
+        await sut.ProvisionAsync("<env><userId>u-001</userId></env>", "eagle-app", appConfig, step, "corr-t16-v2");
 
         Assert.True(handler.LastHeaders.TryGetValue("SOAPAction", out var soapAction));
         Assert.Equal("\"RunTaskRequestSync\"", soapAction);
     }
 
     [Fact]
-    public async Task ProvisionAsync_SendsToWsdlEndpoint_NotRestEndpoint()
+    public async Task ProvisionAsyncV2_SendsToActionStepEndpoint_NotRestEndpoint()
     {
         var handler = new TestHttpMessageHandler(_ =>
             XmlResponse(EagleAckXml(isNegative: false, correlationId: "c-uri")));
         var sut = CreateSut(handler);
         var appConfig = CreateAppConfig();
+        var step = CreateActionStep(endpoint: "https://eagle.test/EagleMLWebService20", httpVerb: HttpVerbs.POST);
 
-        await sut.ProvisionAsync("<env><userId>u-001</userId></env>", appConfig, "corr-t17");
+        await sut.ProvisionAsync("<env><userId>u-001</userId></env>", "eagle-app", appConfig, step, "corr-t17-v2");
 
         Assert.Equal("https://eagle.test/EagleMLWebService20", handler.LastRequestUri?.ToString());
         Assert.NotEqual("https://eagle.test/eagle/v2/users", handler.LastRequestUri?.ToString());
@@ -434,26 +427,6 @@ public class EagleSOAPIntegrationTests
     }
 
     [Fact]
-    public async Task ProvisionAsync_WhenPayloadHasNoUserIdElement_ThrowsInvalidOperationException()
-    {
-        var sut = CreateSut();
-        var appConfig = CreateAppConfig();
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            sut.ProvisionAsync("<env><name>John</name></env>", appConfig, "corr-t22"));
-    }
-
-    [Fact]
-    public async Task ProvisionAsync_WhenUserIdIsUnresolvedPlaceholder_ThrowsInvalidOperationException()
-    {
-        var sut = CreateSut();
-        var appConfig = CreateAppConfig();
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            sut.ProvisionAsync("<env><userId>{{Identifier}}</userId></env>", appConfig, "corr-placeholder"));
-    }
-
-    [Fact]
     public async Task MapAndPreparePayloadAsync_OriginalTemplateNotMutated_AfterCall()
     {
         var sut = CreateSut();
@@ -466,6 +439,28 @@ public class EagleSOAPIntegrationTests
 
         Assert.Equal(originalTemplate, step.Template);
         Assert.Contains("{{CorrelationId}}", step.Template);
+    }
+
+    [Fact]
+    public async Task ProvisionAsyncV2_WhenPayloadHasNoUserIdElement_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(httpVerb: HttpVerbs.POST);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.ProvisionAsync("<env><name>John</name></env>", "eagle-app", appConfig, step, "corr-t22-v2"));
+    }
+
+    [Fact]
+    public async Task ProvisionAsyncV2_WhenUserIdIsUnresolvedPlaceholder_ThrowsInvalidOperationException()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(httpVerb: HttpVerbs.POST);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.ProvisionAsync("<env><userId>{{Identifier}}</userId></env>", "eagle-app", appConfig, step, "corr-placeholder-v2"));
     }
 
     #endregion
@@ -840,6 +835,35 @@ public class EagleSOAPIntegrationTests
         Assert.Contains("bearer-token-xyz", handler.LastHeaders["Authorization"]);
     }
 
+    [Fact]
+    public async Task GetAsync_WhenStepAuthDetailsIsJsonElement_DoesNotThrowBinderException()
+    {
+        //Regression: production AppConfigs deserialize AuthenticationDetails into a JsonElement
+        //(a struct); `step?.AuthenticationDetails != null` on it threw RuntimeBinderException.
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    EagleRestUserJson("u3", "Carol"), Encoding.UTF8, "application/json")
+            });
+        var sut = CreateSut(handler, token: "bearer-token-json");
+        using var details = JsonDocument.Parse("""{"Token":"bearer-token-json"}""");
+        var appConfig = CreateAppConfig(authenticationFlow: new AuthenticationFlow
+        {
+            Steps =
+            [
+                CreateSoapFlowStep(
+                    authenticationDetails: details.RootElement.Clone(),
+                    method: AuthenticationMethods.Bearer)
+            ]
+        });
+
+        await sut.GetAsync("u3", appConfig, "corr-auth-json-element");
+
+        Assert.True(handler.LastHeaders.ContainsKey("Authorization"));
+        Assert.Contains("bearer-token-json", handler.LastHeaders["Authorization"]);
+    }
+
     #endregion
 
     #region Eagle taskStatusResponse Handling (golden fixtures from Postman captures)
@@ -847,49 +871,6 @@ public class EagleSOAPIntegrationTests
     // Milestone A (plan-125-phase1): TDD baseline for GAP-CRT-01 / GAP-UPD-01 / GAP-CODE-01 / GAP-CODE-02.
     // The synchronous ADD/CHANGE responses captured in Postman are eag:taskStatusResponse documents
     // (status / severityCode / failedRecords) — a shape the current CheckEagleAck never validates.
-
-    [Fact]
-    public async Task ProvisionAsync_WithTaskStatusSuccess_Succeeds()
-    {
-        var handler = new TestHttpMessageHandler(_ =>
-            XmlResponse(LoadFixture("TaskStatusResponse_Add_Success.xml")));
-        var sut = CreateSut(handler);
-        var appConfig = CreateAppConfig();
-
-        var result = await sut.ProvisionAsync(
-            "<env><userId>KI_PNB_VERIFY_01</userId></env>", appConfig, "corr-msa-01");
-
-        Assert.NotNull(result);
-        Assert.Equal("KI_PNB_VERIFY_01", result.Identifier);
-    }
-
-    [Fact]
-    public async Task ProvisionAsync_WithTaskStatusFailure_Throws()
-    {
-        var handler = new TestHttpMessageHandler(_ =>
-            XmlResponse(LoadFixture("TaskStatusResponse_Failure.xml")));
-        var sut = CreateSut(handler);
-        var appConfig = CreateAppConfig();
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            sut.ProvisionAsync("<env><userId>KI_PNB_VERIFY_01</userId></env>", appConfig, "corr-msa-02"));
-
-        Assert.Contains("FAILURE", ex.Message);
-    }
-
-    [Fact]
-    public async Task ProvisionAsync_WithFailedRecords_Throws()
-    {
-        var handler = new TestHttpMessageHandler(_ =>
-            XmlResponse(LoadFixture("TaskStatusResponse_FailedRecords.xml")));
-        var sut = CreateSut(handler);
-        var appConfig = CreateAppConfig();
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            sut.ProvisionAsync("<env><userId>KI_PNB_VERIFY_01</userId></env>", appConfig, "corr-msa-03"));
-
-        Assert.Contains("failedRecords", ex.Message);
-    }
 
     [Fact]
     public async Task UpdateAsyncV2_WithTaskStatusFailure_Throws()
@@ -907,15 +888,62 @@ public class EagleSOAPIntegrationTests
     }
 
     [Fact]
-    public async Task ProvisionAsync_WithSoapenvFaultAndHttp200_Throws()
+    public async Task ProvisionAsyncV2_WithTaskStatusSuccess_Succeeds()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            XmlResponse(LoadFixture("TaskStatusResponse_Add_Success.xml")));
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(httpVerb: HttpVerbs.POST);
+
+        var result = await sut.ProvisionAsync(
+            "<env><userId>KI_PNB_VERIFY_01</userId></env>", "eagle-app", appConfig, step, "corr-msa-01-v2");
+
+        Assert.NotNull(result);
+        Assert.Equal("KI_PNB_VERIFY_01", result.Identifier);
+    }
+
+    [Fact]
+    public async Task ProvisionAsyncV2_WithTaskStatusFailure_Throws()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            XmlResponse(LoadFixture("TaskStatusResponse_Failure.xml")));
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(httpVerb: HttpVerbs.POST);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.ProvisionAsync("<env><userId>KI_PNB_VERIFY_01</userId></env>", "eagle-app", appConfig, step, "corr-msa-02-v2"));
+
+        Assert.Contains("FAILURE", ex.Message);
+    }
+
+    [Fact]
+    public async Task ProvisionAsyncV2_WithFailedRecords_Throws()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            XmlResponse(LoadFixture("TaskStatusResponse_FailedRecords.xml")));
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(httpVerb: HttpVerbs.POST);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.ProvisionAsync("<env><userId>KI_PNB_VERIFY_01</userId></env>", "eagle-app", appConfig, step, "corr-msa-03-v2"));
+
+        Assert.Contains("failedRecords", ex.Message);
+    }
+
+    [Fact]
+    public async Task ProvisionAsyncV2_WithSoapenvFaultAndHttp200_Throws()
     {
         var handler = new TestHttpMessageHandler(_ =>
             XmlResponse(LoadFixture("SoapFault_SoapenvPrefix.xml")));
         var sut = CreateSut(handler);
         var appConfig = CreateAppConfig();
+        var step = CreateActionStep(httpVerb: HttpVerbs.POST);
 
         await Assert.ThrowsAsync<HttpRequestException>(() =>
-            sut.ProvisionAsync("<env><userId>KI_PNB_VERIFY_01</userId></env>", appConfig, "corr-msa-05"));
+            sut.ProvisionAsync("<env><userId>KI_PNB_VERIFY_01</userId></env>", "eagle-app", appConfig, step, "corr-msa-05-v2"));
     }
 
     #endregion
@@ -925,34 +953,6 @@ public class EagleSOAPIntegrationTests
     // Decision 13 Jul 2026: Eagle authenticates with plain HTTP Basic on both surfaces.
     // These tests prove the existing pipeline (Basic flow step → token → Authorization header)
     // works end-to-end with no SOAP-level (WS-Security) authentication involved.
-
-    [Fact]
-    public async Task ProvisionAsync_WithBasicAuthFlow_SendsBasicAuthorizationHeaderOnSoapPost()
-    {
-        var basicToken = Convert.ToBase64String(Encoding.UTF8.GetBytes("soap_user:secret"));
-        var handler = new TestHttpMessageHandler(_ =>
-            XmlResponse(EagleAckXml(isNegative: false, correlationId: "c-basic")));
-        var sut = CreateSut(handler, token: basicToken);
-        var appConfig = CreateAppConfig(
-            authMethodOutbound: AuthenticationMethods.Basic,
-            authenticationFlow: new AuthenticationFlow
-            {
-                Steps =
-                [
-                    CreateSoapFlowStep(
-                        authenticationDetails: new { Username = "soap_user", KeyVaultReference = "kv-ref" },
-                        method: AuthenticationMethods.Basic)
-                ]
-            });
-
-        await sut.ProvisionAsync("<env><userId>u-basic</userId></env>", appConfig, "corr-msd-01");
-
-        Assert.NotNull(handler.LastAuthorizationHeader);
-        Assert.Equal("Basic", handler.LastAuthorizationHeader!.Scheme);
-        Assert.Equal(basicToken, handler.LastAuthorizationHeader.Parameter);
-        Assert.DoesNotContain("wsse:Security", handler.LastRequestBody);
-        Assert.DoesNotContain("UsernameToken", handler.LastRequestBody);
-    }
 
     [Fact]
     public async Task GetAsync_WithBasicAuthFlow_SendsBasicAuthorizationHeader()
@@ -986,7 +986,36 @@ public class EagleSOAPIntegrationTests
     }
 
     [Fact]
-    public async Task ProvisionAsync_WhenAuthFlowResolvesNoToken_Throws()
+    public async Task ProvisionAsyncV2_WithBasicAuthFlow_SendsBasicAuthorizationHeaderOnSoapPost()
+    {
+        var basicToken = Convert.ToBase64String(Encoding.UTF8.GetBytes("soap_user:secret"));
+        var handler = new TestHttpMessageHandler(_ =>
+            XmlResponse(EagleAckXml(isNegative: false, correlationId: "c-basic")));
+        var sut = CreateSut(handler, token: basicToken);
+        var appConfig = CreateAppConfig(
+            authMethodOutbound: AuthenticationMethods.Basic,
+            authenticationFlow: new AuthenticationFlow
+            {
+                Steps =
+                [
+                    CreateSoapFlowStep(
+                        authenticationDetails: new { Username = "soap_user", KeyVaultReference = "kv-ref" },
+                        method: AuthenticationMethods.Basic)
+                ]
+            });
+        var step = CreateActionStep(httpVerb: HttpVerbs.POST);
+
+        await sut.ProvisionAsync("<env><userId>u-basic</userId></env>", "eagle-app", appConfig, step, "corr-msd-01-v2");
+
+        Assert.NotNull(handler.LastAuthorizationHeader);
+        Assert.Equal("Basic", handler.LastAuthorizationHeader!.Scheme);
+        Assert.Equal(basicToken, handler.LastAuthorizationHeader.Parameter);
+        Assert.DoesNotContain("wsse:Security", handler.LastRequestBody);
+        Assert.DoesNotContain("UsernameToken", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task ProvisionAsyncV2_WhenAuthFlowResolvesNoToken_Throws()
     {
         //Regression tripwire: a configured flow that yields no token (e.g. mis-configured back to
         //WS-Security, which GetTokenListAsync skips) must fail BEFORE any unauthenticated send.
@@ -1004,9 +1033,10 @@ public class EagleSOAPIntegrationTests
                         method: AuthenticationMethods.Basic)
                 ]
             });
+        var step = CreateActionStep(httpVerb: HttpVerbs.POST);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            sut.ProvisionAsync("<env><userId>u-no-token</userId></env>", appConfig, "corr-msd-03"));
+            sut.ProvisionAsync("<env><userId>u-no-token</userId></env>", "eagle-app", appConfig, step, "corr-msd-03-v2"));
 
         Assert.Contains("resolved no token", ex.Message);
         Assert.Empty(handler.Requests);
@@ -1274,25 +1304,6 @@ public class EagleSOAPIntegrationTests
 
     // The V4 pipeline routes SOAPEagle through the ActionStep overloads; the V1 (non-ActionStep)
     // overloads are a legacy fallback. When their endpoint is unset, the error must point at the fix.
-
-    [Fact]
-    public async Task ProvisionAsyncV1_WhenNoPostUriConfigured_ThrowsMessageNamingActionStepPath()
-    {
-        var sut = CreateSut();
-        var appConfig = CreateAppConfig() with
-        {
-            UserURIs =
-            [
-                new() { AppId = "eagle-app", BaseUrl = "https://eagle.test", Post = null!, Get = new Uri("https://eagle.test/eagle/v2/users") }
-            ]
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            sut.ProvisionAsync("<env><userId>u1</userId></env>", appConfig, "corr-p2e-01"));
-
-        Assert.Contains("ActionStep", ex.Message);
-        Assert.Contains("SOAPEagle", ex.Message);
-    }
 
     [Fact]
     public async Task GetAsyncV1_WhenNoGetUriConfigured_ThrowsMessageNamingActionStepPath()

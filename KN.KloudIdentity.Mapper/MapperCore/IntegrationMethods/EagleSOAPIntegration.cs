@@ -3,6 +3,7 @@
 //------------------------------------------------------------
 
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web.Http;
@@ -20,10 +21,6 @@ using Serilog;
 
 namespace KN.KloudIdentity.Mapper.MapperCore;
 
-//Reserved template placeholders injected by this integration (attribute mappings must never use
-//these as DestinationField):
-//  {{CorrelationId}} — new GUID per request (Eagle task correlation)
-//  {{accountState}}  — SCIM active flag: true → "U" (enabled), false → "D" (Account Disabled)
 public class EagleSOAPIntegration : SOAPIntegration
 {
     private const string DefaultOutputFormat = "json";
@@ -70,6 +67,78 @@ public class EagleSOAPIntegration : SOAPIntegration
         return result;
     }
 
+    // Bypasses the base-class SendSoapRequestAsync to fix three issues specific to Eagle:
+    //  1. WrapInSoapEnvelope only guards <soap:Envelope / <Envelope — Eagle uses <soapenv:Envelope
+    //     (different prefix), causing double-wrapping and a 100-second timeout.
+    //  2. The payload string may contain JSON-escaped quotes (\" from DB storage); must be
+    //     unescaped before sending so Eagle receives well-formed XML.
+    //  3. Basic auth must always come from the flow step regardless of
+    //     AppConfig.AuthenticationMethodOutbound — the base ShouldResolveToken guard is skipped.
+    protected override async Task<string> SendSoapRequestAsync(
+        Uri uri,
+        string payload,
+        AppConfig appConfig,
+        SCIMDirections direction,
+        string correlationId,
+        CancellationToken cancellationToken = default)
+    {
+        // Fix 2: unescape JSON-escaped quotes before sending over the wire.
+        var soapPayload = UnescapeXmlPayload(payload);
+
+        // Fix 1: Eagle template is already a complete SOAP envelope — do NOT wrap it.
+        // Fix 3: resolve Basic auth from flow steps (same as RESTIntegrationV4; no ShouldResolveToken guard).
+        var client = _httpClientFactory.CreateClient();
+        var tokens = await GetAuthenticationAsync(appConfig, direction, cancellationToken) as Dictionary<int, string>;
+        if (tokens != null)
+        {
+            var steps = appConfig.AuthenticationFlow?.Steps;
+            foreach (var authToken in tokens)
+            {
+                var step = steps?.FirstOrDefault(s => s.StepOrder == authToken.Key);
+                if (step == null
+                    || step.AuthenticationMethod == AuthenticationMethods.None
+                    || string.IsNullOrWhiteSpace(authToken.Value))
+                    continue;
+
+                Utils.HttpClientExtensions.SetAuthenticationHeaders(
+                    client,
+                    step.AuthenticationMethod,
+                    NormalizeAuthenticationDetails(step.AuthenticationDetails),
+                    authToken.Value);
+            }
+        }
+
+        var request = new HttpRequestMessage(HttpMethod.Post, uri);
+        // Eagle requires this SOAPAction header on every request (same as EagleSoapActionApplier).
+        request.Headers.TryAddWithoutValidation("SOAPAction", "\"RunTaskRequestSync\"");
+        request.Content = new StringContent(soapPayload, Encoding.UTF8, "text/xml");
+
+        var response = await client.SendAsync(request, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Log.Error(
+                "Eagle SOAP request failed. AppId: {AppId}, CorrelationId: {CorrelationId}, StatusCode: {StatusCode}, Response: {ResponseBody}",
+                appConfig.AppId, correlationId, response.StatusCode, responseBody);
+            throw new HttpRequestException($"Eagle SOAP request failed: {response.StatusCode} - {responseBody}");
+        }
+
+        if (!string.IsNullOrEmpty(responseBody) && EagleSoapFaultPattern.IsMatch(responseBody))
+        {
+            Log.Error(
+                "Eagle SOAP Fault detected. AppId: {AppId}, CorrelationId: {CorrelationId}, Response: {ResponseBody}",
+                appConfig.AppId, correlationId, responseBody);
+            throw new HttpRequestException($"Eagle SOAP Fault detected: {responseBody}");
+        }
+
+        return responseBody;
+    }
+
+    // Matches a SOAP Fault element regardless of namespace prefix (<soapenv:Fault>, <soap:Fault>, <Fault>).
+    private static readonly Regex EagleSoapFaultPattern =
+        new(@"<(\w+:)?Fault[\s>/]", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     public override async Task<dynamic> MapAndPreparePayloadAsync(
         IList<AttributeSchema> schema,
         Core2EnterpriseUser resource,
@@ -93,19 +162,7 @@ public class EagleSOAPIntegration : SOAPIntegration
         string correlationId,
         CancellationToken cancellationToken = default)
     {
-        //Extract userId from outbound payload; verify ACK
-        var userUri = appConfig.UserURIs?.FirstOrDefault()?.Post
-            ?? throw new InvalidOperationException(
-                $"Eagle SOAP endpoint not configured for AppId {appConfig.AppId}. Set UserURIs[0].Post, or route " +
-                "provisioning through the ActionStep overload (the normal path for IntegrationMethodOutbound = SOAPEagle).");
-
-        var userId = ExtractUserIdFromPayload((string)payload);
-        LogEagleRequest("PROVISION", appConfig.AppId, userId, correlationId, (string)payload);
-        var responseBody = await SendSoapRequestAsync(userUri, payload, appConfig, SCIMDirections.Outbound, correlationId, cancellationToken);
-        ValidateEagleResponse(responseBody, appConfig.AppId);
-        LogEagleSuccess("PROVISION", appConfig.AppId, responseBody);
-
-        return new Core2EnterpriseUser { Identifier = userId };
+        throw new NotSupportedException("Use the ActionStep overload for SOAPEagle operations.");
     }
 
     public override async Task<Core2EnterpriseUser?> ProvisionAsync(
@@ -121,9 +178,12 @@ public class EagleSOAPIntegration : SOAPIntegration
         ValidateActionStep(actionStep, "PROVISION");
 
         var userId = ExtractUserIdFromPayload((string)payload);
+
         LogEagleRequest("PROVISION", appConfig.AppId, userId, correlationId, (string)payload);
+
         var responseBody = await SendSoapRequestAsync(new Uri(actionStep.EndPoint), payload, appConfig, SCIMDirections.Outbound, correlationId, cancellationToken);
         ValidateEagleResponse(responseBody, appConfig.AppId);
+        
         LogEagleSuccess("PROVISION", appConfig.AppId, responseBody);
 
         return new Core2EnterpriseUser { Identifier = userId };
@@ -157,7 +217,7 @@ public class EagleSOAPIntegration : SOAPIntegration
 
         ValidateEagleResponse(responseBody, appConfig.AppId);
         LogEagleSuccess("REPLACE", appConfig.AppId, responseBody);
-        return resource; // preserve caller's resource.Identifier — Eagle ACK carries correlationId, not the user ID
+        return resource; 
     }
 
     public override Task UpdateAsync(
@@ -178,13 +238,7 @@ public class EagleSOAPIntegration : SOAPIntegration
         string correlationId,
         CancellationToken cancellationToken = default)
     {
-        ValidateActionStep(actionStep, "UPDATE");
-        ValidateReinsertProcessingOption((string)payload, appConfig.AppId);
-
-        LogEagleRequest("UPDATE", appConfig.AppId, resource.Identifier, correlationId, (string)payload);
-        var responseBody = await SendSoapRequestAsync(new Uri(actionStep.EndPoint), payload, appConfig, SCIMDirections.Outbound, correlationId, cancellationToken);
-        ValidateEagleResponse(responseBody, appConfig.AppId);
-        LogEagleSuccess("UPDATE", appConfig.AppId, responseBody);
+        await ReplaceAsync(payload, resource, appId, appConfig, actionStep, correlationId, cancellationToken);
     }
 
     public override Task DeleteAsync(
@@ -307,7 +361,7 @@ public class EagleSOAPIntegration : SOAPIntegration
     public override Core2EnterpriseUser ParseSoapUserResponse(string responseBody)
     {
         var xmlDoc = new XmlDocument { XmlResolver = null };
-        xmlDoc.LoadXml(responseBody);
+        xmlDoc.LoadXml(UnescapeXmlPayload(responseBody));
 
         ValidateEagleResponseCore(xmlDoc, appId: null);
 
@@ -328,7 +382,7 @@ public class EagleSOAPIntegration : SOAPIntegration
     private static void ValidateEagleResponse(string responseBody, string appId)
     {
         var xmlDoc = new XmlDocument { XmlResolver = null };
-        xmlDoc.LoadXml(responseBody);
+        xmlDoc.LoadXml(UnescapeXmlPayload(responseBody));
         ValidateEagleResponseCore(xmlDoc, appId);
     }
 
@@ -378,6 +432,11 @@ public class EagleSOAPIntegration : SOAPIntegration
             $"Unrecognized Eagle response — expected taskAcknowledgement or taskStatusResponse. AppId: {appId}.");
     }
 
+    // Removes JSON-escaped backslash-quotes (\" → ") that appear when the payload
+    // template is stored or transported as a JSON string value and then used directly as XML.
+    private static string UnescapeXmlPayload(string payload) =>
+        payload.Contains('\\') ? payload.Replace("\\\"", "\"") : payload;
+
     private static string FirstElementText(XmlDocument xmlDoc, string localName) =>
         xmlDoc.SelectSingleNode($"//*[local-name()='{localName}']")?.InnerText.Trim() ?? "(missing)";
 
@@ -396,7 +455,7 @@ public class EagleSOAPIntegration : SOAPIntegration
         try
         {
             var doc = new XmlDocument { XmlResolver = null };
-            doc.LoadXml(responseBody);
+            doc.LoadXml(UnescapeXmlPayload(responseBody));
             Log.Information(
                 "Eagle {Operation} succeeded. AppId: {AppId}, eagleCorrelationId: {EagleCorrelationId}, status: {Status}, eagleStatId: {EagleStatId}",
                 operation, appId,
@@ -413,7 +472,7 @@ public class EagleSOAPIntegration : SOAPIntegration
         try
         {
             var doc = new XmlDocument { XmlResolver = null };
-            doc.LoadXml(xmlPayload);
+            doc.LoadXml(UnescapeXmlPayload(xmlPayload));
             return doc.SelectSingleNode("//*[local-name()='correlationId']")?.InnerText.Trim() ?? "(none)";
         }
         catch (XmlException)
@@ -446,7 +505,7 @@ public class EagleSOAPIntegration : SOAPIntegration
     private static void ValidateReinsertProcessingOption(string xmlPayload, string appId)
     {
         var xmlDoc = new XmlDocument { XmlResolver = null };
-        xmlDoc.LoadXml(xmlPayload);
+        xmlDoc.LoadXml(UnescapeXmlPayload(xmlPayload));
 
         var node = xmlDoc.SelectSingleNode("//*[local-name()='processingOptions']");
         if (node == null || node.InnerText.Trim() != "REINSERT")
@@ -462,7 +521,7 @@ public class EagleSOAPIntegration : SOAPIntegration
     private static string ExtractUserIdFromPayload(string xmlPayload)
     {
         var xmlDoc = new XmlDocument { XmlResolver = null };
-        xmlDoc.LoadXml(xmlPayload);
+        xmlDoc.LoadXml(UnescapeXmlPayload(xmlPayload));
 
         var idNode = xmlDoc.SelectSingleNode("//*[local-name()='userId']");
         if (idNode == null || string.IsNullOrEmpty(idNode.InnerText))
@@ -506,7 +565,7 @@ public class EagleSOAPIntegration : SOAPIntegration
             {
                 var step = steps?.FirstOrDefault(s => s.StepOrder == authToken.Key);
                 var authMethod = step?.AuthenticationMethod ?? appConfig.AuthenticationMethodOutbound;
-                var authDetails = step?.AuthenticationDetails != null
+                var authDetails = step != null && HasAuthenticationDetails((object?)step.AuthenticationDetails)
                     ? NormalizeAuthenticationDetails(step.AuthenticationDetails)
                     : NormalizeAuthenticationDetails(appConfig.AuthenticationDetails);
 

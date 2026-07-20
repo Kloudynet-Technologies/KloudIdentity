@@ -309,7 +309,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
                             ?? (direction == SCIMDirections.Inbound
                                 ? appConfig.AuthenticationMethodInbound
                                 : appConfig.AuthenticationMethodOutbound);
-                        var authDetails = step?.AuthenticationDetails != null
+                        var authDetails = step != null && HasAuthenticationDetails((object?)step.AuthenticationDetails)
                             ? NormalizeAuthenticationDetails(step.AuthenticationDetails)
                             : NormalizeAuthenticationDetails(appConfig.AuthenticationDetails);
 
@@ -462,6 +462,14 @@ namespace KN.KloudIdentity.Mapper.MapperCore
                    $"<soap:Body>{payload}</soap:Body>" +
                    $"</soap:Envelope>";
         }
+
+        // AuthenticationDetails is dynamic and often holds a JsonElement (a struct) after JSON
+        // deserialization — `details != null` on it throws RuntimeBinderException. Box to object
+        // first, and treat a JSON null/undefined element as absent.
+        protected static bool HasAuthenticationDetails(object? details) =>
+            details is JsonElement element
+                ? element.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined)
+                : details is not null;
 
         protected static dynamic NormalizeAuthenticationDetails(dynamic authenticationDetails)
         {

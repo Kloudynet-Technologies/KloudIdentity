@@ -992,14 +992,15 @@ namespace Microsoft.SCIM
 
             PhoneNumber phoneNumber;
             PhoneNumber phoneNumberExisting;
-            if (user.PhoneNumbers != null)
+             if (user.PhoneNumbers != null)
             {
                 phoneNumberExisting =
-                    phoneNumber =
-                        user
-                            .PhoneNumbers
-                            .SingleOrDefault((PhoneNumber item) =>
-                                string.Equals(subAttribute.ComparisonValue, item.ItemType, StringComparison.Ordinal));
+                    user
+                        .PhoneNumbers
+                        .SingleOrDefault((PhoneNumber item) =>
+                            string.Equals(subAttribute.ComparisonValue, item.ItemType, StringComparison.Ordinal));
+
+                phoneNumber = phoneNumberExisting ?? new PhoneNumber() { ItemType = subAttribute.ComparisonValue };
             }
             else
             {
