@@ -101,6 +101,21 @@ public class SOAPParserUtilTests
 	}
 
 	[Fact]
+	public void BuildPayload_UrnPrefixedDestinationField_ResolvesBarePlaceholder()
+	{
+		var resource = new TestResource();
+		var template = "<User><userId>{{userId}}</userId><Email>{{Email}}</Email></User>";
+		var mapping = new List<AttributeSchema>
+		{
+			new() { DestinationField = "urn:kn:ki:schema:userId", SourceValue = "UserName", MappingType = MappingTypes.Direct },
+			new() { DestinationField = "urn:kn:ki:schema:Email", SourceValue = "Email", MappingType = MappingTypes.Direct }
+		};
+		var result = SOAPParserUtil<TestResource>.BuildPayload(template, mapping, resource);
+		Assert.Contains("<userId>TestUser</userId>", result);
+		Assert.Contains("<Email>test@example.com</Email>", result);
+	}
+
+	[Fact]
 	public void BuildPayload_EmptyValue_EmptyString()
 	{
 		var resource = new TestResource { UserName = "" };

@@ -33,5 +33,14 @@
     <Folder Include="RESTIntegration\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="SOAPIntegration\EagleInvestment\Fixtures\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="SOAPIntegration\EagleInvestment\Fixtures\*.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 
 </Project>
