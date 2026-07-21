@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:eag="http://www.eagleinvsys.com/2011/wsdl/EagleML-2-0" xmlns:eag1="http://www.eagleinvsys.com/2011/EagleML-2-0">
+    <soapenv:Header/>
+    <soapenv:Body>
+        <eag:taskStatusResponse>
+            <EagleML
+          eaglemlVersion="2-0"
+          eaglemlType="TaskStatusResponse"
+          xsi:type="eag1:TaskStatusResponse"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" >
+                <eag1:header>
+                    <eag1:messageId>3PQIDP5HOM0ILS64</eag1:messageId>
+                    <eag1:sentBy>http://www.eagleinvsys.com/</eag1:sentBy>
+                    <eag1:sendTo>http://www.client.com/Eagle Control Messages</eag1:sendTo>
+                    <eag1:creationTimestamp>2026-07-13T17:44:18+08:00</eag1:creationTimestamp>
+                </eag1:header>
+                <eag1:statusItem>
+                    <eag1:taskIdentifier>
+                        <eag1:correlationId correlationIdScheme="correlationIdScheme">PNB_VERIFY_ADD_20260713_002</eag1:correlationId>
+                        <eag1:businessTaskId correlationIdScheme="businessTaskIdScheme">PNB_CHANGE_USER_TEST</eag1:businessTaskId>
+                    </eag1:taskIdentifier>
+                    <eag1:status>SUCCESS</eag1:status>
+                    <eag1:severityCode>0</eag1:severityCode>
+                    <eag1:taskUnit>
+                        <eag1:loadDetails>
+                            <eag1:URI>file://*_C~PNB_VERIFY_ADD_20260713_002_C~_load_**.xml</eag1:URI>
+                            <eag1:details>
+                                <eag1:file>
+                                    <eag1:fileName>20260713-174417-_C~PNB_VERIFY_ADD_20260713_002_C~_LOAD_SF-Y_USER.XML</eag1:fileName>
+                                    <eag1:type>CUSTOM</eag1:type>
+                                    <eag1:summary>
+                                        <eag1:eagleStatId>1474578</eag1:eagleStatId>
+                                        <eag1:failedRecords>0</eag1:failedRecords>
+                                        <eag1:totalRecords>1</eag1:totalRecords>
+                                        <eag1:taskType>Stream</eag1:taskType>
+                                        <eag1:taskName>eagle_ml-2-0_default_in_xml_user</eag1:taskName>
+                                    </eag1:summary>
+                                </eag1:file>
+                            </eag1:details>
+                        </eag1:loadDetails>
+                    </eag1:taskUnit>
+                </eag1:statusItem>
+            </EagleML>
+        </eag:taskStatusResponse>
+    </soapenv:Body>
+</soapenv:Envelope>

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text;
+using System.Text.RegularExpressions;
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
@@ -19,6 +20,13 @@ namespace KN.KloudIdentity.Mapper.MapperCore
     public class SOAPIntegration : IIntegrationBaseV2
     {
         private static readonly JsonSerializerOptions CaseInsensitiveJsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+        // Attribute mappings arrive with URN-qualified destination fields (e.g., urn:kn:ki:schema:Identifier).
+        protected const string UrnPrefix = "urn:kn:ki:schema:";
+
+        // Matches a SOAP Fault element regardless of namespace prefix (<soap:Fault>, <soapenv:Fault>, <Fault>).
+        // The trailing [\s>/] prevents false positives such as <faultstring> or <faultcode>.
+        private static readonly Regex SoapFaultPattern = new(@"<(\w+:)?Fault[\s>/]", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private readonly IAuthContext _authContext;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -146,7 +154,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             if (attributes.Count == 0)
                 throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} has no attributes for GET. AppId: {appConfig.AppId}");
 
-            if (!attributes.Any(a => a.DestinationField == "Identifier"))
+            if (!attributes.Any(a => a.DestinationField.Replace(UrnPrefix, string.Empty) == "Identifier"))
                 throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} is missing an Identifier attribute mapping for GET. AppId: {appConfig.AppId}");
 
             var resource = new Core2EnterpriseUser { Identifier = identifier };
@@ -195,7 +203,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             if (attributes.Count == 0)
                 throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} has no attributes for DELETE. AppId: {appConfig.AppId}");
 
-            if (!attributes.Any(a => a.DestinationField == "Identifier"))
+            if (!attributes.Any(a => a.DestinationField.Replace(UrnPrefix, string.Empty) == "Identifier"))
                 throw new InvalidOperationException($"ActionStep {actionStep.StepOrder} is missing an Identifier attribute mapping for DELETE. AppId: {appConfig.AppId}");
 
             var resource = new Core2EnterpriseUser { Identifier = identifier };
@@ -269,8 +277,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore
                 throw new HttpRequestException($"SOAP request failed: {response.StatusCode} - {responseBody}");
             }
 
-            // Check for <soap:Fault> in the response body even if HTTP 200
-            if (!string.IsNullOrEmpty(responseBody) && responseBody.Contains("<soap:Fault", StringComparison.OrdinalIgnoreCase))
+            // Check for a SOAP Fault in the response body even if HTTP 200 (any namespace prefix — Eagle uses soapenv:)
+            if (!string.IsNullOrEmpty(responseBody) && SoapFaultPattern.IsMatch(responseBody))
             {
                 Log.Error("SOAP Fault detected. AppId: {AppId}, CorrelationID: {CorrelationID}, Response: {ResponseBody}", appConfig.AppId, correlationId, responseBody);
                 throw new HttpRequestException($"SOAP Fault detected in response: {responseBody}");
@@ -301,7 +309,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
                             ?? (direction == SCIMDirections.Inbound
                                 ? appConfig.AuthenticationMethodInbound
                                 : appConfig.AuthenticationMethodOutbound);
-                        var authDetails = step?.AuthenticationDetails != null
+                        var authDetails = step != null && HasAuthenticationDetails((object?)step.AuthenticationDetails)
                             ? NormalizeAuthenticationDetails(step.AuthenticationDetails)
                             : NormalizeAuthenticationDetails(appConfig.AuthenticationDetails);
 
@@ -454,6 +462,14 @@ namespace KN.KloudIdentity.Mapper.MapperCore
                    $"<soap:Body>{payload}</soap:Body>" +
                    $"</soap:Envelope>";
         }
+
+        // AuthenticationDetails is dynamic and often holds a JsonElement (a struct) after JSON
+        // deserialization — `details != null` on it throws RuntimeBinderException. Box to object
+        // first, and treat a JSON null/undefined element as absent.
+        protected static bool HasAuthenticationDetails(object? details) =>
+            details is JsonElement element
+                ? element.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined)
+                : details is not null;
 
         protected static dynamic NormalizeAuthenticationDetails(dynamic authenticationDetails)
         {

@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!-- Synthetic negative variant of TaskAcknowledgement_Positive.xml: isNegative=true -->
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:eag="http://www.eagleinvsys.com/2011/wsdl/EagleML-2-0" xmlns:eag1="http://www.eagleinvsys.com/2011/EagleML-2-0">
+    <soapenv:Header/>
+    <soapenv:Body>
+        <eag:taskAcknowledgement>
+            <EagleML eaglemlVersion="2-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="eag1:TaskAcknowledgement">
+                <eag1:header>
+                    <eag1:messageId>RVO342EGJMDLVMLL</eag1:messageId>
+                    <eag1:inReplyTo></eag1:inReplyTo>
+                    <eag1:sentBy>http://www.eagleinv.com/</eag1:sentBy>
+                </eag1:header>
+                <eag1:taskIdentifier>
+                    <eag1:correlationId>PNB_DELETE_USER_20260713_003</eag1:correlationId>
+                </eag1:taskIdentifier>
+                <eag1:isNegative>true</eag1:isNegative>
+            </EagleML>
+        </eag:taskAcknowledgement>
+    </soapenv:Body>
+</soapenv:Envelope>
