@@ -78,6 +78,7 @@ public static class ServiceExtension
         services.AddScoped<IIntegrationBaseV2, RESTIntegrationV4>();
         services.AddScoped<IIntegrationBaseV2, ITSMIntegration>();
         services.AddScoped<IIntegrationBaseV2, ASNBKioskIntegration>();
+        services.AddScoped<IIntegrationBaseV2, ASNBBoIntegration>();
 
         services.AddScoped<IIntegrationBase, RESTIntegration>();
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
