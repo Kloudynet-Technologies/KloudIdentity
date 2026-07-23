@@ -53,7 +53,7 @@ public class ASNBBoIntegration : RESTIntegrationV4
         var reportsToken = jPayload.SelectToken(ReportsFieldName);
         if (reportsToken == null || reportsToken.Type == JTokenType.Null)
         {
-            Log.Debug(
+            Log.Information(
                 "[ASNBBoIntegration] No '{Field}' field present in payload for resource {ResourceId}; skipping CSV transform.",
                 ReportsFieldName, resource.Identifier);
 
