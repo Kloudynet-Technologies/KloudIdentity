@@ -1,3 +1,4 @@
+namespace KN.KloudIdentity.Mapper.Domain.ExternalEndpoint;
 public enum RequestBodyType
 {
     None = 0,

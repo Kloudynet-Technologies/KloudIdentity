@@ -71,7 +71,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
             if (deserializedResponse == null)
             {
                 Log.Error("External API response is null. CorrelationID: {CorrelationID}", correlationID);
-                throw new ArgumentNullException("External API response is null.");
+                throw new InvalidOperationException($"External API response could not be deserialized as JSON. AppId: {endpointInfo.AppId}");
             }
 
             return deserializedResponse;

@@ -14,9 +14,10 @@ using Xunit;
 
 namespace KN.KloudIdentity.MapperTests.Outbound.CustomLogic;
 
-// Milestone A (plan-125-outboundPayloadProcessor-xml-support): TDD baseline.
-// JSON + default + failure tests lock current behaviour (green). XML + None + guard tests are red
-// until Milestones B/C implement the RequestBodyType-aware dispatch.
+
+// Implementation plan: plan-131-outboundPayloadProcessor-xml-support.
+ // Covers JSON (including default), XML, None, and non-success status handling to protect backward compatibility.
+ // These tests verify request content-type/body and response handling for each RequestBodyType.
 public class OutboundPayloadProcessorTests
 {
     private const string Url = "https://logic.test/enrich";
