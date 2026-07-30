@@ -1,6 +1,8 @@
-﻿using KN.KloudIdentity.Mapper.Domain;
+﻿using KN.KloudIdentity.Mapper;
+using KN.KloudIdentity.Mapper.Domain;
 using Microsoft.Extensions.Options;
 using KN.KloudIdentity.Mapper.MapperCore;
+using Microsoft.SCIM;
 using Moq;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
@@ -8,9 +10,11 @@ using Newtonsoft.Json;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using System.Dynamic;
 using Newtonsoft.Json.Linq;
+using Xunit;
 
 namespace KN.KloudIdentity.MapperTests;
 
+[Collection("JsonParserV2SharedState")]
 public partial class SQLIntegrationTest
 {
     private readonly Mock<IOptions<AppSettings>> _mockAppSettings;
@@ -19,8 +23,12 @@ public partial class SQLIntegrationTest
     public SQLIntegrationTest()
     {
         _mockAppSettings = new Mock<IOptions<AppSettings>>();
-        _mockAppSettings.Setup(x => x.Value).Returns(new AppSettings());        
-        _odbcIntegration = new SQLIntegration(_mockAppSettings.Object);       
+        _mockAppSettings.Setup(x => x.Value).Returns(new AppSettings());
+        _odbcIntegration = new SQLIntegration(_mockAppSettings.Object);
+
+        // Reset JSONParserUtilV2<Core2EnterpriseUser>'s shared "sample payload" flag before
+        // every test, since other test classes can leave it set to true (see JsonParserV2SharedStateCollection).
+        JSONParserUtilV2<Core2EnterpriseUser>.Parse(new List<AttributeSchema>(), new Core2EnterpriseUser(), isSamplePayload: false);
     }
 
     [Fact]

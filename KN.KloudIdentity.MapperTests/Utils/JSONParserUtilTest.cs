@@ -7,6 +7,7 @@ using Xunit;
 
 namespace KN.KloudIdentity.MapperTests
 {
+    [Collection("JsonParserV2SharedState")]
     public partial class JSONParserUtilTests
     {
         [Fact]
