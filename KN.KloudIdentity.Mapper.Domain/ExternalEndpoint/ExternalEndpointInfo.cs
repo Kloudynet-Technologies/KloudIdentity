@@ -10,4 +10,5 @@ public record ExternalEndpointInfo
     public AuthenticationMethods AuthenticationMethod { get; set; }
     public ExternalAPIKeyAuth? APIKeyAuth { get; set; }
     public ExternalBearerAuth? BearerAuth { get; set; }
+    public RequestBodyType RequestBodyType { get; set; } = RequestBodyType.Json;
 }

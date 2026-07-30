@@ -41,49 +41,11 @@
                         <accessLevel>2</accessLevel>
                         <groups>
                             <group>
-                                <groupCode>Business</groupCode>
-                                <groupName>STANDARD BUSINESS GROUP</groupName>
-                                <groupType>R</groupType>
-                            </group>
-                            <group>
-                                <groupCode>Application</groupCode>
-                                <groupName>EAGLE DEFAULT USER GROUP</groupName>
-                            </group>
-                            <group>
-                                <groupCode>PaceRole</groupCode>
-                                <groupName>DATA STEWARD ROLE</groupName>
-                            </group>
-                            <group>
-                                <groupCode>PaceRole</groupCode>
-                                <groupName>PORTAL USER ROLE</groupName>
-                            </group>
-                            <group>
-                                <groupCode>CenterRole</groupCode>
-                                <groupName>ACCOUNTING USER ROLE</groupName>
-                                <centerCode>NEWACCOUNTINGCENTER</centerCode>
-                                <isPrimaryRole>Y</isPrimaryRole>
-                            </group>
-                            <group>
-                                <groupCode>CenterRole</groupCode>
-                                <groupName>AUTOMATION CENTER VIEW ROLE</groupName>
-                                <centerCode>PROCESSCENTER</centerCode>
-                                <isPrimaryRole>Y</isPrimaryRole>
-                            </group>
-                            <group>
-                                <groupCode>CenterRole</groupCode>
-                                <groupName>SYS TECH SUPPORT ROLE</groupName>
-                                <centerCode>SYS</centerCode>
-                                <isPrimaryRole>Y</isPrimaryRole>
-                            </group>
-                            <group>
-                                <groupCode>CenterRole</groupCode>
-                                <groupName>BUSINESSUSERGROUP</groupName>
-                                <centerCode>REPPROFILE</centerCode>
-                            </group>
-                            <group>
-                                <groupCode>CenterRole</groupCode>
-                                <groupName>DEFAULT</groupName>
-                                <centerCode>SCHEDRES</centerCode>
+                                <groupCode>{{groupCode}}</groupCode>
+                                <groupName>{{groupName}}</groupName>
+                                <centerCode>{{centerCode}}</centerCode>
+                                <groupType>{{groupType}}</groupType>
+                                <isPrimaryRole>{{isPrimaryRole}}</isPrimaryRole>
                             </group>
                         </groups>
                     </user>
