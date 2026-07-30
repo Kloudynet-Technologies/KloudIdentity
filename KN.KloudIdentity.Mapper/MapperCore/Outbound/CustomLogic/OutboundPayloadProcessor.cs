@@ -7,6 +7,7 @@ using KN.KloudIdentity.Mapper.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
+using System.Text;
 
 namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
 {
@@ -32,31 +33,92 @@ namespace KN.KloudIdentity.Mapper.MapperCore.Outbound.CustomLogic
             httpClient.DefaultRequestHeaders.Add("X-Correlation-ID", correlationID);
             httpClient.Timeout = TimeSpan.FromSeconds(5);
 
-            using (var response =
-                   await httpClient.PostAsJsonAsync(endpointInfo.EndpointUrl, payload as JObject, cancellationToken))
+            dynamic result = endpointInfo.RequestBodyType switch
             {
-                if (!response.IsSuccessStatusCode)
-                {
-                    Log.Error(
-                        "Error occurred while executing custom logic. CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, ReasonPhrase: {ReasonPhrase}",
-                        correlationID, response.StatusCode, response.ReasonPhrase);
-                    throw new HttpRequestException(
-                        $"Error occurred in custom logic execution: {response.StatusCode} - {response.ReasonPhrase}");
-                }
+                RequestBodyType.Json => await SendJsonAsync(httpClient, endpointInfo, payload, correlationID, cancellationToken),
+                RequestBodyType.Xml => await SendXmlAsync(httpClient, endpointInfo, payload, correlationID, cancellationToken),
+                _ => throw new NotSupportedException(
+                    $"RequestBodyType '{endpointInfo.RequestBodyType}' is not supported for external custom-logic calls. AppId: {endpointInfo.AppId}")
+            };
 
-                var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                var deserializedResponse = JsonConvert.DeserializeObject<dynamic>(responseContent!);
+            Log.Information("Custom logic executed successfully. CorrelationID: {CorrelationID}", correlationID);
+            _ = CreateLogAsync(endpointInfo, correlationID, "Custom logic executed successfully");
 
-                if (deserializedResponse == null)
-                {
-                    Log.Error("External API response is null. CorrelationID: {CorrelationID}", correlationID);
-                    throw new ArgumentNullException("External API response is null.");
-                }
+            return result;
+        }
 
-                Log.Information("Custom logic executed successfully. CorrelationID: {CorrelationID}", correlationID);
-                _ = CreateLogAsync(endpointInfo, correlationID, "Custom logic executed successfully");
+        /// <summary>
+        /// Sends the payload as JSON (<c>application/json</c>) and returns the JSON-deserialized response.
+        /// </summary>
+        private async Task<dynamic> SendJsonAsync(HttpClient client, ExternalEndpointInfo endpointInfo, dynamic payload,
+            string correlationID, CancellationToken cancellationToken)
+        {
+            var jsonPayload = payload as JObject;
+            if (jsonPayload is null)
+            {
+                Log.Error(
+                    "JSON custom-logic call requires a JObject payload. CorrelationID: {CorrelationID}, AppId: {AppId}",
+                    correlationID, endpointInfo.AppId);
+                throw new InvalidOperationException($"JSON custom-logic payload must be a JObject. AppId: {endpointInfo.AppId}");
+            }
 
-                return deserializedResponse;
+            using var response = await client.PostAsJsonAsync(endpointInfo.EndpointUrl, jsonPayload, cancellationToken);
+            EnsureSuccess(response, correlationID);
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            var deserializedResponse = JsonConvert.DeserializeObject<dynamic>(responseContent!);
+
+            if (deserializedResponse == null)
+            {
+                Log.Error("External API response is null. CorrelationID: {CorrelationID}", correlationID);
+                throw new InvalidOperationException($"External API response could not be deserialized as JSON. AppId: {endpointInfo.AppId}");
+            }
+
+            return deserializedResponse;
+        }
+
+        /// <summary>
+        /// Sends the payload as XML (<c>text/xml</c>) and returns the raw XML response body as a string
+        /// (XML request → XML response; no JSON deserialization).
+        /// </summary>
+        private async Task<dynamic> SendXmlAsync(HttpClient client, ExternalEndpointInfo endpointInfo, dynamic payload,
+            string correlationID, CancellationToken cancellationToken)
+        {
+            var xmlPayload = payload as string;
+            if (string.IsNullOrWhiteSpace(xmlPayload))
+            {
+                Log.Error(
+                    "XML custom-logic call requires a non-empty string payload. CorrelationID: {CorrelationID}, AppId: {AppId}",
+                    correlationID, endpointInfo.AppId);
+                throw new InvalidOperationException($"XML custom-logic payload must be a non-empty XML string. AppId: {endpointInfo.AppId}");
+            }
+
+            using var content = new StringContent(xmlPayload, Encoding.UTF8, "text/xml");
+            using var response = await client.PostAsync(endpointInfo.EndpointUrl, content, cancellationToken);
+            EnsureSuccess(response, correlationID);
+
+            var responseXml = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(responseXml))
+            {
+                Log.Error("External API XML response is empty. CorrelationID: {CorrelationID}", correlationID);
+                throw new InvalidOperationException($"External API returned an empty XML response. AppId: {endpointInfo.AppId}");
+            }
+
+            return responseXml;
+        }
+
+        /// <summary>
+        /// Shared non-success handling: logs and throws <see cref="HttpRequestException"/> on a non-2xx response.
+        /// </summary>
+        private static void EnsureSuccess(HttpResponseMessage response, string correlationID)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                Log.Error(
+                    "Error occurred while executing custom logic. CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, ReasonPhrase: {ReasonPhrase}",
+                    correlationID, response.StatusCode, response.ReasonPhrase);
+                throw new HttpRequestException(
+                    $"Error occurred in custom logic execution: {response.StatusCode} - {response.ReasonPhrase}");
             }
         }
 

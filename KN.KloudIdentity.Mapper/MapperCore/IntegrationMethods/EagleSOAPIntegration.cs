@@ -66,14 +66,7 @@ public class EagleSOAPIntegration : SOAPIntegration
 
         return result;
     }
-
-    // Bypasses the base-class SendSoapRequestAsync to fix three issues specific to Eagle:
-    //  1. WrapInSoapEnvelope only guards <soap:Envelope / <Envelope — Eagle uses <soapenv:Envelope
-    //     (different prefix), causing double-wrapping and a 100-second timeout.
-    //  2. The payload string may contain JSON-escaped quotes (\" from DB storage); must be
-    //     unescaped before sending so Eagle receives well-formed XML.
-    //  3. Basic auth must always come from the flow step regardless of
-    //     AppConfig.AuthenticationMethodOutbound — the base ShouldResolveToken guard is skipped.
+  
     protected override async Task<string> SendSoapRequestAsync(
         Uri uri,
         string payload,
@@ -82,11 +75,9 @@ public class EagleSOAPIntegration : SOAPIntegration
         string correlationId,
         CancellationToken cancellationToken = default)
     {
-        // Fix 2: unescape JSON-escaped quotes before sending over the wire.
+        // Unescape JSON-escaped quotes before sending over the wire.
         var soapPayload = UnescapeXmlPayload(payload);
 
-        // Fix 1: Eagle template is already a complete SOAP envelope — do NOT wrap it.
-        // Fix 3: resolve Basic auth from flow steps (same as RESTIntegrationV4; no ShouldResolveToken guard).
         var client = _httpClientFactory.CreateClient();
         var tokens = await GetAuthenticationAsync(appConfig, direction, cancellationToken) as Dictionary<int, string>;
         if (tokens != null)
@@ -152,7 +143,12 @@ public class EagleSOAPIntegration : SOAPIntegration
         var injected = template.Replace("{{CorrelationId}}", Guid.NewGuid().ToString(), StringComparison.Ordinal)
                                .Replace("{{accountState}}", resource.Active ? "U" : "D", StringComparison.Ordinal);
         string payload = SOAPParserUtil<Core2EnterpriseUser>.BuildPayload(injected, schema, resource);
-        EnsureAllPlaceholdersResolved(payload, appConfig.AppId);
+
+        // Expand the <groups> repeat unit into one <group> per SCIM role. <groupName> is filled from
+        // role.Display. placeholders are left for the ExecuteCustomLogicAsync (Logic App) enrichment step to fill.
+        payload = BuildGroupsFromRoles(payload, resource);
+     
+        EnsureAllPlaceholdersResolved(payload, appConfig.AppId, DeferredGroupPlaceholders);
         return await Task.FromResult(payload);
     }
 
@@ -481,12 +477,19 @@ public class EagleSOAPIntegration : SOAPIntegration
         }
     }
 
+    //Group metadata placeholders are resolved later by the ExecuteCustomLogicAsync (Logic App) enrichment
+    //step, so they are permitted to remain unresolved at payload-build time.
+    private static readonly IReadOnlySet<string> DeferredGroupPlaceholders =
+        new HashSet<string>(StringComparer.Ordinal) { "groupCode", "centerCode", "groupType", "isPrimaryRole" };
+
     //Fails fast at payload-build time when any {{token}} survives substitution — a mis-aligned
-    //template/mapping pair must never reach Eagle as literal placeholder text.
-    private static void EnsureAllPlaceholdersResolved(string payload, string appId)
+    //template/mapping pair must never reach Eagle as literal placeholder text. Placeholders listed in
+    //<paramref name="allowedUnresolved"/> are intentionally deferred to a later stage.
+    private static void EnsureAllPlaceholdersResolved(string payload, string appId, IReadOnlySet<string>? allowedUnresolved = null)
     {
         var unresolved = Regex.Matches(payload, @"\{\{([^{}]+)\}\}")
             .Select(m => m.Groups[1].Value)
+            .Where(name => allowedUnresolved is null || !allowedUnresolved.Contains(name))
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
@@ -496,6 +499,44 @@ public class EagleSOAPIntegration : SOAPIntegration
                 $"Eagle payload contains unresolved placeholders: {string.Join(", ", unresolved)}. " +
                 $"Each placeholder must match an attribute mapping's DestinationField on the ActionStep. AppId: {appId}");
         }
+    }
+
+    //Expands the single <group> template inside <groups> into one <group> per SCIM role.
+    //<groupName> is set from role.Display (falling back to role.Value); the metadata placeholders
+    //({{groupCode}}, {{centerCode}}, {{groupType}}, {{isPrimaryRole}}) are left for
+    //ExecuteCustomLogicAsync to fill per group. Roles with no name are skipped — a blank <groupName>
+    //would make Eagle assign every role in the centerCode (privilege escalation).
+    private static string BuildGroupsFromRoles(string payload, Core2EnterpriseUser resource)
+    {
+        var doc = new XmlDocument { XmlResolver = null };
+        doc.LoadXml(UnescapeXmlPayload(payload));
+
+        var groupsNode = doc.SelectSingleNode("//*[local-name()='groups']");
+        var templateGroup = groupsNode?.SelectSingleNode("*[local-name()='group']");
+        if (groupsNode is null || templateGroup is null)
+        {
+            return payload; // no <groups>/<group> repeat unit — leave the payload untouched
+        }
+
+        var roles = resource.Roles?.ToList() ?? [];
+
+        groupsNode.RemoveAll();
+
+        foreach (var role in roles)
+        {
+            var groupName = string.IsNullOrWhiteSpace(role.Display) ? role.Value : role.Display;
+            if (string.IsNullOrWhiteSpace(groupName))
+                continue;
+
+            var groupNode = templateGroup.CloneNode(deep: true);
+            var nameNode = groupNode.SelectSingleNode("*[local-name()='groupName']");
+            if (nameNode is not null)
+                nameNode.InnerText = groupName; // XmlDocument escapes special characters
+
+            groupsNode.AppendChild(groupNode);
+        }
+
+        return doc.OuterXml;
     }
 
     //Eagle's default CHANGE behavior only ever merges group/role assignments — REINSERT is the only

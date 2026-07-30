@@ -1063,10 +1063,11 @@ public class EagleSOAPIntegrationTests
     }
 
     [Fact]
-    public async Task MapAndPreparePayloadAsync_WithCorrectedCreateTemplate_MatchesGoldenAddRequestStructure()
+    public async Task MapAndPreparePayloadAsync_ExpandsGroupsFromRoles_AndResolvesScalars()
     {
-        //Golden request-shape test (GAP-TEST-04 seed): the corrected Create template + mappings must
-        //produce a payload structurally identical to the Postman-verified ADD request.
+        //The corrected Create template carries a single <group> repeat unit; MapAndPreparePayloadAsync
+        //expands it to one <group> per SCIM role (groupName from role.Display), resolving the scalar
+        //fields and leaving the group metadata placeholders for the enrichment (Logic App) step.
         var sut = CreateSut();
         var appConfig = CreateAppConfig();
         var step = CreateActionStep(template: LoadFixture("CorrectedTemplate_CreateUser.xml"));
@@ -1085,15 +1086,21 @@ public class EagleSOAPIntegrationTests
             ElectronicMailAddresses = new[]
             {
                 new ElectronicMailAddress { Value = "pnb.verify01@pnb.com", ItemType = "work" }
+            },
+            Roles = new[]
+            {
+                new Role { Display = "STANDARD BUSINESS GROUP" },
+                new Role { Display = "BUSINESSUSERGROUP" },
+                new Role { Display = "DEFAULT" }
             }
         };
 
         string payload = (string)await sut.MapAndPreparePayloadAsync(schema, resource, appConfig, step);
 
-        Assert.DoesNotContain("{{", payload);
-
         var doc = new XmlDocument { XmlResolver = null };
         doc.LoadXml(payload);
+
+        // Scalar fields resolved
         Assert.Equal("KI_PNB_VERIFY_01", doc.SelectSingleNode("//*[local-name()='userId']")!.InnerText);
         Assert.Equal("pnb.verify01@pnb.com", doc.SelectSingleNode("//*[local-name()='emailAddress']")!.InnerText);
         Assert.Equal("PNB VERIFY USER 01", doc.SelectSingleNode("//*[local-name()='userFullName']")!.InnerText);
@@ -1101,12 +1108,43 @@ public class EagleSOAPIntegrationTests
         Assert.Equal("U", doc.SelectSingleNode("//*[local-name()='accountState']")!.InnerText);
         Assert.True(Guid.TryParse(doc.SelectSingleNode("//*[local-name()='correlationId']")!.InnerText, out _));
 
-        //Structural equality with the Postman ADD request: identical element names in document order
-        Assert.Equal(ElementSequence(LoadFixture("AddUserRequest_Golden.xml")), ElementSequence(payload));
+        // One <group> per role, groupName filled from role.Display in order
+        var groups = doc.SelectNodes("//*[local-name()='group']")!.Cast<XmlNode>().ToList();
+        Assert.Equal(3, groups.Count);
+        Assert.Equal(
+            new[] { "STANDARD BUSINESS GROUP", "BUSINESSUSERGROUP", "DEFAULT" },
+            groups.Select(g => g.SelectSingleNode("*[local-name()='groupName']")!.InnerText).ToArray());
+
+        // Group metadata placeholders remain for the ExecuteCustomLogicAsync (Logic App) enrichment step
+        Assert.Contains("{{groupCode}}", payload);
+        Assert.Contains("{{centerCode}}", payload);
+        Assert.Contains("{{groupType}}", payload);
+        Assert.Contains("{{isPrimaryRole}}", payload);
     }
 
-    private static string[] ElementSequence(string xml) =>
-        XDocument.Parse(xml).Descendants().Select(e => e.Name.LocalName).ToArray();
+    [Fact]
+    public async Task MapAndPreparePayloadAsync_WithNoRoles_ProducesEmptyGroups()
+    {
+        var sut = CreateSut();
+        var appConfig = CreateAppConfig();
+        var step = CreateActionStep(template: LoadFixture("CorrectedTemplate_CreateUser.xml"));
+        var schema = new List<AttributeSchema>
+        {
+            new() { DestinationField = "userId",       SourceValue = "UserName",                            MappingType = MappingTypes.Direct },
+            new() { DestinationField = "emailAddress", SourceValue = "ElectronicMailAddresses[0].Value",    MappingType = MappingTypes.Direct },
+            new() { DestinationField = "userFullName", SourceValue = "DisplayName",                         MappingType = MappingTypes.Direct },
+            new() { DestinationField = "companyName",  SourceValue = "Eagle Investment Systems",            MappingType = MappingTypes.Constant }
+        };
+        var resource = new Core2EnterpriseUser { UserName = "u1", DisplayName = "U One", Active = true };
+
+        string payload = (string)await sut.MapAndPreparePayloadAsync(schema, resource, appConfig, step);
+
+        var doc = new XmlDocument { XmlResolver = null };
+        doc.LoadXml(payload);
+        Assert.Empty(doc.SelectNodes("//*[local-name()='group']")!.Cast<XmlNode>());
+        // No roles → the repeat unit is removed, so no group metadata placeholders leak through
+        Assert.DoesNotContain("{{groupCode}}", payload);
+    }
 
     #endregion
 
