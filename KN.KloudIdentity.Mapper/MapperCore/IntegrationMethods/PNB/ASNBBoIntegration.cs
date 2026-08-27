@@ -13,15 +13,29 @@ namespace KN.KloudIdentity.Mapper.MapperCore;
 public class ASNBBoIntegration : RESTIntegrationV4
 {
     /// <summary>
-    /// Name of the outbound target field whose value must be reshaped from a
-    /// comma-separated string into a primitive JSON array.
+    /// Name of the outbound target field that receives ROLE_-prefixed appRoleAssignment values.
+    /// </summary>
+    private const string RolesFieldName = "roles";
+
+    /// <summary>
+    /// Name of the outbound target field that receives non-ROLE_-prefixed appRoleAssignment values.
     /// </summary>
     private const string ReportsFieldName = "reports";
 
     /// <summary>
-    /// Delimiter used by Entra to pack multiple report codes into a single string value.
+    /// Name of the outbound target field indicating whether the user holds the Refund Backoffice role.
     /// </summary>
-    private const char CsvDelimiter = ',';
+    private const string IsCheckerFieldName = "isChecker";
+
+    /// <summary>
+    /// Prefix that identifies an appRoleAssignment value as a role (as opposed to a report code).
+    /// </summary>
+    private const string RolePrefix = "ROLE_";
+
+    /// <summary>
+    /// App role value for "Refund Backoffice User"; its presence flags the user as a checker.
+    /// </summary>
+    private const string RefundBoRoleValue = "ROLE_REFUND_BO";
 
     public ASNBBoIntegration(
         IAuthContext authContext,
@@ -35,10 +49,12 @@ public class ASNBBoIntegration : RESTIntegrationV4
     }
 
     /// <summary>
-    /// Builds the outbound payload using the standard mapping pipeline, then reshapes the
-    /// <c>reports</c> field from a comma-separated string (e.g. "PAC01A,PAC01B") into a
-    /// primitive JSON string array (e.g. ["PAC01A","PAC01B"]) as required by the ASNB Bo LOB app.
-    /// All other fields are left exactly as produced by the base mapping.
+    /// Builds the outbound payload using the standard mapping pipeline, then derives
+    /// <c>roles</c>, <c>reports</c> and <c>isChecker</c> from the resource's raw appRoleAssignments
+    /// (<see cref="Core2EnterpriseUser.Roles"/>): values starting with <c>ROLE_</c> become
+    /// <c>roles</c>, everything else becomes <c>reports</c>, and <c>isChecker</c> is true when
+    /// the Refund Backoffice role (<c>ROLE_REFUND_BO</c>) is present. All other fields are left
+    /// exactly as produced by the base mapping.
     /// </summary>
     public override async Task<dynamic> MapAndPreparePayloadAsync(
         IList<AttributeSchema> schema,
@@ -49,33 +65,26 @@ public class ASNBBoIntegration : RESTIntegrationV4
         var payload = await base.MapAndPreparePayloadAsync(schema, resource, cancellationToken);
         JObject jPayload = payload as JObject ?? JObject.FromObject(payload);
 
-        // Locate the reports node. Nothing to do if it is absent.
-        var reportsToken = jPayload.SelectToken(ReportsFieldName);
-        if (reportsToken == null || reportsToken.Type == JTokenType.Null)
-        {
-            Log.Information(
-                "[ASNBBoIntegration] No '{Field}' field present in payload for resource {ResourceId}; skipping CSV transform.",
-                ReportsFieldName, resource.Identifier);
+        var roleValues = resource.Roles?
+            .Select(r => r.Value)
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .ToList() ?? [];
 
-            return jPayload;
-        }
+        var roles = roleValues
+            .Where(v => v.StartsWith(RolePrefix, StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
-        //Only transform when the base produced a scalar string.
-        // If it is already an array (or any non-string token), leave it untouched to stay idempotent.
-        if (reportsToken.Type != JTokenType.String)
-        {
-            return jPayload;
-        }
+        var reports = roleValues.Except(roles).ToList();
 
-        var codes = reportsToken.Value<string>()!
-            .Split(CsvDelimiter, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var isChecker = roles.Any(v => string.Equals(v, RefundBoRoleValue, StringComparison.OrdinalIgnoreCase));
 
-        // Empty/whitespace input yields an empty array (agreed default behavior).
-        reportsToken.Replace(new JArray(codes));
+        jPayload[RolesFieldName] = new JArray(roles);
+        jPayload[ReportsFieldName] = new JArray(reports);
+        jPayload[IsCheckerFieldName] = isChecker;
 
         Log.Information(
-            "[ASNBBoIntegration] Converted '{Field}' CSV string into an array of {Count} code(s) for resource {ResourceId}.",
-            ReportsFieldName, codes.Length, resource.Identifier);
+            "[ASNBBoIntegration] Split {Total} appRoleAssignment value(s) into {RoleCount} role(s) and {ReportCount} report(s) for resource {ResourceId}. IsChecker={IsChecker}.",
+            roleValues.Count, roles.Count, reports.Count, resource.Identifier, isChecker);
 
         //Return the reshaped payload.
         return jPayload;
