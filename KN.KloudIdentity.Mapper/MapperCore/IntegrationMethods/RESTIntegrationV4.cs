@@ -201,6 +201,19 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         return await Task.FromResult(payload);
     }
 
+    /// <summary>
+    /// AppConfig-aware overload. Declared explicitly (rather than left to <see cref="IIntegrationBase"/>'s
+    /// default interface method) so that derived classes can override it with a normal virtual
+    /// override and have that override actually take effect when invoked through an
+    /// <see cref="IIntegrationBaseV2"/> reference (as CreateUserV4/ReplaceUserV4 do). A same-signature
+    /// method in a derived class does NOT rebind interface dispatch once an ancestor already
+    /// satisfies the interface member via its default implementation.
+    /// </summary>
+    public virtual async Task<dynamic> MapAndPreparePayloadAsync(IList<AttributeSchema> schema, Core2EnterpriseUser resource, AppConfig appConfig, CancellationToken cancellationToken = default)
+    {
+        return await MapAndPreparePayloadAsync(schema, resource, cancellationToken);
+    }
+
     public virtual async Task<Core2EnterpriseUser?> ProvisionAsync(dynamic payload, string appId, AppConfig appConfig, ActionStep actionStep, string correlationId, CancellationToken cancellationToken = default)
     {
         Log.Information("Provisioning user for app: {AppId}, CorrelationId: {CorrelationId}", appId, correlationId);
