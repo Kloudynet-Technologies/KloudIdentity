@@ -123,6 +123,19 @@ public class ASNBBoIntegrationTests
         Assert.Equal(new[] { "PAC01A", "PAC01R" }, StringArray(payload, "reports"));
     }
 
+    // 1b - Duplicate report codes are preserved (not deduped/reordered by set semantics).
+    [Fact]
+    public async Task MapAndPreparePayload_PreservesDuplicateAndOrder_InReports()
+    {
+        var sut = CreateSut();
+        var resource = MakeResource(null, null, "PAC01A", "PAC01A", "PAC01R", "PAC01A");
+
+        var result = await sut.MapAndPreparePayloadAsync(new List<AttributeSchema>(), resource);
+        var payload = (JObject)result;
+
+        Assert.Equal(new[] { "PAC01A", "PAC01A", "PAC01R", "PAC01A" }, StringArray(payload, "reports"));
+    }
+
     // 2 - Presence of ROLE_REFUND_BO flags isChecker true.
     [Fact]
     public async Task MapAndPreparePayload_IsCheckerTrue_WhenRefundBoRolePresent()
@@ -244,6 +257,19 @@ public class ASNBBoIntegrationTests
         var sut = CreateSut();
         var resource = MakeResource("BRANCH", "Cawangan ASNB Johor Bahru", "ROLE_PORTALADMIN_BO");
         var appConfig = MakeAppConfig(createEndpoint: null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => sut.MapAndPreparePayloadAsync(new List<AttributeSchema>(), resource, appConfig));
+    }
+
+    // 8b - CREATE action step endpoint is malformed (not an absolute URI): a clear
+    // InvalidOperationException, not a raw UriFormatException.
+    [Fact]
+    public async Task MapAndPreparePayload_BranchUser_ThrowsInvalidOperationException_WhenCreateEndpointMalformed()
+    {
+        var sut = CreateSut();
+        var resource = MakeResource("BRANCH", "Cawangan ASNB Johor Bahru", "ROLE_PORTALADMIN_BO");
+        var appConfig = MakeAppConfig("not-a-valid-url");
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => sut.MapAndPreparePayloadAsync(new List<AttributeSchema>(), resource, appConfig));

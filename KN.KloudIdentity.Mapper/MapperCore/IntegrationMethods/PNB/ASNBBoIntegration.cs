@@ -51,7 +51,9 @@ public class ASNBBoIntegration : RESTIntegrationV4
             .Where(v => v.StartsWith(AppConstant.AsnbBoRolePrefix, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        var reports = roleValues.Except(roles).ToList();
+        var reports = roleValues
+            .Where(v => !v.StartsWith(AppConstant.AsnbBoRolePrefix, StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
         var isChecker = roles.Any(v => string.Equals(v, AppConstant.AsnbBoRefundBoRoleValue, StringComparison.OrdinalIgnoreCase));
 
@@ -137,11 +139,17 @@ public class ASNBBoIntegration : RESTIntegrationV4
                 $"No CREATE action step endpoint configured for app {appConfig.AppId}; cannot derive the branch reference API base URL.");
         }
 
-        var baseUrl = new Uri(createEndpoint).GetLeftPart(UriPartial.Authority);
+        if (!Uri.TryCreate(createEndpoint, UriKind.Absolute, out var createEndpointUri))
+        {
+            throw new InvalidOperationException(
+                $"CREATE action step endpoint '{createEndpoint}' configured for app {appConfig.AppId} is not a valid absolute URI; cannot derive the branch reference API base URL.");
+        }
+
+        var baseUrl = createEndpointUri.GetLeftPart(UriPartial.Authority);
         var formDataUrl = $"{baseUrl}{AppConstant.AsnbBoReferenceFormDataPath}";
 
         var client = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
-        var response = await client.GetAsync(formDataUrl, cancellationToken);
+        using var response = await client.GetAsync(formDataUrl, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
