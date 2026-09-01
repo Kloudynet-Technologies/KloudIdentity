@@ -366,8 +366,9 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         if (!response.IsSuccessStatusCode)
         {
             Log.Error(
-                "[RESTIntegrationV4] UpdateAsync failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
-                appConfig.AppId, correlationId, response.StatusCode, responseBody);
+                "[RESTIntegrationV4] UpdateAsync failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}, payload: {Payload}",
+                appConfig.AppId, correlationId, response.StatusCode, responseBody, payload);
+            
             throw new HttpRequestException($"Error updating user: {response.StatusCode} - {responseBody}");
         }
 
