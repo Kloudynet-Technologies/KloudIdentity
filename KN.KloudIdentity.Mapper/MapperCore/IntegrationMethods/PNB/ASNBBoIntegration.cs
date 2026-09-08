@@ -1,4 +1,7 @@
+using System.Globalization;
+using KN.KI.LogAggregator.Library;
 using KN.KI.LogAggregator.Library.Abstractions;
+using KN.KloudIdentity.Mapper.Common;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
@@ -13,6 +16,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore;
 
 public class ASNBBoIntegration : RESTIntegrationV4
 {
+    private bool _deprovisionedDuringUpdate;
+
     public ASNBBoIntegration(
         IAuthContext authContext,
         IHttpClientFactory httpClientFactory,
@@ -22,6 +27,146 @@ public class ASNBBoIntegration : RESTIntegrationV4
         : base(authContext, httpClientFactory, configuration, logger, appSettings)
     {
         IntegrationMethod = IntegrationMethods.REST;
+    }
+
+    /// <summary>
+    /// Before running the normal EDIT action step, checks whether the user is inactive
+    /// (<see cref="Core2EnterpriseUser.Active"/> is <c>false</c>) or their leave date
+    /// (<see cref="ExtensionAttributeKIUserBase.ExtensionAttribute4"/>, formatted <c>dd/MM/yyyy</c>
+    /// by the Entra attribute mapping) is strictly in the past. If either is true, the update is
+    /// skipped and the app's configured <c>DELETE</c>/<c>USER</c> action step(s) are invoked instead,
+    /// deprovisioning the user in the LOB app rather than pushing a routine attribute update to it.
+    /// Note: <see cref="Core2EnterpriseUser.Active"/> is a non-nullable bool that defaults to
+    /// <c>false</c> whenever the incoming SCIM PATCH doesn't explicitly touch "active" (the common
+    /// case for a routine attribute-only update) — so a PATCH that never mentions "active" will also
+    /// be treated as inactive here and trigger deprovisioning.
+    /// A request may run this check once per instance (one per Update HTTP call, DI-scoped) even when
+    /// the app has multiple EDIT action steps configured, so DELETE is only ever invoked once.
+    /// </summary>
+    public override async Task UpdateAsync(
+        dynamic payload,
+        Core2EnterpriseUser resource,
+        string appId,
+        AppConfig appConfig,
+        ActionStep actionStep,
+        string correlationId,
+        CancellationToken cancellationToken = default)
+    {
+        if (_deprovisionedDuringUpdate)
+        {
+            return;
+        }
+
+        if (!resource.Active || IsLeaveDateInPast(resource))
+        {
+            Log.Information(
+                "[ASNBBoIntegration] Deprovision condition met for resource {ResourceId} (Active={Active}, LeaveDate={LeaveDate}); deprovisioning via DELETE action step(s) instead of updating. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                resource.Identifier, resource.Active, resource.KIExtension.ExtensionAttribute4, appId, correlationId);
+
+            await DeprovisionAsync(resource.Identifier, appId, appConfig, correlationId, cancellationToken);
+            _deprovisionedDuringUpdate = true;
+            return;
+        }
+
+        await base.UpdateAsync((object)payload, resource, appId, appConfig, actionStep, correlationId, cancellationToken);
+    }
+
+    private static bool IsLeaveDateInPast(Core2EnterpriseUser resource)
+    {
+        var rawLeaveDate = resource.KIExtension.ExtensionAttribute4?.Trim();
+        if (string.IsNullOrWhiteSpace(rawLeaveDate))
+        {
+            return false;
+        }
+
+        if (!DateTime.TryParseExact(
+                rawLeaveDate,
+                AppConstant.AsnbBoLeaveDateFormat,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var leaveDate))
+        {
+            Log.Warning(
+                "[ASNBBoIntegration] ExtensionAttribute4 ('{RawValue}') is not a valid '{Format}' date for resource {ResourceId}; skipping deprovision-on-update check.",
+                rawLeaveDate, AppConstant.AsnbBoLeaveDateFormat, resource.Identifier);
+            return false;
+        }
+
+        return leaveDate.Date < DateTime.UtcNow.Date;
+    }
+
+    private async Task DeprovisionAsync(
+        string identifier,
+        string appId,
+        AppConfig appConfig,
+        string correlationId,
+        CancellationToken cancellationToken)
+    {
+        var deleteSteps = appConfig.Actions?
+            .Where(a => a is { ActionName: ActionNames.DELETE, ActionTarget: ActionTargets.USER })
+            .SelectMany(a => a.ActionSteps)
+            .OrderBy(s => s.StepOrder)
+            .ToList() ?? [];
+
+        if (deleteSteps.Count == 0)
+        {
+            throw new InvalidOperationException(
+                $"No DELETE action step(s) configured for app {appId}; cannot deprovision user {identifier} during update.");
+        }
+
+        foreach (var deleteStep in deleteSteps)
+        {
+            await DeleteAsync(identifier, appId, appConfig, deleteStep, correlationId, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// The ASNB Bo delete endpoint is a single fixed URL (no identifier in the path) — the user
+    /// to deprovision is identified purely by an <c>{ "id": "&lt;identifier&gt;" }</c> JSON body.
+    /// This replaces the base <see cref="RESTIntegrationV4.DeleteAsync"/> behavior, which issues a
+    /// bodyless HTTP DELETE against an endpoint with the identifier substituted into the path.
+    /// </summary>
+    public override async Task DeleteAsync(
+        string identifier,
+        string appId,
+        AppConfig appConfig,
+        ActionStep actionStep,
+        string correlationId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(actionStep);
+        ArgumentException.ThrowIfNullOrWhiteSpace(actionStep.EndPoint);
+
+        if (actionStep.HttpVerb != HttpVerbs.DELETE)
+        {
+            throw new NotSupportedException(
+                $"Right now action step with StepOrder {actionStep.StepOrder}, HttpVerb {actionStep.HttpVerb}, EndPoint '{actionStep.EndPoint}' is not supported for delete operation. Expected HttpVerb: DELETE.");
+        }
+
+        var body = new JObject { [AppConstant.AsnbBoDeleteIdFieldName] = identifier };
+        var content = PrepareHttpContent(body, null);
+
+        var client = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
+
+        using var request = new HttpRequestMessage(HttpMethod.Delete, actionStep.EndPoint) { Content = content };
+        using var response = await client.SendAsync(request, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Log.Error(
+                "[ASNBBoIntegration] Deprovisioning failed. AppId: {AppId}, CorrelationID: {CorrelationID}, StatusCode: {StatusCode}, Response: {ResponseBody}",
+                appConfig.AppId, correlationId, response.StatusCode, responseBody);
+
+            throw new HttpRequestException($"Error deleting user: {response.StatusCode} - {responseBody}");
+        }
+
+        _ = CreateLogAsync(appConfig.AppId,
+            "Delete User",
+            $"User deleted successfully for the id {identifier}",
+            LogType.Deprovision,
+            LogSeverities.Information,
+            correlationId);
     }
 
     /// <summary>
