@@ -59,13 +59,12 @@ public class ASNBBoIntegration : RESTIntegrationV4
 
         if (!resource.Active || IsLeaveDateInPast(resource))
         {
-            _deprovisionedDuringUpdate = true;
-
             Log.Information(
                 "[ASNBBoIntegration] Deprovision condition met for resource {ResourceId} (Active={Active}, LeaveDate={LeaveDate}); deprovisioning via DELETE action step(s) instead of updating. AppId: {AppId}, CorrelationID: {CorrelationID}",
                 resource.Identifier, resource.Active, resource.KIExtension.ExtensionAttribute4, appId, correlationId);
 
             await DeprovisionAsync(resource.Identifier, appId, appConfig, correlationId, cancellationToken);
+            _deprovisionedDuringUpdate = true;
             return;
         }
 
