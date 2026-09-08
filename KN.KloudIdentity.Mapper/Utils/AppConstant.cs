@@ -20,6 +20,8 @@ public class AppConstant
     public const string AsnbBoHqBranchId = "ASNBJO001";
     public const string AsnbBoReferenceFormDataPath = "/api/v1/reference/formData";
     public const string AsnbBoAsnbMarker = "ASNB";
+    public const string AsnbBoLeaveDateFormat = "dd/MM/yyyy";
+    public const string AsnbBoDeleteIdFieldName = "id";
 
     #endregion
 }

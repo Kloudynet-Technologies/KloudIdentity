@@ -4,6 +4,7 @@ using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.MapperCore;
+using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.SCIM;
@@ -36,7 +37,10 @@ public class ASNBBoIntegrationTests
 
     private static Core2EnterpriseUser MakeResource(string? hqOrBranch, string? branchKeyword, params string[] roles)
     {
-        var resource = new Core2EnterpriseUser { Identifier = "u1" };
+        // Active defaults true here to model a normal, in-flight update — Core2EnterpriseUser.Active
+        // itself defaults to false (CLR default for bool) unless a test opts out explicitly, which
+        // would otherwise make every "normal update" test look like a deprovision trigger.
+        var resource = new Core2EnterpriseUser { Identifier = "u1", Active = true };
         resource.KIExtension.ExtensionAttribute2 = hqOrBranch;
         resource.KIExtension.ExtensionAttribute5 = branchKeyword;
         resource.Roles = roles.Select(v => new Role { Value = v }).ToList();
@@ -69,6 +73,38 @@ public class ASNBBoIntegrationTests
             Actions = actions
         };
     }
+
+    private static AppConfig MakeAppConfigWithDeleteSteps(params string[] deleteEndpoints)
+    {
+        var actions = new List<Mapper.Domain.Application.Action>
+        {
+            new()
+            {
+                AppId = "test-app-id",
+                ActionName = ActionNames.DELETE,
+                ActionTarget = ActionTargets.USER,
+                ActionSteps = deleteEndpoints
+                    .Select((endpoint, i) => new ActionStep
+                    {
+                        StepOrder = i + 1,
+                        HttpVerb = HttpVerbs.DELETE,
+                        EndPoint = endpoint
+                    })
+                    .ToList()
+            }
+        };
+
+        return new AppConfig
+        {
+            AppId = "test-app-id",
+            AuthenticationDetails = default!,
+            IntegrationMethodOutbound = IntegrationMethods.REST,
+            Actions = actions
+        };
+    }
+
+    private static ActionStep MakeEditActionStep(int stepOrder = 1) =>
+        new() { StepOrder = stepOrder, HttpVerb = HttpVerbs.PUT, EndPoint = "https://testbo.myasnb.com.my/api/v1/users/manageBo/u1" };
 
     private static ASNBBoIntegration CreateSut(Func<HttpRequestMessage, HttpResponseMessage>? httpHandlerFunc = null)
     {
@@ -335,5 +371,198 @@ public class ASNBBoIntegrationTests
         var payload = (JObject)result;
 
         Assert.Equal("ASNBJO001", payload["branchid"]?.Value<string>());
+    }
+
+    private static ASNBBoIntegration CreateSutCapturing(List<HttpRequestMessage> capturedRequests) =>
+        CreateSut(request =>
+        {
+            capturedRequests.Add(request);
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent("{}") };
+        });
+
+    // 13 - Leave date (ExtensionAttribute4, dd/MM/yyyy) strictly in the past: update is skipped,
+    // the configured DELETE action step is invoked instead.
+    [Fact]
+    public async Task UpdateAsync_CallsDelete_WhenLeaveDateInPast()
+    {
+        HttpRequestMessage? capturedRequest = null;
+        string? capturedBody = null;
+        var sut = CreateSut(request =>
+        {
+            capturedRequest = request;
+            capturedBody = request.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent("{}") };
+        });
+        var resource = MakeResource(null, null, "ROLE_PORTALADMIN_BO");
+        resource.KIExtension.ExtensionAttribute4 = "01/01/2020";
+        var appConfig = MakeAppConfigWithDeleteSteps("https://testbo.myasnb.com.my/api/v1/users/manageBo");
+
+        await sut.UpdateAsync(new JObject(), resource, "test-app-id", appConfig, MakeEditActionStep(), "corr-1");
+
+        Assert.NotNull(capturedRequest);
+        Assert.Equal(HttpMethod.Delete, capturedRequest!.Method);
+        Assert.Equal("https://testbo.myasnb.com.my/api/v1/users/manageBo", capturedRequest.RequestUri!.ToString());
+
+        var bodyJson = JObject.Parse(capturedBody!);
+        Assert.Equal("u1", bodyJson["id"]!.Value<string>());
+    }
+
+    // 13b - resource.Active is false (no leave date set): update is skipped, DELETE is invoked instead.
+    [Fact]
+    public async Task UpdateAsync_CallsDelete_WhenActiveIsFalse()
+    {
+        HttpRequestMessage? capturedRequest = null;
+        string? capturedBody = null;
+        var sut = CreateSut(request =>
+        {
+            capturedRequest = request;
+            capturedBody = request.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent("{}") };
+        });
+        var resource = MakeResource(null, null, "ROLE_PORTALADMIN_BO");
+        resource.Active = false;
+        var appConfig = MakeAppConfigWithDeleteSteps("https://testbo.myasnb.com.my/api/v1/users/manageBo");
+
+        await sut.UpdateAsync(new JObject(), resource, "test-app-id", appConfig, MakeEditActionStep(), "corr-1");
+
+        Assert.NotNull(capturedRequest);
+        Assert.Equal(HttpMethod.Delete, capturedRequest!.Method);
+
+        var bodyJson = JObject.Parse(capturedBody!);
+        Assert.Equal("u1", bodyJson["id"]!.Value<string>());
+    }
+
+    // 14 - Leave date today: not strictly in the past, normal update proceeds.
+    [Fact]
+    public async Task UpdateAsync_RunsNormalUpdate_WhenLeaveDateIsToday()
+    {
+        var requests = new List<HttpRequestMessage>();
+        var sut = CreateSutCapturing(requests);
+        var resource = MakeResource(null, null, "ROLE_PORTALADMIN_BO");
+        resource.KIExtension.ExtensionAttribute4 = DateTime.UtcNow.ToString(AppConstant.AsnbBoLeaveDateFormat);
+        var editStep = MakeEditActionStep();
+
+        await sut.UpdateAsync(new JObject(), resource, "test-app-id", MakeAppConfig(null), editStep, "corr-1");
+
+        var request = Assert.Single(requests);
+        Assert.Equal(HttpMethod.Put, request.Method);
+        Assert.Equal(editStep.EndPoint, request.RequestUri!.ToString());
+    }
+
+    // 15 - Leave date in the future: normal update proceeds.
+    [Fact]
+    public async Task UpdateAsync_RunsNormalUpdate_WhenLeaveDateInFuture()
+    {
+        var requests = new List<HttpRequestMessage>();
+        var sut = CreateSutCapturing(requests);
+        var resource = MakeResource(null, null, "ROLE_PORTALADMIN_BO");
+        resource.KIExtension.ExtensionAttribute4 = DateTime.UtcNow.AddDays(30).ToString(AppConstant.AsnbBoLeaveDateFormat);
+        var editStep = MakeEditActionStep();
+
+        await sut.UpdateAsync(new JObject(), resource, "test-app-id", MakeAppConfig(null), editStep, "corr-1");
+
+        var request = Assert.Single(requests);
+        Assert.Equal(HttpMethod.Put, request.Method);
+    }
+
+    // 16 - No leave date set at all: normal update proceeds.
+    [Fact]
+    public async Task UpdateAsync_RunsNormalUpdate_WhenExtensionAttribute4Empty()
+    {
+        var requests = new List<HttpRequestMessage>();
+        var sut = CreateSutCapturing(requests);
+        var resource = MakeResource(null, null, "ROLE_PORTALADMIN_BO");
+        var editStep = MakeEditActionStep();
+
+        await sut.UpdateAsync(new JObject(), resource, "test-app-id", MakeAppConfig(null), editStep, "corr-1");
+
+        var request = Assert.Single(requests);
+        Assert.Equal(HttpMethod.Put, request.Method);
+    }
+
+    // 17 - Leave date present but not in the configured dd/MM/yyyy format: treated as no signal,
+    // normal update proceeds rather than throwing.
+    [Fact]
+    public async Task UpdateAsync_RunsNormalUpdate_WhenExtensionAttribute4Unparsable()
+    {
+        var requests = new List<HttpRequestMessage>();
+        var sut = CreateSutCapturing(requests);
+        var resource = MakeResource(null, null, "ROLE_PORTALADMIN_BO");
+        resource.KIExtension.ExtensionAttribute4 = "2020-01-01"; // wrong format (yyyy-MM-dd, not dd/MM/yyyy)
+        var editStep = MakeEditActionStep();
+
+        await sut.UpdateAsync(new JObject(), resource, "test-app-id", MakeAppConfig(null), editStep, "corr-1");
+
+        var request = Assert.Single(requests);
+        Assert.Equal(HttpMethod.Put, request.Method);
+    }
+
+    // 18 - Multiple EDIT action steps configured for the app: once the first invocation deprovisions
+    // the user, a later invocation for a subsequent step must not call DELETE again or fall through
+    // to a normal update.
+    [Fact]
+    public async Task UpdateAsync_DoesNotRepeatDelete_WhenCalledAgainForALaterEditStep()
+    {
+        var requests = new List<HttpRequestMessage>();
+        var sut = CreateSutCapturing(requests);
+        var resource = MakeResource(null, null, "ROLE_PORTALADMIN_BO");
+        resource.KIExtension.ExtensionAttribute4 = "01/01/2020";
+        var appConfig = MakeAppConfigWithDeleteSteps("https://testbo.myasnb.com.my/api/v1/users/manageBo");
+
+        await sut.UpdateAsync(new JObject(), resource, "test-app-id", appConfig, MakeEditActionStep(1), "corr-1");
+        await sut.UpdateAsync(new JObject(), resource, "test-app-id", appConfig, MakeEditActionStep(2), "corr-1");
+
+        var request = Assert.Single(requests);
+        Assert.Equal(HttpMethod.Delete, request.Method);
+    }
+
+    // 19 - Leave date in the past but the app has no DELETE/USER action step configured: a clear
+    // configuration-error failure rather than silently updating or silently doing nothing.
+    [Fact]
+    public async Task UpdateAsync_Throws_WhenLeaveDateInPastButNoDeleteStepConfigured()
+    {
+        var sut = CreateSut();
+        var resource = MakeResource(null, null, "ROLE_PORTALADMIN_BO");
+        resource.KIExtension.ExtensionAttribute4 = "01/01/2020";
+        var appConfig = MakeAppConfig(createEndpoint: null); // no Actions at all
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => sut.UpdateAsync(new JObject(), resource, "test-app-id", appConfig, MakeEditActionStep(), "corr-1"));
+    }
+
+    // 20 - DeleteAsync itself: the ASNB Bo API is a single fixed URL with no identifier in the path;
+    // the identifier is sent as an { "id": "..." } JSON body on an HTTP DELETE.
+    [Fact]
+    public async Task DeleteAsync_SendsIdInBody_ToFixedEndpoint()
+    {
+        HttpRequestMessage? capturedRequest = null;
+        string? capturedBody = null;
+        var sut = CreateSut(request =>
+        {
+            capturedRequest = request;
+            capturedBody = request.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent("{}") };
+        });
+        var deleteStep = new ActionStep { StepOrder = 1, HttpVerb = HttpVerbs.DELETE, EndPoint = "https://testbo.myasnb.com.my/api/v1/users/manageBo" };
+        var appConfig = MakeAppConfigWithDeleteSteps("https://testbo.myasnb.com.my/api/v1/users/manageBo");
+
+        await sut.DeleteAsync("328069", "test-app-id", appConfig, deleteStep, "corr-1");
+
+        Assert.NotNull(capturedRequest);
+        Assert.Equal(HttpMethod.Delete, capturedRequest!.Method);
+        Assert.Equal("https://testbo.myasnb.com.my/api/v1/users/manageBo", capturedRequest.RequestUri!.ToString());
+        Assert.Equal("{\"id\":\"328069\"}", capturedBody);
+    }
+
+    // 21 - Non-DELETE HttpVerb on the action step is rejected, same guard as the base implementation.
+    [Fact]
+    public async Task DeleteAsync_Throws_WhenActionStepVerbIsNotDelete()
+    {
+        var sut = CreateSut();
+        var deleteStep = new ActionStep { StepOrder = 1, HttpVerb = HttpVerbs.POST, EndPoint = "https://testbo.myasnb.com.my/api/v1/users/manageBo" };
+        var appConfig = MakeAppConfigWithDeleteSteps("https://testbo.myasnb.com.my/api/v1/users/manageBo");
+
+        await Assert.ThrowsAsync<NotSupportedException>(
+            () => sut.DeleteAsync("328069", "test-app-id", appConfig, deleteStep, "corr-1"));
     }
 }
