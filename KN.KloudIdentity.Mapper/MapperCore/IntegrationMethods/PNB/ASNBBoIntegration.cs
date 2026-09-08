@@ -149,7 +149,7 @@ public class ASNBBoIntegration : RESTIntegrationV4
         var client = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
 
         using var request = new HttpRequestMessage(HttpMethod.Delete, actionStep.EndPoint) { Content = content };
-        var response = await client.SendAsync(request, cancellationToken);
+        using var response = await client.SendAsync(request, cancellationToken);
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
