@@ -121,8 +121,9 @@ public class ASNBBoIntegration : RESTIntegrationV4
     }
 
     /// <summary>
-    /// The ASNB Bo delete endpoint is a single fixed URL (no identifier in the path) — the user
-    /// to deprovision is identified purely by an <c>{ "id": "&lt;identifier&gt;" }</c> JSON body.
+    /// The ASNB Bo deprovisioning endpoint is a single fixed "lock" URL (no identifier in the
+    /// path) — the user to deprovision is identified by an
+    /// <c>{ "id": "&lt;identifier&gt;", "action": "LOCK" }</c> JSON body posted to it.
     /// This replaces the base <see cref="RESTIntegrationV4.DeleteAsync"/> behavior, which issues a
     /// bodyless HTTP DELETE against an endpoint with the identifier substituted into the path.
     /// </summary>
@@ -137,18 +138,22 @@ public class ASNBBoIntegration : RESTIntegrationV4
         ArgumentNullException.ThrowIfNull(actionStep);
         ArgumentException.ThrowIfNullOrWhiteSpace(actionStep.EndPoint);
 
-        if (actionStep.HttpVerb != HttpVerbs.DELETE)
+        if (actionStep.HttpVerb != HttpVerbs.POST)
         {
             throw new NotSupportedException(
-                $"Right now action step with StepOrder {actionStep.StepOrder}, HttpVerb {actionStep.HttpVerb}, EndPoint '{actionStep.EndPoint}' is not supported for delete operation. Expected HttpVerb: DELETE.");
+                $"Right now action step with StepOrder {actionStep.StepOrder}, HttpVerb {actionStep.HttpVerb}, EndPoint '{actionStep.EndPoint}' is not supported for delete operation. Expected HttpVerb: POST.");
         }
 
-        var body = new JObject { [AppConstant.AsnbBoDeleteIdFieldName] = identifier };
+        var body = new JObject
+        {
+            [AppConstant.AsnbBoDeleteIdFieldName] = identifier,
+            [AppConstant.AsnbBoLockActionFieldName] = AppConstant.AsnbBoLockActionValue
+        };
         var content = PrepareHttpContent(body, null);
 
         var client = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Delete, actionStep.EndPoint) { Content = content };
+        using var request = new HttpRequestMessage(HttpMethod.Post, actionStep.EndPoint) { Content = content };
         using var response = await client.SendAsync(request, cancellationToken);
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
