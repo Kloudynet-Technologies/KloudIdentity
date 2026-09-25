@@ -138,9 +138,15 @@ public class ReplaceUserV4(
             case IntegrationMethods.REST:
             case IntegrationMethods.SQL:
             case IntegrationMethods.SOAPEagle:
-                return userAttributeSchemas
+                // MgtPortal maps edits as PATCH rows only; use them when the app has no PUT rows
+                // (mirrors UpdateUserV4, which falls back from PATCH to PUT)
+                var putAttrs = userAttributeSchemas
                     .Where(x => x.HttpRequestType == HttpRequestTypes.PUT)
                     .ToList();
+
+                return putAttrs.Count != 0
+                    ? putAttrs
+                    : userAttributeSchemas.Where(x => x.HttpRequestType == HttpRequestTypes.PATCH).ToList();
 
             case IntegrationMethods.ITSM:
                 var providerUrlId = _appConfig.ItsmConfigurations.ServiceProviderUrls

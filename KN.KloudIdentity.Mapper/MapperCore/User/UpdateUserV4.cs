@@ -19,7 +19,8 @@ public class UpdateUserV4(
     IOutboundPayloadProcessor outboundPayloadProcessor,
     IKloudIdentityLogger logger,
     IIntegrationBaseFactory integrationBaseFactory,
-    ITenantContext tenantContext
+    ITenantContext tenantContext,
+    IPatchOperationContext patchOperationContext
     )
     : ProvisioningBase(snapshotRepository, outboundPayloadProcessor), IUpdateResourceV2
 {
@@ -44,14 +45,25 @@ public class UpdateUserV4(
                 $"Unsupported patch request type '{actualType}' for argument '{nameof(patch)}'. Expected '{typeof(PatchRequest2).FullName}'.");
         }
 
-        Core2EnterpriseUser user = new Core2EnterpriseUser();
-        user.Apply(patchRequest);
-        user.Identifier = patch.ResourceIdentifier.Identifier;
+        // Record which attributes the PATCH targets: the user below starts empty, so unpatched attributes
+        // cannot be told apart from values patched to empty / false. Valid only for this update.
+        patchOperationContext.Capture(patchRequest.Operations);
+        Core2EnterpriseUser user;
+        try
+        {
+            user = new Core2EnterpriseUser();
+            user.Apply(patchRequest);
+            user.Identifier = patch.ResourceIdentifier.Identifier;
 
-        if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAPEagle)
-            await ExecuteMultistepForRESTAsync(user, appId, correlationId);
-        else
-            await ExecuteGenericUserUpdateLogicAsync(user, appId, correlationId);
+            if (_appConfig.IntegrationMethodOutbound == IntegrationMethods.REST || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAP || _appConfig.IntegrationMethodOutbound == IntegrationMethods.SOAPEagle)
+                await ExecuteMultistepForRESTAsync(user, appId, correlationId);
+            else
+                await ExecuteGenericUserUpdateLogicAsync(user, appId, correlationId);
+        }
+        finally
+        {
+            patchOperationContext.Reset();
+        }
 
         _ = CreateLogAsync(_appConfig.AppId, user.Identifier, correlationId);
     }

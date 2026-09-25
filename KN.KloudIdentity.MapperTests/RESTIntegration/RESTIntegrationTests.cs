@@ -55,7 +55,7 @@ public class RESTIntegrationTests
     {
         // Arrange
         var restIntegration = CreateRESTIntegration();
-        var appConfig = CreateAppConfig();
+        var appConfig = CreateAppConfig(requestType: HttpRequestTypes.POST);
         var correlationId = "corr-1";
         var payload = JObject.FromObject(new { Identifier = "user-123" });
 
