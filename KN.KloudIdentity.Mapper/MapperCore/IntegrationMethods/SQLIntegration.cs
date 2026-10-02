@@ -813,12 +813,8 @@ public class SQLIntegration : IIntegrationBaseV2
 
     private static bool IsSqlServerDriver(string driver)
     {
-        var driverName = driver.ToUpperInvariant();
-
-        // Linux / macOS driver files carry a version suffix, e.g. libmsodbcsql-17.10.so.6.1
-        return SQLGlobalConstants.SqlServerDrivers.Contains(driverName)
-               || driverName.StartsWith("LIBMSODBCSQL", StringComparison.Ordinal)
-               || driverName.StartsWith("MSODBCSQL", StringComparison.Ordinal);
+        return SQLGlobalConstants.IsDriver(driver.ToUpperInvariant(), SQLGlobalConstants.SqlServerDrivers,
+            SQLGlobalConstants.SqlServerDriverPrefixes);
     }
 
     #endregion
