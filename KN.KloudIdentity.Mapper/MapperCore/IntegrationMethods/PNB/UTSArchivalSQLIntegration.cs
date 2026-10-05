@@ -229,16 +229,21 @@ public class UTSArchivalSQLIntegration : SQLIntegration
             var existingUser = await FindUserRowAsync(appConfig, requestedLoginId, correlationId, cancellationToken);
             if (existingUser is not null)
             {
+                Log.Information(
+                    "UTS user already exists. LoginID: {LoginID}, AppId: {AppId}, CorrelationId: {CorrelationId}",
+                    requestedLoginId, appConfig.AppId, correlationId); 
                 return await UpdateExistingUserAsync(appConfig, requestedLoginId, existingUser,
                     (inputs as ProvisionPayload)?.Resource, correlationId, cancellationToken);
             }
         }
 
-        Log.Information("UTS create started. AppId: {AppId}, CorrelationId: {CorrelationId}", appConfig.AppId,
-            correlationId);
+        Log.Information(
+            "UTS create started. StoredProcedure: {StoredProcedure}, Payload: {@Payload}, AppId: {AppId}, CorrelationId: {CorrelationId}",
+            procedureName, ToLogPayload(inputs), appConfig.AppId, correlationId);
 
         SqlProcedureResult result =
             await ExecuteProcedureAsync(appConfig, procedureName, inputs, outputs, correlationId, cancellationToken);
+        LogResult("UTS create", procedureName, result, appConfig, correlationId);
         ThrowIfFailed(result, procedureName, appConfig, correlationId);
 
         var loginId = ResolveCreatedIdentifier(result, inputs, lookupParameter)
@@ -307,11 +312,12 @@ public class UTSArchivalSQLIntegration : SQLIntegration
             inputs.Add(CreateOdbcParameter(FlagParameter, OdbcType.Int, null, currentFlag));
 
         Log.Information(
-            "UTS create: user already exists, updating instead of creating (status unchanged). AppId: {AppId}, CorrelationId: {CorrelationId}",
-            appConfig.AppId, correlationId);
+            "UTS create: user already exists, updating instead of creating (status unchanged). StoredProcedure: {StoredProcedure}, Payload: {@Payload}, AppId: {AppId}, CorrelationId: {CorrelationId}",
+            procedureName, ToLogPayload(inputs), appConfig.AppId, correlationId);
 
         var result =
             await ExecuteProcedureAsync(appConfig, procedureName, inputs, outputs, correlationId, cancellationToken);
+        LogResult("UTS create (existing user)", procedureName, result, appConfig, correlationId);
         ThrowIfFailed(result, procedureName, appConfig, correlationId);
 
         return new Core2EnterpriseUser { Identifier = identifier, UserName = identifier };
@@ -369,8 +375,13 @@ public class UTSArchivalSQLIntegration : SQLIntegration
         if (flag is not null)
             parameters.Add(CreateOdbcParameter(FlagParameter, OdbcType.Int, null, flag.Value));
 
+        Log.Information(
+            "UTS update started. StoredProcedure: {StoredProcedure}, Payload: {@Payload}, AppId: {AppId}, CorrelationId: {CorrelationId}",
+            procedureName, ToLogPayload(parameters), appConfig.AppId, correlationId);
+
         var result = await ExecuteProcedureAsync(appConfig, procedureName, parameters, outputs, correlationId,
             CancellationToken.None);
+        LogResult("UTS update", procedureName, result, appConfig, correlationId);
         ThrowIfFailed(result, procedureName, appConfig, correlationId);
 
         Log.Information("UTS update completed. StatusChanged: {StatusChanged}, AppId: {AppId}, CorrelationId: {CorrelationId}",
@@ -458,8 +469,13 @@ public class UTSArchivalSQLIntegration : SQLIntegration
         if (flag is not null)
             parameters.Add(CreateOdbcParameter(FlagParameter, OdbcType.Int, null, flag.Value));
 
+        Log.Information(
+            "UTS replace started. StoredProcedure: {StoredProcedure}, Payload: {@Payload}, AppId: {AppId}, CorrelationId: {CorrelationId}",
+            procedureName, ToLogPayload(parameters), appConfig.AppId, correlationId);
+
         var result = await ExecuteProcedureAsync(appConfig, procedureName, parameters, outputs, correlationId,
             CancellationToken.None);
+        LogResult("UTS replace", procedureName, result, appConfig, correlationId);
         ThrowIfFailed(result, procedureName, appConfig, correlationId);
 
         Log.Information("UTS replace completed. StatusChanged: {StatusChanged}, AppId: {AppId}, CorrelationId: {CorrelationId}",
@@ -488,8 +504,13 @@ public class UTSArchivalSQLIntegration : SQLIntegration
         var outputs = ResolveStatusOutputs(appConfig, HttpRequestTypes.DELETE);
         var inputs = new List<OdbcParameter> { CreateLookupParameter(appConfig, identifier) };
 
+        Log.Information(
+            "UTS delete started. StoredProcedure: {StoredProcedure}, Payload: {@Payload}, AppId: {AppId}, CorrelationId: {CorrelationId}",
+            procedureName, ToLogPayload(inputs), appConfig.AppId, correlationId);
+
         var result =
             await ExecuteProcedureAsync(appConfig, procedureName, inputs, outputs, correlationId, CancellationToken.None);
+        LogResult("UTS delete", procedureName, result, appConfig, correlationId);
 
         if (result.ResponseCode == (int)SqlProcedureResponseCode.Conflict)
         {
@@ -551,8 +572,13 @@ public class UTSArchivalSQLIntegration : SQLIntegration
         var outputs = ResolveStatusOutputs(appConfig, HttpRequestTypes.GET);
         var inputs = new List<OdbcParameter> { CreateLookupParameter(appConfig, loginId) };
 
+        Log.Information(
+            "UTS get started. StoredProcedure: {StoredProcedure}, Payload: {@Payload}, AppId: {AppId}, CorrelationId: {CorrelationId}",
+            procedureName, ToLogPayload(inputs), appConfig.AppId, correlationId);
+
         var result =
             await ExecuteProcedureAsync(appConfig, procedureName, inputs, outputs, correlationId, cancellationToken);
+        LogResult("UTS get", procedureName, result, appConfig, correlationId);
 
         if (result.ResponseCode == (int)SqlProcedureResponseCode.NotFound)
             return null;
@@ -611,6 +637,24 @@ public class UTSArchivalSQLIntegration : SQLIntegration
     }
 
     #endregion
+
+    /// <summary>
+    /// SP parameters as name → value for structured logging (OdbcParameter does not serialize well).
+    /// NULL means "unchanged" for the UTS procedures.
+    /// </summary>
+    private static Dictionary<string, object?> ToLogPayload(IEnumerable<OdbcParameter> parameters)
+    {
+        return parameters.ToDictionary(p => p.ParameterName, p => p.Value is DBNull ? null : p.Value);
+    }
+
+    private static void LogResult(string operation, string procedureName, SqlProcedureResult result,
+        AppConfig appConfig, string correlationId)
+    {
+        Log.Information(
+            "{Operation} SP response. StoredProcedure: {StoredProcedure}, ResponseCode: {ResponseCode}, ResponseMessage: {ResponseMessage}, Row: {@Row}, AppId: {AppId}, CorrelationId: {CorrelationId}",
+            operation, procedureName, result.ResponseCode, result.ResponseMessage, result.Row, appConfig.AppId,
+            correlationId);
+    }
 
     /// <summary>
     /// SP parameter used to look up a user for Get / Update / Delete: the DestinationField of the POST
