@@ -20,6 +20,7 @@ public class UpdateUserV4Tests
     private readonly Mock<IOutboundPayloadProcessor> _outboundPayloadProcessorMock = new();
     private readonly Mock<IIntegrationBaseV2> _integrationBaseMock = new();
     private readonly Mock<ITenantContext> _tenantContextMock = new();
+    private readonly PatchOperationContext _patchOperationContext = new();
     
     private UpdateUserV4 CreateSut(AppConfig? appConfig = null)
     {
@@ -36,7 +37,8 @@ public class UpdateUserV4Tests
             _outboundPayloadProcessorMock.Object,
             _loggerMock.Object,
             _integrationBaseFactoryMock.Object,
-            _tenantContextMock.Object
+            _tenantContextMock.Object,
+            _patchOperationContext
         );
     }
 
@@ -385,4 +387,111 @@ public class UpdateUserV4Tests
         Assert.True(task.IsCompletedSuccessfully);
     }
     
+
+    [Fact]
+    public async Task UpdateAsync_CapturesPatchOperationsBeforeCallingIntegration()
+    {
+        // Arrange
+        var appConfig = new AppConfig
+        {
+            AppId = "app1",
+            AuthenticationDetails = null!,
+            UserAttributeSchemas = new List<AttributeSchema>
+            {
+                new() { HttpRequestType = HttpRequestTypes.PATCH, SourceValue = "DisplayName", DestinationField = "@Name" }
+            },
+            IntegrationMethodOutbound = IntegrationMethods.SQL
+        };
+        var patchedDuringUpdate = false;
+        _integrationBaseFactoryMock.Setup(f => f.GetIntegration(IntegrationMethods.SQL, "app1"))
+            .Returns(_integrationBaseMock.Object);
+        _integrationBaseMock.Setup(m => m.MapAndPreparePayloadAsync(It.IsAny<IList<AttributeSchema>>(),
+                It.IsAny<Core2EnterpriseUser>(), appConfig, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new object());
+        _integrationBaseMock.Setup(m => m.ValidatePayloadAsync(It.IsAny<object>(), appConfig, It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((true, Array.Empty<string>()));
+        _integrationBaseMock.Setup(m => m.UpdateAsync(It.IsAny<object>(), It.IsAny<Core2EnterpriseUser>(), appConfig,
+                It.IsAny<string>()))
+            .Callback(() => patchedDuringUpdate = _patchOperationContext.IsPatched("DisplayName"))
+            .Returns(Task.CompletedTask);
+        var sut = CreateSut(appConfig);
+
+        var patchRequest = new PatchRequest2();
+        patchRequest.AddOperation(new PatchOperation2Combined(OperationName.Replace, "displayName")
+        {
+            Value = "[{\"value\":\"New Name\"}]"
+        });
+        var patch = new Patch
+        {
+            ResourceIdentifier = new ResourceIdentifier { Identifier = "user1" },
+            PatchRequest = patchRequest
+        };
+
+        // Act
+        await sut.UpdateAsync(patch, "app1", "corr1");
+
+        // Assert: captured while the integration ran, reset afterwards
+        Assert.True(patchedDuringUpdate);
+        Assert.False(_patchOperationContext.IsCaptured);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ResetsPatchContext_WhenIntegrationThrows()
+    {
+        // Arrange
+        var appConfig = new AppConfig
+        {
+            AppId = "app1",
+            AuthenticationDetails = null!,
+            UserAttributeSchemas = new List<AttributeSchema>(),
+            IntegrationMethodOutbound = IntegrationMethods.SQL
+        };
+        _integrationBaseFactoryMock.Setup(f => f.GetIntegration(IntegrationMethods.SQL, "app1"))
+            .Returns(_integrationBaseMock.Object);
+        _integrationBaseMock.Setup(m => m.MapAndPreparePayloadAsync(It.IsAny<IList<AttributeSchema>>(),
+                It.IsAny<Core2EnterpriseUser>(), appConfig, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("mapping failed"));
+        var sut = CreateSut(appConfig);
+
+        var patchRequest = new PatchRequest2();
+        patchRequest.AddOperation(new PatchOperation2Combined(OperationName.Replace, "active") { Value = "[{\"value\":\"False\"}]" });
+        var patch = new Patch
+        {
+            ResourceIdentifier = new ResourceIdentifier { Identifier = "user1" },
+            PatchRequest = patchRequest
+        };
+
+        // Act & Assert: the original exception surfaces unchanged and the context does not leak
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => sut.UpdateAsync(patch, "app1", "corr1"));
+        Assert.Equal("mapping failed", ex.Message);
+        Assert.False(_patchOperationContext.IsCaptured);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_InvalidPath_FailsAsBeforeAndResetsContext()
+    {
+        // Arrange
+        var appConfig = new AppConfig
+        {
+            AppId = "app1",
+            AuthenticationDetails = null!,
+            IntegrationMethodOutbound = IntegrationMethods.SQL
+        };
+        var sut = CreateSut(appConfig);
+
+        var operation = Newtonsoft.Json.JsonConvert.DeserializeObject<PatchOperation2Combined>(
+            "{\"op\":\"replace\",\"path\":\"emails[[x]]\",\"value\":\"[]\"}")!;
+        var patchRequest = new PatchRequest2();
+        patchRequest.AddOperation(operation);
+        var patch = new Patch
+        {
+            ResourceIdentifier = new ResourceIdentifier { Identifier = "user1" },
+            PatchRequest = patchRequest
+        };
+
+        // Act & Assert: Core2EnterpriseUser.Apply still reports the invalid path (Capture does not throw first)
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => sut.UpdateAsync(patch, "app1", "corr1"));
+        Assert.False(_patchOperationContext.IsCaptured);
+    }
 }
