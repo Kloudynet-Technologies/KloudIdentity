@@ -230,8 +230,8 @@ public class UTSArchivalSQLIntegration : SQLIntegration
             if (existingUser is not null)
             {
                 Log.Information(
-                    "UTS user already exists. LoginID: {LoginID}, AppId: {AppId}, CorrelationId: {CorrelationId}",
-                    requestedLoginId, appConfig.AppId, correlationId); 
+                    "UTS user already exists. AppId: {AppId}, CorrelationId: {CorrelationId}",
+                    appConfig.AppId, correlationId);
                 return await UpdateExistingUserAsync(appConfig, requestedLoginId, existingUser,
                     (inputs as ProvisionPayload)?.Resource, correlationId, cancellationToken);
             }
@@ -639,21 +639,25 @@ public class UTSArchivalSQLIntegration : SQLIntegration
     #endregion
 
     /// <summary>
-    /// SP parameters as name → value for structured logging (OdbcParameter does not serialize well).
-    /// NULL means "unchanged" for the UTS procedures.
+    /// SP parameters as name → "set" / "NULL" for structured logging. Values are never logged (they hold
+    /// provisioning PII such as LoginID, names and email); NULL means "unchanged" for the UTS procedures.
     /// </summary>
-    private static Dictionary<string, object?> ToLogPayload(IEnumerable<OdbcParameter> parameters)
+    private static Dictionary<string, string> ToLogPayload(IEnumerable<OdbcParameter> parameters)
     {
-        return parameters.ToDictionary(p => p.ParameterName, p => p.Value is DBNull ? null : p.Value);
+        return parameters.ToDictionary(p => p.ParameterName,
+            p => p.Value is null or DBNull ? "NULL" : "set");
     }
 
+    /// <summary>
+    /// Logs the SP outcome. Only the returned row's column names are logged, never its values.
+    /// </summary>
     private static void LogResult(string operation, string procedureName, SqlProcedureResult result,
         AppConfig appConfig, string correlationId)
     {
         Log.Information(
-            "{Operation} SP response. StoredProcedure: {StoredProcedure}, ResponseCode: {ResponseCode}, ResponseMessage: {ResponseMessage}, Row: {@Row}, AppId: {AppId}, CorrelationId: {CorrelationId}",
-            operation, procedureName, result.ResponseCode, result.ResponseMessage, result.Row, appConfig.AppId,
-            correlationId);
+            "{Operation} SP response. StoredProcedure: {StoredProcedure}, ResponseCode: {ResponseCode}, ResponseMessage: {ResponseMessage}, RowColumns: {RowColumns}, AppId: {AppId}, CorrelationId: {CorrelationId}",
+            operation, procedureName, result.ResponseCode, result.ResponseMessage, result.Row?.Keys.ToArray(),
+            appConfig.AppId, correlationId);
     }
 
     /// <summary>
