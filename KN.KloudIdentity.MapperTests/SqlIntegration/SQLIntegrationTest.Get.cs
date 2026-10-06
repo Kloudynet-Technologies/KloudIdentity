@@ -49,7 +49,7 @@ public partial class SQLIntegrationTest
         // Arrange
         var attributeSchemas = new List<AttributeSchema>
         {
-            new AttributeSchema { DestinationField = "UserId", SourceValue = "Identifier" },
+            new AttributeSchema { DestinationField = "UserId", SourceValue = "Identifier", HttpRequestType = HttpRequestTypes.POST },
             new AttributeSchema { DestinationField = "Username", SourceValue = "UserName" },
             new AttributeSchema { DestinationField = "Email", SourceValue = "ElectronicMailAddresses[0]:Value" },
             new AttributeSchema { DestinationField = "FirstName", SourceValue = "Name:GivenName" }
@@ -90,7 +90,7 @@ public partial class SQLIntegrationTest
         // Arrange
         var attributeSchemas = new List<AttributeSchema>
         {
-            new AttributeSchema { DestinationField = "UserId", SourceValue = "Identifier" },
+            new AttributeSchema { DestinationField = "UserId", SourceValue = "Identifier", HttpRequestType = HttpRequestTypes.POST },
             new AttributeSchema { DestinationField = "Username", SourceValue = "UserName" },
             new AttributeSchema { DestinationField = "Email", SourceValue = "ElectronicMailAddresses[0]:Value" },
             new AttributeSchema { DestinationField = "FirstName", SourceValue = "Name:GivenName" }

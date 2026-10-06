@@ -87,7 +87,7 @@ public class ASNBBoIntegrationTests
                     .Select((endpoint, i) => new ActionStep
                     {
                         StepOrder = i + 1,
-                        HttpVerb = HttpVerbs.DELETE,
+                        HttpVerb = HttpVerbs.POST,
                         EndPoint = endpoint
                     })
                     .ToList()
@@ -400,11 +400,12 @@ public class ASNBBoIntegrationTests
         await sut.UpdateAsync(new JObject(), resource, "test-app-id", appConfig, MakeEditActionStep(), "corr-1");
 
         Assert.NotNull(capturedRequest);
-        Assert.Equal(HttpMethod.Delete, capturedRequest!.Method);
+        Assert.Equal(HttpMethod.Post, capturedRequest!.Method);
         Assert.Equal("https://testbo.myasnb.com.my/api/v1/users/manageBo", capturedRequest.RequestUri!.ToString());
 
         var bodyJson = JObject.Parse(capturedBody!);
         Assert.Equal("u1", bodyJson["id"]!.Value<string>());
+        Assert.Equal("LOCK", bodyJson["action"]!.Value<string>());
     }
 
     // 13b - resource.Active is false (no leave date set): update is skipped, DELETE is invoked instead.
@@ -426,10 +427,11 @@ public class ASNBBoIntegrationTests
         await sut.UpdateAsync(new JObject(), resource, "test-app-id", appConfig, MakeEditActionStep(), "corr-1");
 
         Assert.NotNull(capturedRequest);
-        Assert.Equal(HttpMethod.Delete, capturedRequest!.Method);
+        Assert.Equal(HttpMethod.Post, capturedRequest!.Method);
 
         var bodyJson = JObject.Parse(capturedBody!);
         Assert.Equal("u1", bodyJson["id"]!.Value<string>());
+        Assert.Equal("LOCK", bodyJson["action"]!.Value<string>());
     }
 
     // 14 - Leave date today: not strictly in the past, normal update proceeds.
@@ -513,7 +515,7 @@ public class ASNBBoIntegrationTests
         await sut.UpdateAsync(new JObject(), resource, "test-app-id", appConfig, MakeEditActionStep(2), "corr-1");
 
         var request = Assert.Single(requests);
-        Assert.Equal(HttpMethod.Delete, request.Method);
+        Assert.Equal(HttpMethod.Post, request.Method);
     }
 
     // 19 - Leave date in the past but the app has no DELETE/USER action step configured: a clear
@@ -530,10 +532,10 @@ public class ASNBBoIntegrationTests
             () => sut.UpdateAsync(new JObject(), resource, "test-app-id", appConfig, MakeEditActionStep(), "corr-1"));
     }
 
-    // 20 - DeleteAsync itself: the ASNB Bo API is a single fixed URL with no identifier in the path;
-    // the identifier is sent as an { "id": "..." } JSON body on an HTTP DELETE.
+    // 20 - DeleteAsync itself: the ASNB Bo API is a single fixed "lock" URL with no identifier in
+    // the path; the identifier is sent as an { "id": "...", "action": "LOCK" } JSON body on an HTTP POST.
     [Fact]
-    public async Task DeleteAsync_SendsIdInBody_ToFixedEndpoint()
+    public async Task DeleteAsync_SendsIdAndLockActionInBody_ToFixedEndpoint()
     {
         HttpRequestMessage? capturedRequest = null;
         string? capturedBody = null;
@@ -543,24 +545,24 @@ public class ASNBBoIntegrationTests
             capturedBody = request.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
             return new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent("{}") };
         });
-        var deleteStep = new ActionStep { StepOrder = 1, HttpVerb = HttpVerbs.DELETE, EndPoint = "https://testbo.myasnb.com.my/api/v1/users/manageBo" };
-        var appConfig = MakeAppConfigWithDeleteSteps("https://testbo.myasnb.com.my/api/v1/users/manageBo");
+        var deleteStep = new ActionStep { StepOrder = 1, HttpVerb = HttpVerbs.POST, EndPoint = "https://testbo.myasnb.com.my/api/v1/users/manageBo/status" };
+        var appConfig = MakeAppConfigWithDeleteSteps("https://testbo.myasnb.com.my/api/v1/users/manageBo/status");
 
         await sut.DeleteAsync("328069", "test-app-id", appConfig, deleteStep, "corr-1");
 
         Assert.NotNull(capturedRequest);
-        Assert.Equal(HttpMethod.Delete, capturedRequest!.Method);
-        Assert.Equal("https://testbo.myasnb.com.my/api/v1/users/manageBo", capturedRequest.RequestUri!.ToString());
-        Assert.Equal("{\"id\":\"328069\"}", capturedBody);
+        Assert.Equal(HttpMethod.Post, capturedRequest!.Method);
+        Assert.Equal("https://testbo.myasnb.com.my/api/v1/users/manageBo/status", capturedRequest.RequestUri!.ToString());
+        Assert.Equal("{\"id\":\"328069\",\"action\":\"LOCK\"}", capturedBody);
     }
 
-    // 21 - Non-DELETE HttpVerb on the action step is rejected, same guard as the base implementation.
+    // 21 - Non-POST HttpVerb on the action step is rejected, same guard as the base implementation.
     [Fact]
-    public async Task DeleteAsync_Throws_WhenActionStepVerbIsNotDelete()
+    public async Task DeleteAsync_Throws_WhenActionStepVerbIsNotPost()
     {
         var sut = CreateSut();
-        var deleteStep = new ActionStep { StepOrder = 1, HttpVerb = HttpVerbs.POST, EndPoint = "https://testbo.myasnb.com.my/api/v1/users/manageBo" };
-        var appConfig = MakeAppConfigWithDeleteSteps("https://testbo.myasnb.com.my/api/v1/users/manageBo");
+        var deleteStep = new ActionStep { StepOrder = 1, HttpVerb = HttpVerbs.DELETE, EndPoint = "https://testbo.myasnb.com.my/api/v1/users/manageBo/status" };
+        var appConfig = MakeAppConfigWithDeleteSteps("https://testbo.myasnb.com.my/api/v1/users/manageBo/status");
 
         await Assert.ThrowsAsync<NotSupportedException>(
             () => sut.DeleteAsync("328069", "test-app-id", appConfig, deleteStep, "corr-1"));

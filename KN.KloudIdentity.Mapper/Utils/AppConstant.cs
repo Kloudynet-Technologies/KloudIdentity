@@ -22,6 +22,8 @@ public class AppConstant
     public const string AsnbBoAsnbMarker = "ASNB";
     public const string AsnbBoLeaveDateFormat = "dd/MM/yyyy";
     public const string AsnbBoDeleteIdFieldName = "id";
+    public const string AsnbBoLockActionFieldName = "action";
+    public const string AsnbBoLockActionValue = "LOCK";
 
     #endregion
 }
