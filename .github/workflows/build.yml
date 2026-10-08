@@ -14,6 +14,15 @@ jobs:
       run:
         working-directory: ./Microsoft.SCIM.WebHostSample/
 
+    # Credentials for the private KN.KI.* GitHub Packages feed. The repo nuget.config
+    # consumes these via %KLOUDYNET_NUGET_USERNAME% / %KLOUDYNET_NUGET_PASSWORD%
+    # (ClearTextPassword) — the same mechanism as local dev, so no `dotnet nuget add source`.
+    # KLOUDYNET_NUGET_PASSWORD must be a repo/org Actions secret: a classic PAT with the
+    # read:packages scope, SSO-authorized for the Kloudynet-Technologies org.
+    env:
+      KLOUDYNET_NUGET_USERNAME: ${{ github.actor }}
+      KLOUDYNET_NUGET_PASSWORD: ${{ secrets.KLOUDYNET_NUGET_PASSWORD }}
+
     steps:
     - uses: actions/checkout@v2
 

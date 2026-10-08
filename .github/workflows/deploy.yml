@@ -29,9 +29,19 @@ jobs:
         id: version
         run: echo "version=${{github.event.release.tag_name}}" >> $GITHUB_ENV
 
-      # Build the .NET backend Docker image
+      # Build the .NET backend Docker image. The private KN.KI.* feed credentials are passed as BuildKit
+      # secrets (same values as build.yml), so they are available to `dotnet restore` only and never baked
+      # into the image.
       - name: Build Docker Image
-        run: docker build --progress=plain -t acrkidemo-gfazgkhnhdfeamft.azurecr.io/scimconnector-api:${{ env.version }} -f ./dockerfile .
+        env:
+          KLOUDYNET_NUGET_USERNAME: ${{ github.actor }}
+          KLOUDYNET_NUGET_PASSWORD: ${{ secrets.KLOUDYNET_NUGET_PASSWORD }}
+        run: >-
+          docker build --progress=plain
+          --secret id=nuget_user,env=KLOUDYNET_NUGET_USERNAME
+          --secret id=nuget_pass,env=KLOUDYNET_NUGET_PASSWORD
+          -t acrkidemo-gfazgkhnhdfeamft.azurecr.io/scimconnector-api:${{ env.version }}
+          -f ./dockerfile .
 
       # Push the Docker image to ACR
       - name: Push Docker Image

@@ -15,7 +15,7 @@
     <PackageReference Include="Azure.Identity" Version="1.17.1" />
     <PackageReference Include="Hangfire" Version="1.8.12" />
     <PackageReference Include="KN.KI.LogAggregator.Messaging.RabbitMq" Version="0.0.6" />
-    <PackageReference Include="KN.KI.LogAggregator.SerilogInitializer" Version="1.0.4" />
+    <PackageReference Include="KN.KI.LogAggregator.SerilogInitializer" Version="1.0.5" />
     <PackageReference Include="MassTransit" Version="8.2.3" />
     <PackageReference Include="MassTransit.RabbitMq" Version="8.2.3" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
@@ -30,7 +30,7 @@
     <PackageReference Include="Serilog.Sinks.ApplicationInsights" Version="4.1.0-dev-02304" />
     <PackageReference Include="Serilog.Sinks.AzureBlobStorage" Version="4.0.5" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="Serilog.Sinks.Seq" Version="9.0.0" />
     <PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
   </ItemGroup>
