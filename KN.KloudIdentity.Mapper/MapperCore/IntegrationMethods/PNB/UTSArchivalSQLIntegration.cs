@@ -685,13 +685,13 @@ public class UTSArchivalSQLIntegration : SQLIntegration
 
     private static AttributeSchema ResolveLookupAttribute(AppConfig appConfig)
     {
-        return appConfig.UserAttributeSchemas?.FirstOrDefault(a =>
+         return appConfig.UserAttributeSchemas?.FirstOrDefault(a =>
                    a.HttpRequestType == HttpRequestTypes.POST
                    && !IsOutputMapping(a)
-                   && string.Equals(a.SourceValue?.Trim(), "UserName", StringComparison.OrdinalIgnoreCase)
+                   && string.Equals(a.SourceValue?.Trim(), "KIExtension:ExtensionAttribute1", StringComparison.OrdinalIgnoreCase)
                    && !string.IsNullOrWhiteSpace(a.DestinationField))
                ?? throw new InvalidOperationException(
-                   $"No POST 'UserName' mapping configured for AppId {appConfig.AppId}; it is required as the UTS lookup parameter.");
+                   $"No POST 'KIExtension:ExtensionAttribute1' mapping configured for AppId {appConfig.AppId}; it is required as the UTS lookup parameter.");
     }
 
     /// <summary>
