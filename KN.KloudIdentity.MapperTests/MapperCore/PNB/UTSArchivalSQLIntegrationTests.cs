@@ -61,21 +61,22 @@ public partial class UTSArchivalSQLIntegrationTests
     #region ResolveLookupParameter
 
     [Fact]
-    public void ResolveLookupParameter_ShouldReturnPostUserNameDestination()
+    public void ResolveLookupParameter_ShouldReturnPostExtensionAttribute1Destination()
     {
         var config = CreateAppConfig(
-            Row(HttpRequestTypes.PATCH, "UserName", "@PatchLogin"),
+            Row(HttpRequestTypes.PATCH, "KIExtension:ExtensionAttribute1", "@PatchLogin"),
             Row(HttpRequestTypes.POST, "DisplayName", "@Name"),
-            Row(HttpRequestTypes.POST, "UserName", "urn:kn:ki:schema:@LoginID"));
+            Row(HttpRequestTypes.POST, "KIExtension:ExtensionAttribute1", "urn:kn:ki:schema:@LoginID"));
 
         Assert.Equal("@LoginID", TestableUTSArchivalSQLIntegration.CallResolveLookupParameter(config));
     }
 
     [Fact]
-    public void ResolveLookupParameter_ShouldThrow_WhenUserNameIsNotMappedOnPost()
+    public void ResolveLookupParameter_ShouldThrow_WhenExtensionAttribute1IsNotMappedOnPost()
     {
         var config = CreateAppConfig(
-            Row(HttpRequestTypes.PATCH, "UserName", "@LoginID"),
+            Row(HttpRequestTypes.PATCH, "KIExtension:ExtensionAttribute1", "@LoginID"),
+            Row(HttpRequestTypes.POST, "UserName", "@Legacy"),
             Row(HttpRequestTypes.POST, "DisplayName", "@Name"),
             Row(HttpRequestTypes.POST, "", "@ReferenceNo"));
 
@@ -109,7 +110,7 @@ public partial class UTSArchivalSQLIntegrationTests
     public void ResolveStatusOutputs_ShouldFallBackToPostMarkers_ForGetAndDelete(HttpRequestTypes requestType)
     {
         var config = CreateAppConfig(
-            Row(HttpRequestTypes.POST, "UserName", "@LoginID"),
+            Row(HttpRequestTypes.POST, "KIExtension:ExtensionAttribute1", "@LoginID"),
             Row(HttpRequestTypes.POST, "Output:ResponseCode", "@ResponseCode", AttributeDataTypes.Int, MappingTypes.Constant),
             Row(HttpRequestTypes.POST, "Output:ResponseMessage", "@ResponseMessage", AttributeDataTypes.String, MappingTypes.Constant));
 
@@ -134,7 +135,7 @@ public partial class UTSArchivalSQLIntegrationTests
     public void ResolveStatusOutputs_ShouldThrow_WhenResponseCodeMarkerIsMissing()
     {
         var config = CreateAppConfig(
-            Row(HttpRequestTypes.POST, "UserName", "@LoginID"),
+            Row(HttpRequestTypes.POST, "KIExtension:ExtensionAttribute1", "@LoginID"),
             Row(HttpRequestTypes.POST, "Output:ResponseMessage", "@ResponseMessage", AttributeDataTypes.String, MappingTypes.Constant),
             Row(HttpRequestTypes.POST, "Output", "@NewUserId", AttributeDataTypes.BigInt, MappingTypes.Constant));
 
