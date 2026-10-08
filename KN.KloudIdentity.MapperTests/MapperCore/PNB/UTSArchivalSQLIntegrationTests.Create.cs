@@ -21,7 +21,7 @@ public partial class UTSArchivalSQLIntegrationTests
     /// </summary>
     private static List<AttributeSchema> DetectedPostSchema() =>
     [
-        Detected("@LoginID", AttributeDataTypes.NVarChar, "UserName"),
+        Detected("@LoginID", AttributeDataTypes.NVarChar, "KIExtension:ExtensionAttribute1"),
         Detected("@Name", AttributeDataTypes.NVarChar, "DisplayName"),
         Detected("@LevelsID", AttributeDataTypes.Int, "Roles[0]:Value"),
         Detected("@ReferenceNo", AttributeDataTypes.NVarChar, "EnterpriseExtension:EmployeeNumber"),
@@ -54,14 +54,20 @@ public partial class UTSArchivalSQLIntegrationTests
     };
 
     private static Core2EnterpriseUser EntraUser(string? role = "1", string? email = "ali@pnb.com",
-        string displayName = "Ali Bin Abu") => new()
+        string displayName = "Ali Bin Abu")
     {
-        UserName = " ASNB9999 ",
-        DisplayName = displayName,
-        Roles = role is null ? [] : [new Role { Value = role }],
-        ElectronicMailAddresses = email is null ? [] : [new ElectronicMailAddress { Value = email }],
-        EnterpriseExtension = new ExtensionAttributeEnterpriseUser2 { EmployeeNumber = "S12345" }
-    };
+        var user = new Core2EnterpriseUser
+        {
+            UserName = " ASNB9999 ",
+            DisplayName = displayName,
+            Roles = role is null ? [] : [new Role { Value = role }],
+            ElectronicMailAddresses = email is null ? [] : [new ElectronicMailAddress { Value = email }],
+            EnterpriseExtension = new ExtensionAttributeEnterpriseUser2 { EmployeeNumber = "S12345" }
+        };
+        // The UTS lookup (LoginID) is mapped from KIExtension:ExtensionAttribute1
+        user.KIExtension.ExtensionAttribute1 = " ASNB9999 ";
+        return user;
+    }
 
     private static AppConfig CreateCreateConfig(List<AttributeSchema>? schema = null)
     {
