@@ -152,7 +152,7 @@ public partial class UTSArchivalSQLIntegrationTests
     {
         var patch = DetectedPatchSchema();
         patch[patch.FindIndex(a => a.DestinationField == "@Flag")] = patch.First(a => a.DestinationField == "@Flag") with { SourceValue = "Active" };
-        patch[patch.FindIndex(a => a.DestinationField == "@LoginID")] = patch.First(a => a.DestinationField == "@LoginID") with { SourceValue = "UserName" };
+        patch[patch.FindIndex(a => a.DestinationField == "@LoginID")] = patch.First(a => a.DestinationField == "@LoginID") with { SourceValue = "KIExtension:ExtensionAttribute1" };
         var (sut, context) = CreateUpdateSut();
         Patch(context, (OperationName.Replace, "displayName"), (OperationName.Replace, "userName"));
 

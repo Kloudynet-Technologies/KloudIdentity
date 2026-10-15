@@ -192,7 +192,7 @@ public partial class UTSArchivalSQLIntegrationTests
     {
         var sut = CreateCreateSut(Status(1));
         var user = EntraUser();
-        user.UserName = null!;
+        user.KIExtension.ExtensionAttribute1 = null!;
 
         await Assert.ThrowsAsync<HttpResponseException>(() => CreateAsync(sut, CreateUpsertConfig(), user));
 
