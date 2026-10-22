@@ -349,4 +349,47 @@ public class ReplaceUserV4Tests
         Assert.True(task.IsCompletedSuccessfully);
         Assert.Equal("newId", user.Identifier);
     }
+
+    [Theory]
+    [InlineData(false, HttpRequestTypes.PATCH)] // MgtPortal only maps PATCH rows → used for PUT
+    [InlineData(true, HttpRequestTypes.PUT)]    // PUT rows win when present
+    public async Task ReplaceAsync_GenericPath_UsesPutRowsOrFallsBackToPatchRows(bool hasPutRows, HttpRequestTypes expected)
+    {
+        // Arrange
+        var rows = new List<AttributeSchema>
+        {
+            new() { HttpRequestType = HttpRequestTypes.POST, SourceValue = "UserName", DestinationField = "@LoginID" },
+            new() { HttpRequestType = HttpRequestTypes.PATCH, SourceValue = "DisplayName", DestinationField = "@Name" }
+        };
+        if (hasPutRows)
+            rows.Add(new AttributeSchema { HttpRequestType = HttpRequestTypes.PUT, SourceValue = "DisplayName", DestinationField = "@FullName" });
+
+        var appConfig = new AppConfig
+        {
+            AppId = "app1",
+            AuthenticationDetails = default!,
+            UserAttributeSchemas = rows,
+            IntegrationMethodOutbound = IntegrationMethods.SQL
+        };
+        IList<AttributeSchema>? mappedRows = null;
+        _integrationBaseFactoryMock.Setup(f => f.GetIntegration(IntegrationMethods.SQL, "app1"))
+            .Returns(_integrationBaseMock.Object);
+        _integrationBaseMock.Setup(m => m.MapAndPreparePayloadAsync(It.IsAny<IList<AttributeSchema>>(),
+                It.IsAny<Core2EnterpriseUser>(), appConfig, It.IsAny<CancellationToken>()))
+            .Callback<IList<AttributeSchema>, Core2EnterpriseUser, AppConfig, CancellationToken>((schema, _, _, _) => mappedRows = schema)
+            .ReturnsAsync(new object());
+        _integrationBaseMock.Setup(m => m.ValidatePayloadAsync(It.IsAny<object>(), appConfig, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((true, Array.Empty<string>()));
+        _integrationBaseMock.Setup(m => m.ReplaceAsync(It.IsAny<object>(), It.IsAny<Core2EnterpriseUser>(), appConfig, It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+        var sut = CreateSut(appConfig);
+
+        // Act
+        await sut.ReplaceAsync(new Core2EnterpriseUser { Identifier = "user1", UserName = "user1" }, "app1", "corr1");
+
+        // Assert
+        Assert.NotNull(mappedRows);
+        Assert.NotEmpty(mappedRows!);
+        Assert.All(mappedRows!, r => Assert.Equal(expected, r.HttpRequestType));
+    }
 }

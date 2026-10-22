@@ -2,6 +2,7 @@
 
 public enum HttpRequestTypes
 {
+    NotDefined,
     POST,
     PUT,
     PATCH,

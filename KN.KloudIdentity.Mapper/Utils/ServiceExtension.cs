@@ -83,7 +83,8 @@ public static class ServiceExtension
         services.AddScoped<IIntegrationBase, RESTIntegration>();
         services.AddScoped<IIntegrationBase, LinuxIntegration>();
         services.AddScoped<IIntegrationBaseV2, AS400Integration>();
-        services.AddScoped<IIntegrationBase, SQLIntegration>();
+        services.AddScoped<IIntegrationBaseV2, SQLIntegration>();
+        services.AddScoped<IIntegrationBaseV2, UTSArchivalSQLIntegration>();
         services.AddScoped<IIntegrationBaseV2, SOAPIntegration>();
         services.AddScoped<IIntegrationBaseV2, EagleSOAPIntegration>();
 
@@ -94,6 +95,7 @@ public static class ServiceExtension
         services.AddScoped<IReplaceResourceV2, ReplaceUserV4>();
 
         services.AddScoped<IUpdateResourceV2, UpdateUserV4>();
+        services.AddScoped<IPatchOperationContext, PatchOperationContext>();
         services.AddScoped<IDeleteResourceV2, DeleteUserV4>();
 
         services.AddScoped<ICreateResource<Core2Group>, CreateGroup>();
