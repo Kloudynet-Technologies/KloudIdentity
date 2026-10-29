@@ -1,9 +1,11 @@
 using KN.KI.LogAggregator.Library.Abstractions;
 using KN.KloudIdentity.Mapper;
+using KN.KloudIdentity.Mapper.Common.Encryption;
 using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.MapperCore;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +17,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 
 namespace KN.KloudIdentity.MapperTests.SOAPIntegration;
 
@@ -1001,6 +1004,307 @@ public class SOAPIntegrationUnitTests
 
         await Assert.ThrowsAsync<HttpRequestException>(() =>
             sut.DeleteAsync("U-999", "soap-app", appConfig, step, "corr-v2-16"));
+    }
+
+    #endregion
+
+    #region Portal flat SOAP auth shapes (SoapTransport = 9, SoapWsSecurity = 8, SoapTokenPlacement = 10)
+
+    // Fixtures below are the exact flat shapes the Management Portal publishes per step
+    // (GetSoapTransportAuthResult, GetSoapWsSecurityAuthResult, GetSoapTokenPlacementAuthResult),
+    // arriving as a JsonElement after the config snapshot is deserialized.
+
+    private const string PortalSoapResponse = """
+        <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+          <soap:Body><CreateUserResponse><Identifier>U-PORTAL-1</Identifier></CreateUserResponse></soap:Body>
+        </soap:Envelope>
+        """;
+
+    private const string PortalRequestPayload = """
+        <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+          <soap:Body><CreateUser /></soap:Body>
+        </soap:Envelope>
+        """;
+
+    private const string TestEncryptionKey = "2B7E151628AED2A6ABF7158809CF4F3C";
+    private const string TestIv = "Qk1vQ2p6b3h6b1p6b3h6bA==";
+
+    [Fact]
+    public async Task PortalFlatTransportStep_UseNtlm_AppliesCredentialsToNtlmHandler()
+    {
+        var sut = CreateNtlmCapturingSut();
+        var appConfig = CreateAppConfig(authenticationFlow: CreatePortalFlow(
+            CreatePortalStep(1, (AuthenticationMethods)9, """
+                {
+                  "Id": "6f1b6c1e-1a2b-4c3d-8e9f-001122334455",
+                  "AppId": "soap-app",
+                  "Enabled": true,
+                  "UseNtlm": true,
+                  "UseDefaultCredentials": false,
+                  "Username": "svc-user",
+                  "Password": "ntlm-pass",
+                  "Domain": "CORP",
+                  "KeyVaultReference": null
+                }
+                """)));
+
+        var result = await sut.ProvisionAsync(PortalRequestPayload, appConfig, "corr-portal-ntlm");
+
+        Assert.Equal("U-PORTAL-1", result!.Identifier);
+        Assert.NotNull(sut.Handler.LastCredential);
+        Assert.Equal("svc-user", sut.Handler.LastCredential!.UserName);
+        Assert.Equal("ntlm-pass", sut.Handler.LastCredential.Password);
+        Assert.Equal("CORP", sut.Handler.LastCredential.Domain);
+    }
+
+    [Fact]
+    public async Task PortalFlatTransportStep_PasswordPlaceholder_ResolvesPasswordFromKeyVault()
+    {
+        var secretManager = new Mock<ISecretManager>();
+        secretManager
+            .Setup(m => m.GetSecretAsync("secret-SoapTransport-1"))
+            .ReturnsAsync(EncryptionHelper.Encrypt("vault-pass", TestEncryptionKey, TestIv));
+
+        var sut = CreateNtlmCapturingSut(secretManager.Object, TestEncryptionKey);
+        var appConfig = CreateAppConfig(authenticationFlow: CreatePortalFlow(
+            CreatePortalStep(1, (AuthenticationMethods)9, $$"""
+                {
+                  "id": "6f1b6c1e-1a2b-4c3d-8e9f-001122334455",
+                  "appId": "soap-app",
+                  "enabled": true,
+                  "useNtlm": true,
+                  "useDefaultCredentials": false,
+                  "username": "svc-user",
+                  "password": "*",
+                  "domain": "CORP",
+                  "keyVaultReference": "secret-SoapTransport-1",
+                  "encryptedData": { "encryptedValue": "*", "iv": "{{TestIv}}" }
+                }
+                """)));
+
+        await sut.ProvisionAsync(PortalRequestPayload, appConfig, "corr-portal-ntlm-kv");
+
+        Assert.Equal("vault-pass", sut.Handler.LastCredential!.Password);
+    }
+
+    [Fact]
+    public async Task PortalFlatTransportStep_PasswordPlaceholderWithoutIv_ThrowsInvalidOperationException()
+    {
+        // What the portal publishes today: the password masked as "*" and no EncryptedData to decrypt it with.
+        var sut = CreateNtlmCapturingSut(new Mock<ISecretManager>().Object, TestEncryptionKey);
+        var appConfig = CreateAppConfig(authenticationFlow: CreatePortalFlow(
+            CreatePortalStep(1, (AuthenticationMethods)9, """
+                {
+                  "Enabled": true, "UseNtlm": true, "UseDefaultCredentials": false,
+                  "Username": "svc-user", "Password": "*", "Domain": "CORP",
+                  "KeyVaultReference": "secret-SoapTransport-1"
+                }
+                """)));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.ProvisionAsync(PortalRequestPayload, appConfig, "corr-portal-ntlm-noiv"));
+        Assert.Contains("IV", ex.Message);
+        Assert.Null(sut.Handler.LastCredential);
+    }
+
+    [Fact]
+    public async Task PortalFlatWsSecurityStep_InjectsUsernameToken()
+    {
+        var handler = new TestHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(PortalSoapResponse, Encoding.UTF8, "text/xml")
+        });
+
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig(authenticationFlow: CreatePortalFlow(
+            CreatePortalStep(1, (AuthenticationMethods)8, """
+                {
+                  "id": "7a1b6c1e-1a2b-4c3d-8e9f-001122334455",
+                  "appId": "soap-app",
+                  "enabled": true,
+                  "username": "ws-portal-user",
+                  "password": "ws-portal-pass",
+                  "includeTimestamp": true,
+                  "keyVaultReference": null
+                }
+                """)));
+
+        await sut.ProvisionAsync(PortalRequestPayload, appConfig, "corr-portal-wsse");
+
+        Assert.Contains("wsse:UsernameToken", handler.LastRequestBody);
+        Assert.Contains("ws-portal-user", handler.LastRequestBody);
+        Assert.Contains("ws-portal-pass", handler.LastRequestBody);
+        Assert.Contains("wsu:Timestamp", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task PortalFlatTokenPlacementStep_AfterOAuth2Step_AppliesTokenToHeadersAndSoapHeader()
+    {
+        var handler = new TestHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(PortalSoapResponse, Encoding.UTF8, "text/xml")
+        });
+
+        var sut = CreateSut(handler, "oauth-token-1");
+        var appConfig = CreateAppConfig(
+            authMethodOutbound: AuthenticationMethods.OAuth2,
+            authenticationFlow: CreatePortalFlow(
+                CreatePortalStep(1, AuthenticationMethods.OAuth2, """{ "TokenPrefix": "Bearer" }"""),
+                CreatePortalStep(2, (AuthenticationMethods)10, """
+                    {
+                      "Id": "8a1b6c1e-1a2b-4c3d-8e9f-001122334455",
+                      "AppId": "soap-app",
+                      "Enabled": true,
+                      "UseAuthorizationHeader": true,
+                      "TokenPlaceholder": "{{token}}",
+                      "SoapHeaderTemplate": "<auth:Token xmlns:auth='urn:test'>{{token}}</auth:Token>",
+                      "CustomHttpHeaders": "{\"X-Api\":\"key {{token}}\"}"
+                    }
+                    """)));
+
+        await sut.ProvisionAsync(PortalRequestPayload, appConfig, "corr-portal-token");
+
+        Assert.Equal("Bearer", handler.LastAuthorizationHeader!.Scheme);
+        Assert.Equal("oauth-token-1", handler.LastAuthorizationHeader.Parameter);
+        Assert.True(handler.LastHeaders.TryGetValue("X-Api", out var apiHeader));
+        Assert.Equal("key oauth-token-1", apiHeader);
+        Assert.Contains("auth:Token", handler.LastRequestBody);
+        Assert.Contains("oauth-token-1", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task PortalFlatTokenPlacementStep_EmptyPlaceholderAndUnparseableHeaders_DefaultsPlaceholderAndIgnoresHeaders()
+    {
+        var handler = new TestHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(PortalSoapResponse, Encoding.UTF8, "text/xml")
+        });
+
+        var sut = CreateSut(handler, "tok-2");
+        var appConfig = CreateAppConfig(
+            authMethodOutbound: AuthenticationMethods.Bearer,
+            authenticationFlow: CreatePortalFlow(
+                CreatePortalStep(2, (AuthenticationMethods)10, """
+                    {
+                      "enabled": true,
+                      "useAuthorizationHeader": false,
+                      "tokenPlaceholder": "",
+                      "soapHeaderTemplate": "<auth:Token xmlns:auth='urn:test'>{{token}}</auth:Token>",
+                      "customHttpHeaders": "not json"
+                    }
+                    """)));
+
+        await sut.ProvisionAsync(PortalRequestPayload, appConfig, "corr-portal-token-defaults");
+
+        Assert.Contains("<auth:Token xmlns:auth=\"urn:test\">tok-2</auth:Token>", handler.LastRequestBody);
+        Assert.False(handler.LastHeaders.ContainsKey("X-Api"));
+    }
+
+    [Fact]
+    public async Task PortalFlatSteps_TransportAndWsSecurity_AreBothApplied()
+    {
+        var sut = CreateNtlmCapturingSut();
+        var appConfig = CreateAppConfig(authenticationFlow: CreatePortalFlow(
+            CreatePortalStep(2, (AuthenticationMethods)8, """
+                { "Enabled": true, "Username": "ws-user-2", "Password": "ws-pass-2", "IncludeTimestamp": false }
+                """),
+            CreatePortalStep(1, (AuthenticationMethods)9, """
+                { "Enabled": true, "UseNtlm": true, "UseDefaultCredentials": false, "Username": "ntlm-user-2", "Password": "ntlm-pass-2", "Domain": null }
+                """)));
+
+        await sut.ProvisionAsync(PortalRequestPayload, appConfig, "corr-portal-both");
+
+        Assert.Equal("ntlm-user-2", sut.Handler.LastCredential!.UserName);
+        Assert.Contains("wsse:UsernameToken", sut.Handler.LastRequestBody);
+        Assert.Contains("ws-user-2", sut.Handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task LegacyNestedShapeAsJsonElement_OnTransportStep_StillApplied()
+    {
+        var sut = CreateNtlmCapturingSut();
+        var appConfig = CreateAppConfig(authenticationFlow: CreatePortalFlow(
+            CreatePortalStep(1, (AuthenticationMethods)9, """
+                {
+                  "transport": { "enabled": true, "useNtlm": true, "username": "nested-user", "password": "nested-pass", "domain": "NEST" }
+                }
+                """)));
+
+        await sut.ProvisionAsync(PortalRequestPayload, appConfig, "corr-legacy-nested");
+
+        Assert.Equal("nested-user", sut.Handler.LastCredential!.UserName);
+        Assert.Equal("NEST", sut.Handler.LastCredential.Domain);
+    }
+
+    private static AuthenticationFlow CreatePortalFlow(params AuthenticationFlowStep[] steps) => new()
+    {
+        AppId = "soap-app",
+        Name = "Portal SOAP Flow",
+        Steps = [.. steps]
+    };
+
+    private static AuthenticationFlowStep CreatePortalStep(int stepOrder, AuthenticationMethods method, string detailsJson)
+    {
+        using var document = JsonDocument.Parse(detailsJson);
+        return new AuthenticationFlowStep
+        {
+            StepTitle = $"Step {stepOrder}",
+            StepOrder = stepOrder,
+            AuthenticationMethod = method,
+            IsRequired = true,
+            AuthenticationDetails = document.RootElement.Clone()
+        };
+    }
+
+    private static NtlmCapturingSoapIntegration CreateNtlmCapturingSut(ISecretManager? secretManager = null, string encryptionKey = "")
+    {
+        var authContextMock = new Mock<IAuthContext>();
+        authContextMock
+            .Setup(context => context.GetTokenListAsync(It.IsAny<object>(), It.IsAny<SCIMDirections>()))
+            .ReturnsAsync(new Dictionary<int, string>());
+
+        return new NtlmCapturingSoapIntegration(
+            authContextMock.Object,
+            new Mock<IHttpClientFactory>().Object,
+            new ConfigurationBuilder().Build(),
+            Options.Create(new AppSettings { EncryptionKey = encryptionKey }),
+            new Mock<IKloudIdentityLogger>().Object,
+            secretManager);
+    }
+
+    // Replaces only the NTLM client so the credentials SoapTransportAuthApplier sets on the handler can be read.
+    private sealed class NtlmCapturingSoapIntegration(
+        IAuthContext authContext,
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration,
+        IOptions<AppSettings> appSettings,
+        IKloudIdentityLogger logger,
+        ISecretManager? secretManager)
+        : global::KN.KloudIdentity.Mapper.MapperCore.SOAPIntegration(authContext, httpClientFactory, configuration, appSettings, logger, null, secretManager)
+    {
+        public CapturingNtlmHandler Handler { get; } = new();
+
+        protected override HttpClient CreateHttpClientForNtlm(out HttpClientHandler handler)
+        {
+            handler = Handler;
+            return new HttpClient(Handler, disposeHandler: false);
+        }
+    }
+
+    private sealed class CapturingNtlmHandler : HttpClientHandler
+    {
+        public NetworkCredential? LastCredential { get; private set; }
+        public string LastRequestBody { get; private set; } = string.Empty;
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            LastCredential = Credentials as NetworkCredential;
+            LastRequestBody = request.Content == null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(PortalSoapResponse, Encoding.UTF8, "text/xml")
+            };
+        }
     }
 
     #endregion
