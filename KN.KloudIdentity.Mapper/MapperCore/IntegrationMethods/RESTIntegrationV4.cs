@@ -496,7 +496,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         if (string.IsNullOrEmpty(idField))
         {
             // Try to find a property like "id", "identifier", "key", etc.
-            var possibleKeys = new[] { "id", "identifier", "key", "userKey", "user_id", "userId" };
+            var possibleKeys = new[] { "login", "id", "identifier", "key", "userKey", "user_id", "userId"};
             foreach (var key in possibleKeys)
             {
                 // Try to find the key at any depth in the payload (recursive search)
