@@ -9,6 +9,7 @@ using KN.KloudIdentity.Mapper.Domain.Mapping;
 using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Microsoft.SCIM;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
@@ -20,6 +21,7 @@ public class ASNBKioskIntegration : RESTIntegrationV4
     private readonly ISecretManager _secretManager;
     private readonly AppSettings _appSettings;
     private const string TokenAuthPath = "/TokenAuth/Authenticate";
+    private const string SchemaUrnPrefix = "urn:kn:ki:schema:";
 
     public ASNBKioskIntegration(
         IAuthContext authContext,
@@ -127,6 +129,60 @@ public class ASNBKioskIntegration : RESTIntegrationV4
         Log.Information("ASNB Kiosk auth token acquired successfully for app {AppId}", config.AppId);
 
         return new Dictionary<int, string> { [basicStep.StepOrder] = accessToken };
+    }
+
+    /// <summary>
+    /// Builds the payload via the standard mapping pipeline, then applies the Kiosk-specific
+    /// active/status inversion (see <see cref="ApplyKioskStatus"/>).
+    /// </summary>
+    public override async Task<dynamic> MapAndPreparePayloadAsync(
+        IList<AttributeSchema> schema,
+        Core2EnterpriseUser resource,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await base.MapAndPreparePayloadAsync(schema, resource, cancellationToken);
+        JObject jPayload = payload as JObject ?? JObject.FromObject(payload);
+
+        ApplyKioskStatus(jPayload, schema, resource);
+
+        return jPayload;
+    }
+
+    /// <summary>
+    /// Entra sends active=true, but the Kiosk app expects 0 = Active and 1 = Suspended.
+    /// The destination field is taken from the schema entry whose source is <c>active</c>;
+    /// its schema URN prefix is stripped (urn:kn:ki:schema:status -> status).
+    /// </summary>
+    private static void ApplyKioskStatus(JObject jPayload, IList<AttributeSchema> schema, Core2EnterpriseUser resource)
+    {
+        var activeField = schema
+            .FirstOrDefault(s => string.Equals(s.SourceValue?.Trim(), "active", StringComparison.OrdinalIgnoreCase))
+            ?.DestinationField;
+
+        if (string.IsNullOrWhiteSpace(activeField))
+        {
+            Log.Warning(
+                "[ASNBKioskIntegration] No schema attribute mapped from 'active'; skipping status inversion for resource {ResourceId}.",
+                resource.Identifier);
+            return;
+        }
+
+        // Kiosk: 0 = Active, 1 = Suspended (inverse of Entra's boolean).
+        var kioskStatus = resource.Active ? 0 : 1;
+        // The mapped destination is a schema URN (urn:kn:ki:schema:status); strip the prefix to get "status".
+        string urnPrefix = SchemaUrnPrefix;
+        string statusField = activeField.StartsWith(urnPrefix, StringComparison.OrdinalIgnoreCase)
+            ? activeField.Remove(0, urnPrefix.Length)
+            : activeField;
+
+        if (!string.Equals(activeField, statusField, StringComparison.Ordinal))
+            jPayload.Remove(activeField);
+
+        jPayload[statusField] = kioskStatus;
+
+        Log.Information(
+            "[ASNBKioskIntegration] Mapped Active={Active} (from '{Field}') to '{StatusField}'={Status} for resource {ResourceId}.",
+            resource.Active, activeField, statusField, kioskStatus, resource.Identifier);
     }
 
     private static string BuildAuthUrl(string getEndpoint)

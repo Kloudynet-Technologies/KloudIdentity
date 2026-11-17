@@ -46,6 +46,7 @@ WORKDIR /app
 # libgssapi-krb5-2 is a hard runtime dependency of the msodbcsql .so files that apt does not pull in
 # with --no-install-recommends — without it unixODBC reports "Can't open lib ... file not found".
 # curl/gnupg are only needed to add the Microsoft package repo and are removed afterwards.
+
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends ca-certificates curl gnupg \

@@ -645,6 +645,19 @@ public class EagleSOAPIntegration : SOAPIntegration
 
         using (doc)
         {
+            //Eagle returns a statusItem envelope with status NO_DATA when the user does not exist
+            if (doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("statusItem", out var statusItems)
+                && statusItems.ValueKind == JsonValueKind.Array
+                && statusItems.EnumerateArray().Any(i =>
+                    i.ValueKind == JsonValueKind.Object
+                    && i.TryGetProperty("status", out var status)
+                    && status.ValueKind == JsonValueKind.String
+                    && string.Equals(status.GetString(), "NO_DATA", StringComparison.OrdinalIgnoreCase)))
+            {
+                return null;
+            }
+
             if (doc.RootElement.ValueKind != JsonValueKind.Object
                 || !doc.RootElement.TryGetProperty("userAdministrationTransactionMessage", out var message))
             {

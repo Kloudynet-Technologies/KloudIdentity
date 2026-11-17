@@ -6,6 +6,8 @@ using KN.KloudIdentity.Mapper.Domain;
 using KN.KloudIdentity.Mapper.Domain.Application;
 using KN.KloudIdentity.Mapper.Domain.Authentication;
 using KN.KloudIdentity.Mapper.Domain.Mapping;
+using KN.KloudIdentity.Mapper.Common.Encryption;
+using KN.KloudIdentity.Mapper.Infrastructure.ExternalAPICalls.Abstractions;
 using KN.KloudIdentity.Mapper.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
@@ -34,6 +36,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
         private readonly IKloudIdentityLogger _logger;
         private readonly AppSettings _appSettings;
         private readonly IReadOnlyList<ISoapAuthApplier> _soapAuthAppliers;
+        private readonly ISecretManager? _secretManager;
         public IntegrationMethods IntegrationMethod { get; init; }
 
         public SOAPIntegration(
@@ -42,7 +45,8 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             IConfiguration configuration,
             IOptions<AppSettings> appSettings,
             IKloudIdentityLogger logger,
-            IEnumerable<ISoapAuthApplier>? soapAuthAppliers = null)
+            IEnumerable<ISoapAuthApplier>? soapAuthAppliers = null,
+            ISecretManager? secretManager = null)
         {
             IntegrationMethod = IntegrationMethods.SOAP;
             _authContext = authContext;
@@ -50,6 +54,7 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             _configuration = configuration;
             _logger = logger;
             _appSettings = appSettings.Value;
+            _secretManager = secretManager;
             _soapAuthAppliers = [.. (soapAuthAppliers ??
             [
                 new SoapTransportAuthApplier(),
@@ -245,8 +250,10 @@ namespace KN.KloudIdentity.Mapper.MapperCore
         /// <returns>Response body as string.</returns>
         protected virtual async Task<string> SendSoapRequestAsync(Uri uri, string payload, AppConfig appConfig, SCIMDirections direction, string correlationId, CancellationToken cancellationToken = default)
         {
-            var soapAuthOptions = ResolveSoapAuthenticationOptions(appConfig);
+            var soapAuthOptions = await ResolveSoapSecretsAsync(ResolveSoapAuthenticationOptions(appConfig));
             var (httpClient, handler, token) = await CreateHttpClientAsync(appConfig, direction, soapAuthOptions, cancellationToken);
+            // Only a client built around its own NTLM handler is ours to dispose; factory clients are not.
+            using var ownedClient = handler != null ? httpClient : null;
 
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
             var authContext = new SoapAuthContext
@@ -338,9 +345,11 @@ namespace KN.KloudIdentity.Mapper.MapperCore
 
         protected virtual HttpClient CreateHttpClientForNtlm(out HttpClientHandler handler)
         {
-            // Handler is configured by DI for this named client, so no manual `new HttpClient(...)`.
-            handler = null!;
-            return _httpClientFactory.CreateClient(AppConstant.NtlmSoapClientName);
+            // NTLM credentials are per application, so they cannot go on the pooled handler the factory
+            // shares between apps — and SoapTransportAuthApplier needs a handler to put them on (it throws
+            // without one). A dedicated handler per request; SendSoapRequestAsync disposes the client.
+            handler = new HttpClientHandler();
+            return new HttpClient(handler, disposeHandler: true);
         }
 
         private static bool ShouldResolveToken(AppConfig appConfig, SOAPAuthenticationOptions? options, SCIMDirections direction)
@@ -376,20 +385,219 @@ namespace KN.KloudIdentity.Mapper.MapperCore
             return false;
         }
 
+        /// <summary>
+        /// Builds the SOAP auth options from the authentication flow. The Management Portal stores SOAP auth
+        /// as three separate step methods (SoapNtlm/SoapTransport = 9, SoapWsSecurity = 8,
+        /// SoapTokenPlacement = 10), each publishing its own FLAT details, so the options are aggregated
+        /// across every step rather than read from one. The first step (by StepOrder) to supply a section wins.
+        /// Details already in the nested SOAPAuthenticationOptions shape are still accepted, on any step.
+        /// </summary>
         private static SOAPAuthenticationOptions? ResolveSoapAuthenticationOptions(AppConfig appConfig)
-        {         
+        {
             var steps = appConfig.AuthenticationFlow?.Steps;
-            if (steps != null)
+            if (steps == null)
             {
-                foreach (var step in steps.OrderBy(s => s.StepOrder))
-                {
-                    if (step.AuthenticationDetails is null) continue;
-                    if (TryExtractSoapAuthFromDetails(step.AuthenticationDetails, out SOAPAuthenticationOptions? stepOptions))
-                        return stepOptions;
-                }
-            }          
+                return null;
+            }
 
+            BasicOrNtlmSoapAuthOptions? transport = null;
+            WsSecuritySoapAuthOptions? wsSecurity = null;
+            SoapTokenPlacementOptions? tokenPlacement = null;
+
+            foreach (var step in steps.OrderBy(s => s.StepOrder))
+            {
+                if (!HasAuthenticationDetails((object?)step.AuthenticationDetails)) continue;
+                if (!TryGetDetailsElement((object?)step.AuthenticationDetails, out var root)) continue;
+
+                if (TryExtractSoapAuthFromDetails(root, out SOAPAuthenticationOptions? nested) && nested != null)
+                {
+                    transport ??= nested.Transport;
+                    wsSecurity ??= nested.WsSecurity;
+                    tokenPlacement ??= nested.TokenPlacement;
+                    continue;
+                }
+
+                try
+                {
+                    switch (step.AuthenticationMethod)
+                    {
+                        case AuthenticationMethods.SoapNtlm:
+                            transport ??= root.Deserialize<BasicOrNtlmSoapAuthOptions>(CaseInsensitiveJsonOptions);
+                            break;
+                        case AuthenticationMethods.SoapWsSecurity:
+                            wsSecurity ??= root.Deserialize<WsSecuritySoapAuthOptions>(CaseInsensitiveJsonOptions);
+                            break;
+                        case AuthenticationMethods.SoapTokenPlacement:
+                            tokenPlacement ??= ReadFlatTokenPlacement(root, step.StepOrder);
+                            break;
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    Log.Error(ex, "Failed to read {Method} details from authentication step {StepOrder}.",
+                        step.AuthenticationMethod, step.StepOrder);
+                }
+            }
+
+            if (transport == null && wsSecurity == null && tokenPlacement == null)
+            {
+                return null;
+            }
+
+            return new SOAPAuthenticationOptions
+            {
+                Transport = transport,
+                WsSecurity = wsSecurity,
+                TokenPlacement = tokenPlacement
+            };
+        }
+
+        private static SoapTokenPlacementOptions? ReadFlatTokenPlacement(JsonElement root, int stepOrder)
+        {
+            var flat = root.Deserialize<FlatSoapTokenPlacement>(CaseInsensitiveJsonOptions);
+            if (flat == null)
+            {
+                return null;
+            }
+
+            return new SoapTokenPlacementOptions
+            {
+                Enabled = flat.Enabled,
+                UseAuthorizationHeader = flat.UseAuthorizationHeader,
+                SoapHeaderTemplate = flat.SoapHeaderTemplate,
+                CustomHttpHeaders = ParseCustomHttpHeaders(flat.CustomHttpHeaders, stepOrder),
+                TokenPlaceholder = string.IsNullOrWhiteSpace(flat.TokenPlaceholder) ? "{{token}}" : flat.TokenPlaceholder
+            };
+        }
+
+        // The portal stores CustomHttpHeaders as a JSON STRING ("{\"X-Api\":\"{{token}}\"}"), not an object.
+        // An object is accepted too. Anything unparseable is logged and ignored rather than failing the request.
+        private static Dictionary<string, string>? ParseCustomHttpHeaders(JsonElement value, int stepOrder)
+        {
+            try
+            {
+                switch (value.ValueKind)
+                {
+                    case JsonValueKind.String:
+                        var text = value.GetString();
+                        return string.IsNullOrWhiteSpace(text)
+                            ? null
+                            : JsonSerializer.Deserialize<Dictionary<string, string>>(text);
+                    case JsonValueKind.Object:
+                        return value.Deserialize<Dictionary<string, string>>();
+                    case JsonValueKind.Null:
+                    case JsonValueKind.Undefined:
+                        return null;
+                }
+            }
+            catch (JsonException ex)
+            {
+                Log.Warning(ex, "Ignoring unparseable CustomHttpHeaders on SOAP token placement step {StepOrder}.", stepOrder);
+                return null;
+            }
+
+            Log.Warning("Ignoring CustomHttpHeaders of kind {Kind} on SOAP token placement step {StepOrder}.", value.ValueKind, stepOrder);
             return null;
+        }
+
+        // The flat shape the portal publishes for a SoapTokenPlacement step (GetSoapTokenPlacementAuthResult).
+        private sealed record FlatSoapTokenPlacement
+        {
+            public bool Enabled { get; init; }
+            public bool UseAuthorizationHeader { get; init; }
+            public string? TokenPlaceholder { get; init; }
+            public string? SoapHeaderTemplate { get; init; }
+            public JsonElement CustomHttpHeaders { get; init; }
+        }
+
+        /// <summary>
+        /// The portal publishes SOAP passwords as the literal "*": the ciphertext lives in Key Vault under
+        /// KeyVaultReference and its IV in EncryptedData, exactly as for Basic auth (see BasicAuthStrategy).
+        /// Resolves a password only where an applier will actually use it.
+        /// </summary>
+        private async Task<SOAPAuthenticationOptions?> ResolveSoapSecretsAsync(SOAPAuthenticationOptions? options)
+        {
+            if (options == null)
+            {
+                return null;
+            }
+
+            var transport = options.Transport;
+            if (transport is { Enabled: true, UseNtlm: true, UseDefaultCredentials: false } && IsPasswordPlaceholder(transport.Password))
+            {
+                transport = transport with
+                {
+                    Password = await ResolveSecretAsync("SOAP transport", transport.KeyVaultReference, transport.EncryptedData)
+                };
+            }
+
+            var wsSecurity = options.WsSecurity;
+            if (wsSecurity is { Enabled: true } && IsPasswordPlaceholder(wsSecurity.Password))
+            {
+                wsSecurity = wsSecurity with
+                {
+                    Password = await ResolveSecretAsync("SOAP WS-Security", wsSecurity.KeyVaultReference, wsSecurity.EncryptedData)
+                };
+            }
+
+            return options with { Transport = transport, WsSecurity = wsSecurity };
+        }
+
+        private static bool IsPasswordPlaceholder(string? password) =>
+            string.IsNullOrWhiteSpace(password) || password == "*";
+
+        private async Task<string?> ResolveSecretAsync(string section, string? keyVaultReference, EncryptedData? encryptedData)
+        {
+            // Nothing stored: leave the password empty so the applier reports the missing credential.
+            if (string.IsNullOrWhiteSpace(keyVaultReference))
+            {
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(encryptedData?.IV))
+            {
+                throw new InvalidOperationException(
+                    $"{section} password is stored in Key Vault ('{keyVaultReference}') but no EncryptedData.IV was supplied to decrypt it.");
+            }
+
+            if (_secretManager == null)
+            {
+                throw new InvalidOperationException($"{section} password is stored in Key Vault, but no secret manager is configured.");
+            }
+
+            if (string.IsNullOrWhiteSpace(_appSettings.EncryptionKey))
+            {
+                throw new InvalidOperationException("Encryption key is not configured in EncryptionKey.");
+            }
+
+            var encryptedPassword = await _secretManager.GetSecretAsync(keyVaultReference);
+            return EncryptionHelper.Decrypt(encryptedPassword, _appSettings.EncryptionKey, encryptedData.IV);
+        }
+
+        // AuthenticationDetails arrives as a JsonElement (snapshot, System.Text.Json), a JToken (Newtonsoft),
+        // a JSON string, or a plain object (tests). Normalise all of them to a JSON object element.
+        private static bool TryGetDetailsElement(object? details, out JsonElement element)
+        {
+            element = default;
+            try
+            {
+                var json = details switch
+                {
+                    JsonElement jsonElement => jsonElement.GetRawText(),
+                    string text => text,
+                    Newtonsoft.Json.Linq.JToken token => token.ToString(Newtonsoft.Json.Formatting.None),
+                    _ => JsonSerializer.Serialize(details)
+                };
+
+                using var document = JsonDocument.Parse(json);
+                element = document.RootElement.Clone();
+                return element.ValueKind == JsonValueKind.Object;
+            }
+            catch (JsonException ex)
+            {
+                Log.Error(ex, "Failed to read AuthenticationDetails as JSON.");
+                return false;
+            }
         }
 
         private static bool TryReadSoapAuthOptions(JsonElement root, string propertyName, out SOAPAuthenticationOptions? options)
@@ -419,15 +627,11 @@ namespace KN.KloudIdentity.Mapper.MapperCore
                 || options.TokenPlacement != null;
         }
 
-        private static bool TryExtractSoapAuthFromDetails(dynamic authDetails, out SOAPAuthenticationOptions? options)
+        private static bool TryExtractSoapAuthFromDetails(JsonElement root, out SOAPAuthenticationOptions? options)
         {
             options = null;
             try
             {
-                var json = JsonSerializer.Serialize(authDetails);
-                using var document = JsonDocument.Parse(json);
-                var root = document.RootElement;
-
                 if (TryDeserializeSoapAuthDirectly(root, out options))
                     return true;
 

@@ -64,8 +64,10 @@ public class AuthContextV2 : IAuthContext
         {
             var method = step.AuthenticationMethod;
 
+            // SOAP steps configure the request rather than produce a token; SOAPIntegration applies them.
             if (method == AuthenticationMethods.SoapWsSecurity
-                || method == AuthenticationMethods.SoapNtlm)
+                || method == AuthenticationMethods.SoapNtlm
+                || method == AuthenticationMethods.SoapTokenPlacement)
                 continue;
 
             var strategy = _authStrategies.FirstOrDefault(x => x.AuthenticationMethod == method)

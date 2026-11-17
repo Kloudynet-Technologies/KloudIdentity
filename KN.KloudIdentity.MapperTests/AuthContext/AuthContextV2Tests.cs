@@ -254,4 +254,42 @@ public class AuthContextV2Tests
 
         Assert.Empty(result);
     }
+
+    [Fact]
+    public async Task GetTokenListAsync_WithSoapTokenPlacementStep_SkipsStepAndReturnsEarlierToken()
+    {
+        // A portal SoapTokenPlacement (10) step consumes a token; it must not be treated as a token source.
+        var mockStrategy = new Mock<IAuthStrategy>();
+        mockStrategy.Setup(s => s.AuthenticationMethod).Returns(AuthenticationMethods.OAuth2);
+        mockStrategy.Setup(s => s.GetTokenAsync(It.IsAny<object>())).ReturnsAsync("oauth-token");
+
+        var flow = new AuthenticationFlow
+        {
+            Steps =
+            [
+                new AuthenticationFlowStep
+                {
+                    StepTitle = "OAuth2 Step",
+                    StepOrder = 1,
+                    AuthenticationMethod = AuthenticationMethods.OAuth2,
+                    AuthenticationDetails = new { }
+                },
+                new AuthenticationFlowStep
+                {
+                    StepTitle = "Token Placement Step",
+                    StepOrder = 2,
+                    AuthenticationMethod = (AuthenticationMethods)10,
+                    AuthenticationDetails = new { Enabled = true, UseAuthorizationHeader = true, TokenPlaceholder = "{{token}}" }
+                }
+            ]
+        };
+
+        var appConfig = new AppConfig { AppId = "test-app", AuthenticationFlow = flow, AuthenticationDetails = null };
+        var context = new AuthContextV2(new List<IAuthStrategy> { mockStrategy.Object });
+
+        var result = await context.GetTokenListAsync(appConfig, SCIMDirections.Outbound);
+
+        Assert.Single(result);
+        Assert.Equal("oauth-token", result[1]);
+    }
 }

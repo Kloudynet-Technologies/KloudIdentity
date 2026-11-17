@@ -581,6 +581,28 @@ public class EagleSOAPIntegrationTests
     }
 
     [Fact]
+    public async Task GetAsync_WhenStatusItemIsNoData_ThrowsHttpResponseExceptionNotFound()
+    {
+        var handler = new TestHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    """
+                    {"header":{"messageId":{"value":"HJFWNMNJWUSGAZFB"}},
+                     "statusItem":[{"taskIdentifier":{"correlationId":{"value":"JDO9GDAHOQNO9XJU7"}},
+                                    "status":"NO_DATA","severityCode":{"value":"0"}}]}
+                    """,
+                    Encoding.UTF8, "application/json")
+            });
+        var sut = CreateSut(handler);
+        var appConfig = CreateAppConfig();
+
+        var ex = await Assert.ThrowsAsync<HttpResponseException>(() =>
+            sut.GetAsync("missing-user", appConfig, "corr-nodata-01"));
+        Assert.Equal(HttpStatusCode.NotFound, ex.Response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetAsync_WhenTransactionHasNoUserNode_ThrowsHttpResponseExceptionNotFound()
     {
         var handler = new TestHttpMessageHandler(_ =>
