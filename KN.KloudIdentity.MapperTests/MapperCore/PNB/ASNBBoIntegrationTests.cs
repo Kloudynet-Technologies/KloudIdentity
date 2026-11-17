@@ -29,7 +29,20 @@ public class ASNBBoIntegrationTests
                 "branches": [
                     { "name": "ASNBJO001-PEJABAT ASNB JOHOR BAHRU JOHOR", "code": "ASNBJO001" },
                     { "name": "ASNBKD001-PEJABAT ASNB ALOR SETAR KEDAH", "code": "ASNBKD001" },
-                    { "name": "ASNBJO004 - ASNB SEGAMAT", "code": "ASNBJO004" }
+                    { "name": "ASNBJO004 - ASNB SEGAMAT", "code": "ASNBJO004" },
+                    { "name": "ASNBJO002-PEJABAT ASNB BATU PAHAT JOHOR", "code": "ASNBJO002", "ofcLocations": [ "Cawangan ASNB Batu Pahat" ] },
+                    { "name": "ASNBJO003-ASNB UNIT BERGERAK ZON SELATAN", "code": "ASNBJO003", "ofcLocations": [] },
+                    { "name": "ASNBMD001-MERDEKA 118", "code": "ASNBMD001", "ofcLocations": [ "Tingkat 85, Merdeka 118", "Tingkat 78, Merdeka 118" ] },
+                    {
+                        "name": "ASNBWI001-PEJABAT ASNB KAUNTER UTAMA KUALA LUMPUR",
+                        "code": "ASNBWI001",
+                        "ofcLocations": [
+                            "ASNB Kaunter Utama Kuala Lumpur",
+                            "ASNB Kauner Utama Kuala Lumpur",
+                            "ASNB Kaunter Utama, Kuala Lumpur",
+                            "Cawangan ASNB Kaunter Utama Kuala Lumpur"
+                        ]
+                    }
                 ]
             }
         }
@@ -342,18 +355,52 @@ public class ASNBBoIntegrationTests
         Assert.Equal("ASNBJO004", payload["branchid"]!.Value<string>());
     }
 
-    // 12 - No "ASNB" marker present at all: nothing to match, branchid falls back to "".
+    // 12 - No "ASNB" marker and nothing matches by ofcLocations or name: branchid falls back to "".
     [Fact]
-    public async Task MapAndPreparePayload_BranchUser_EmptyBranchId_WhenNoAsnbMarkerPresent()
+    public async Task MapAndPreparePayload_BranchUser_EmptyBranchId_WhenNoAsnbMarkerPresentAndNoMatch()
     {
         var sut = CreateSut();
-        var resource = MakeResource("BRANCH", "Segamat", "ROLE_PORTALADMIN_BO");
+        var resource = MakeResource("BRANCH", "Nowhereville", "ROLE_PORTALADMIN_BO");
         var appConfig = MakeAppConfig("https://testbo.myasnb.com.my/api/v1/users/manageBo");
 
         var result = await sut.MapAndPreparePayloadAsync(new List<AttributeSchema>(), resource, appConfig);
         var payload = (JObject)result;
 
         Assert.Equal(string.Empty, payload["branchid"]!.Value<string>());
+    }
+
+    // 12b - ofcLocations match (full ExtensionAttribute5, contains), no ASNB marker needed;
+    // name is not compared once an ofcLocations entry matches.
+    [Theory]
+    [InlineData("Tingkat 85, Merdeka 118", "ASNBMD001")]
+    [InlineData("Cawangan ASNB Batu Pahat", "ASNBJO002")]
+    [InlineData("ASNB Kaunter Utama, Kuala Lumpur", "ASNBWI001")]
+    [InlineData("ASNB Kauner Utama Kuala Lumpur", "ASNBWI001")]
+    [InlineData("Cawangan ASNB Kaunter Utama Kuala Lumpur", "ASNBWI001")]
+    public async Task MapAndPreparePayload_BranchUser_MatchesOfcLocations(string branchValue, string expectedCode)
+    {
+        var sut = CreateSut();
+        var resource = MakeResource("BRANCH", branchValue, "ROLE_PORTALADMIN_BO");
+        var appConfig = MakeAppConfig("https://testbo.myasnb.com.my/api/v1/users/manageBo");
+
+        var result = await sut.MapAndPreparePayloadAsync(new List<AttributeSchema>(), resource, appConfig);
+        var payload = (JObject)result;
+
+        Assert.Equal(expectedCode, payload["branchid"]!.Value<string>());
+    }
+
+    // 12c - Branch with empty ofcLocations is matched by name using the full value (no ASNB marker).
+    [Fact]
+    public async Task MapAndPreparePayload_BranchUser_FallsBackToName_WhenOfcLocationsEmpty()
+    {
+        var sut = CreateSut();
+        var resource = MakeResource("BRANCH", "Unit Bergerak Zon Selatan", "ROLE_PORTALADMIN_BO");
+        var appConfig = MakeAppConfig("https://testbo.myasnb.com.my/api/v1/users/manageBo");
+
+        var result = await sut.MapAndPreparePayloadAsync(new List<AttributeSchema>(), resource, appConfig);
+        var payload = (JObject)result;
+
+        Assert.Equal("ASNBJO003", payload["branchid"]!.Value<string>());
     }
 
     // 10 - Dispatch sanity check: CreateUserV4/ReplaceUserV4 hold the integration as IIntegrationBaseV2
