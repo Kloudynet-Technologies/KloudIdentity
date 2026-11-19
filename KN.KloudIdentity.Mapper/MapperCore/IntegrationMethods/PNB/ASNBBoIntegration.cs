@@ -257,10 +257,11 @@ public class ASNBBoIntegration : RESTIntegrationV4
 
     /// <summary>
     /// Resolves the branch code for a non-HQ user by calling the app's reference data endpoint
-    /// and matching <see cref="ExtensionAttributeKIUserBase.ExtensionAttribute5"/> (everything
-    /// from the "ASNB" marker word onward, e.g. "Cawangan ASNB Segamat" / "Branch ASNB Segamat"
-    /// both -> "ASNB Segamat") against each returned branch's <c>name</c>. Returns an empty
-    /// string (rather than throwing) when the marker/keyword is missing or no branch matches.
+    /// and matching the full <see cref="ExtensionAttributeKIUserBase.ExtensionAttribute5"/> against
+    /// each branch's <c>ofcLocations</c> (contains, either direction, case-insensitive). Only when no
+    /// <c>ofcLocations</c> entry matches does it fall back to comparing branches with empty
+    /// <c>ofcLocations</c> by <c>name</c> (full value, or the text from the "ASNB" marker onward).
+    /// Returns an empty string (rather than throwing) when no branch matches.
     /// </summary>
     private async Task<string> ResolveBranchIdAsync(
         Core2EnterpriseUser resource,
@@ -268,16 +269,13 @@ public class ASNBBoIntegration : RESTIntegrationV4
         CancellationToken cancellationToken)
     {
         var rawBranchValue = resource.KIExtension.ExtensionAttribute5?.Trim();
-        var asnbIndex = rawBranchValue?.IndexOf(AppConstant.AsnbBoAsnbMarker, StringComparison.OrdinalIgnoreCase) ?? -1;
-        var branchKeyword = asnbIndex >= 0 ? rawBranchValue![asnbIndex..].Trim() : null;
-
-        if (string.IsNullOrWhiteSpace(branchKeyword))
+        if (string.IsNullOrWhiteSpace(rawBranchValue))
         {
             Log.Warning(
-                "[ASNBBoIntegration] ExtensionAttribute5 ('{RawValue}') has no '{Marker}' marker for resource {ResourceId}; leaving branchid empty.",
-                rawBranchValue, AppConstant.AsnbBoAsnbMarker, resource.Identifier);
+                "[ASNBBoIntegration] ExtensionAttribute5 is empty for resource {ResourceId}; leaving branchid empty.",
+                resource.Identifier);
             return string.Empty;
-        }
+        }       
 
         var createEndpoint = appConfig.Actions?
             .FirstOrDefault(a => a.ActionTarget == ActionTargets.USER && a.ActionName == ActionNames.CREATE)
@@ -310,21 +308,95 @@ public class ASNBBoIntegration : RESTIntegrationV4
             throw new HttpRequestException($"Branch reference API call failed: {response.StatusCode} - {body}");
         }
 
-        var branches = JObject.Parse(body)["data"]?["branches"] as JArray ?? [];
+        var branches = (JObject.Parse(body)["data"]?["branches"] as JArray ?? []).ToList();
+        string branchValue = rawBranchValue;
 
-        var branchCode = branches
-            .FirstOrDefault(b => (b["name"]?.ToString() ?? string.Empty)
-                .Contains(branchKeyword, StringComparison.OrdinalIgnoreCase))
-            ?["code"]?.ToString();
+        // Pass 1: match the full ExtensionAttribute5 against any branch's ofcLocations.
+        // Exact (case-insensitive) matches win; a partial match is accepted only if it identifies one branch.
+        var branchCode = ResolveUniqueBranchCode(
+            branches,
+            b => GetOfcLocations(b).Any(loc => loc.Equals(branchValue, StringComparison.OrdinalIgnoreCase)),
+            b => GetOfcLocations(b).Any(loc =>
+                loc.Contains(branchValue, StringComparison.OrdinalIgnoreCase) ||
+                branchValue.Contains(loc, StringComparison.OrdinalIgnoreCase)),
+            rawBranchValue, resource.Identifier);
+
+        // Pass 2: name fallback, only for branches without ofcLocations.
+        if (string.IsNullOrWhiteSpace(branchCode))
+        {
+            var asnbIndex = rawBranchValue.IndexOf(AppConstant.AsnbBoAsnbMarker, StringComparison.OrdinalIgnoreCase);
+            var branchKeyword = asnbIndex >= 0 ? rawBranchValue[asnbIndex..].Trim() : null;
+
+            var nameCandidates = branches.Where(b => GetOfcLocations(b).Count == 0).ToList();
+
+            branchCode = ResolveUniqueBranchCode(
+                nameCandidates,
+                b =>
+                {
+                    var name = (b["name"]?.ToString() ?? string.Empty).Trim();
+                    return name.Equals(branchValue, StringComparison.OrdinalIgnoreCase) ||
+                           (branchKeyword != null && name.Equals(branchKeyword, StringComparison.OrdinalIgnoreCase));
+                },
+                b =>
+                {
+                    var name = b["name"]?.ToString() ?? string.Empty;
+                    return name.Contains(branchValue, StringComparison.OrdinalIgnoreCase) ||
+                           (branchKeyword != null && name.Contains(branchKeyword, StringComparison.OrdinalIgnoreCase));
+                },
+                rawBranchValue, resource.Identifier);
+        }
 
         if (string.IsNullOrWhiteSpace(branchCode))
         {
             Log.Warning(
-                "[ASNBBoIntegration] No branch match found for keyword '{BranchKeyword}' (resource {ResourceId}); leaving branchid empty.",
-                branchKeyword, resource.Identifier);
+                "[ASNBBoIntegration] No branch match found for ExtensionAttribute5 '{RawValue}' (resource {ResourceId}); leaving branchid empty.",
+                rawBranchValue, resource.Identifier);
             return string.Empty;
         }
 
         return branchCode;
     }
+
+    /// <summary>
+    /// Returns the branch code for a unique exact match; otherwise for a unique partial match.
+    /// Returns null when nothing matches or the match is ambiguous (never depends on response order).
+    /// </summary>
+    private static string? ResolveUniqueBranchCode(
+        IReadOnlyList<JToken> branches,
+        Func<JToken, bool> exactMatch,
+        Func<JToken, bool> partialMatch,
+        string rawValue,
+        object? resourceId)
+    {
+        foreach (var (stage, predicate) in new[] { ("exact", exactMatch), ("partial", partialMatch) })
+        {
+            var codes = branches
+                .Where(predicate)
+                .Select(b => b["code"]?.ToString())
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (codes.Count == 1)
+            {
+                return codes[0];
+            }
+
+            if (codes.Count > 1)
+            {
+                Log.Warning(
+                    "[ASNBBoIntegration] Ambiguous {Stage} branch match for ExtensionAttribute5 '{RawValue}' (resource {ResourceId}): {Codes}; leaving branchid empty.",
+                    stage, rawValue, resourceId, string.Join(", ", codes));
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    private static List<string> GetOfcLocations(JToken branch) =>
+        (branch["ofcLocations"] as JArray)?
+            .Select(l => l?.ToString().Trim() ?? string.Empty)
+            .Where(l => l.Length > 0)
+            .ToList() ?? [];
 }
