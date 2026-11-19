@@ -312,11 +312,14 @@ public class ASNBBoIntegration : RESTIntegrationV4
         string branchValue = rawBranchValue;
 
         // Pass 1: match the full ExtensionAttribute5 against any branch's ofcLocations.
-        var branchCode = branches
-            .FirstOrDefault(b => GetOfcLocations(b).Any(loc =>
+        // Exact (case-insensitive) matches win; a partial match is accepted only if it identifies one branch.
+        var branchCode = ResolveUniqueBranchCode(
+            branches,
+            b => GetOfcLocations(b).Any(loc => loc.Equals(branchValue, StringComparison.OrdinalIgnoreCase)),
+            b => GetOfcLocations(b).Any(loc =>
                 loc.Contains(branchValue, StringComparison.OrdinalIgnoreCase) ||
-                branchValue.Contains(loc, StringComparison.OrdinalIgnoreCase)))
-            ?["code"]?.ToString();
+                branchValue.Contains(loc, StringComparison.OrdinalIgnoreCase)),
+            rawBranchValue, resource.Identifier);
 
         // Pass 2: name fallback, only for branches without ofcLocations.
         if (string.IsNullOrWhiteSpace(branchCode))
@@ -324,15 +327,23 @@ public class ASNBBoIntegration : RESTIntegrationV4
             var asnbIndex = rawBranchValue.IndexOf(AppConstant.AsnbBoAsnbMarker, StringComparison.OrdinalIgnoreCase);
             var branchKeyword = asnbIndex >= 0 ? rawBranchValue[asnbIndex..].Trim() : null;
 
-            branchCode = branches
-                .Where(b => GetOfcLocations(b).Count == 0)
-                .FirstOrDefault(b =>
+            var nameCandidates = branches.Where(b => GetOfcLocations(b).Count == 0).ToList();
+
+            branchCode = ResolveUniqueBranchCode(
+                nameCandidates,
+                b =>
+                {
+                    var name = (b["name"]?.ToString() ?? string.Empty).Trim();
+                    return name.Equals(branchValue, StringComparison.OrdinalIgnoreCase) ||
+                           (branchKeyword != null && name.Equals(branchKeyword, StringComparison.OrdinalIgnoreCase));
+                },
+                b =>
                 {
                     var name = b["name"]?.ToString() ?? string.Empty;
                     return name.Contains(branchValue, StringComparison.OrdinalIgnoreCase) ||
                            (branchKeyword != null && name.Contains(branchKeyword, StringComparison.OrdinalIgnoreCase));
-                })
-                ?["code"]?.ToString();
+                },
+                rawBranchValue, resource.Identifier);
         }
 
         if (string.IsNullOrWhiteSpace(branchCode))
@@ -344,6 +355,43 @@ public class ASNBBoIntegration : RESTIntegrationV4
         }
 
         return branchCode;
+    }
+
+    /// <summary>
+    /// Returns the branch code for a unique exact match; otherwise for a unique partial match.
+    /// Returns null when nothing matches or the match is ambiguous (never depends on response order).
+    /// </summary>
+    private static string? ResolveUniqueBranchCode(
+        IReadOnlyList<JToken> branches,
+        Func<JToken, bool> exactMatch,
+        Func<JToken, bool> partialMatch,
+        string rawValue,
+        object? resourceId)
+    {
+        foreach (var (stage, predicate) in new[] { ("exact", exactMatch), ("partial", partialMatch) })
+        {
+            var codes = branches
+                .Where(predicate)
+                .Select(b => b["code"]?.ToString())
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (codes.Count == 1)
+            {
+                return codes[0];
+            }
+
+            if (codes.Count > 1)
+            {
+                Log.Warning(
+                    "[ASNBBoIntegration] Ambiguous {Stage} branch match for ExtensionAttribute5 '{RawValue}' (resource {ResourceId}): {Codes}; leaving branchid empty.",
+                    stage, rawValue, resourceId, string.Join(", ", codes));
+                return null;
+            }
+        }
+
+        return null;
     }
 
     private static List<string> GetOfcLocations(JToken branch) =>
