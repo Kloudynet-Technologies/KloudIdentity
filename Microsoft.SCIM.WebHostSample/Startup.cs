@@ -27,6 +27,7 @@ namespace Microsoft.SCIM.WebHostSample
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.IdentityModel.Tokens;
+    using Microsoft.SCIM.WebHostSample.Configuration;
     using Microsoft.SCIM.WebHostSample.Provider;
     using Newtonsoft.Json;
     using KN.KI.LogAggregator.Library.Abstractions;
@@ -82,10 +83,14 @@ namespace Microsoft.SCIM.WebHostSample
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             }
 
+            // #421: one startup snapshot of KI:Token for issuing (TokenController) and validating (below). Now that a
+            // sentinel bump reloads IConfiguration, issuing from it per request would sign with a changed key, issuer or
+            // audience that these options (built once) reject; a KI:Token change needs a restart.
+            var tokenSettings = TokenSettings.From(this.configuration);
+            services.AddSingleton(tokenSettings);
+
             void ConfigureJwtBearerOptons(JwtBearerOptions options)
             {
-                var section = this.configuration.GetSection("KI");
-
                 if (this.environment.IsDevelopment())
                 {
                     options.TokenValidationParameters =
@@ -95,16 +100,16 @@ namespace Microsoft.SCIM.WebHostSample
                             ValidateAudience = false,
                             ValidateLifetime = false,
                             ValidateIssuerSigningKey = false,
-                            ValidIssuer = section["Token:TokenIssuer"],
-                            ValidAudience = section["Token:TokenAudience"],
+                            ValidIssuer = tokenSettings.TokenIssuer,
+                            ValidAudience = tokenSettings.TokenAudience,
                             IssuerSigningKey =
-                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]))
+                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenSettings.IssuerSigningKey))
                         };
                 }
                 else
                 {
-                    options.Authority = section["Token:TokenIssuer"];
-                    options.Audience = section["Token:TokenAudience"];
+                    options.Authority = tokenSettings.TokenIssuer;
+                    options.Audience = tokenSettings.TokenAudience;
 
                     options.TokenValidationParameters =
                         new TokenValidationParameters
@@ -113,10 +118,10 @@ namespace Microsoft.SCIM.WebHostSample
                             ValidateAudience = true,
                             ValidateLifetime = false,
                             ValidateIssuerSigningKey = true,
-                            ValidIssuer = section["Token:TokenIssuer"],
-                            ValidAudience = section["Token:TokenAudience"],
+                            ValidIssuer = tokenSettings.TokenIssuer,
+                            ValidAudience = tokenSettings.TokenAudience,
                             IssuerSigningKey =
-                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]))
+                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenSettings.IssuerSigningKey))
                         };
 
                     options.Events = new JwtBearerEvents

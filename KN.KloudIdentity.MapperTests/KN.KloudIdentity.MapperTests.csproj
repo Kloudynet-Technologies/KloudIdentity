@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\KN.KloudIdentity.Mapper\KN.KloudIdentity.Mapper.csproj" />
     <ProjectReference Include="..\KN.KloudIdentity.Mapper.Domain\KN.KloudIdentity.Mapper.Domain.csproj" />
+    <ProjectReference Include="..\Microsoft.SCIM.WebHostSample\Microsoft.SCIM.WebHostSample.csproj" />
   </ItemGroup>
 
   <ItemGroup>
