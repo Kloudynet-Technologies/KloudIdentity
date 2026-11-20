@@ -129,6 +129,13 @@ namespace Microsoft.SCIM.WebHostSample
 
             services.AddOptions<AppSettings>().Bind(configuration.GetSection("KI"));
 
+            // #421: the App Configuration refresh (and the feature flags') runs only when something asks for it; the
+            // library has no timer of its own. UseAzureAppConfiguration (Configure, below) asks on every request, the
+            // health probe's included, without delaying it. Bumping KI:RefreshOption under the label reloads every KI:*
+            // value within the 5-minute cache. Only settings read through IOptionsSnapshot / IOptionsMonitor change
+            // without a restart (see CLAUDE.md).
+            services.AddAzureAppConfiguration();
+
          //   services.AddApplicationInsightsTelemetry();
 
             services.AddAuthentication(ConfigureAuthenticationOptions).AddJwtBearer(ConfigureJwtBearerOptons);
@@ -250,6 +257,8 @@ namespace Microsoft.SCIM.WebHostSample
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app)
         {
+            app.UseAzureAppConfiguration(); // #421: first, so every request (the health probe's included) can trigger the refresh
+
             if (this.environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
