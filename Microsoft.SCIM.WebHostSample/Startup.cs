@@ -27,6 +27,7 @@ namespace Microsoft.SCIM.WebHostSample
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.IdentityModel.Tokens;
+    using Microsoft.SCIM.WebHostSample.Configuration;
     using Microsoft.SCIM.WebHostSample.Provider;
     using Newtonsoft.Json;
     using KN.KI.LogAggregator.Library.Abstractions;
@@ -82,10 +83,14 @@ namespace Microsoft.SCIM.WebHostSample
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             }
 
+            // #421: one startup snapshot of KI:Token for issuing (TokenController) and validating (below). Now that a
+            // sentinel bump reloads IConfiguration, issuing from it per request would sign with a changed key, issuer or
+            // audience that these options (built once) reject; a KI:Token change needs a restart.
+            var tokenSettings = TokenSettings.From(this.configuration);
+            services.AddSingleton(tokenSettings);
+
             void ConfigureJwtBearerOptons(JwtBearerOptions options)
             {
-                var section = this.configuration.GetSection("KI");
-
                 if (this.environment.IsDevelopment())
                 {
                     options.TokenValidationParameters =
@@ -95,16 +100,16 @@ namespace Microsoft.SCIM.WebHostSample
                             ValidateAudience = false,
                             ValidateLifetime = false,
                             ValidateIssuerSigningKey = false,
-                            ValidIssuer = section["Token:TokenIssuer"],
-                            ValidAudience = section["Token:TokenAudience"],
+                            ValidIssuer = tokenSettings.TokenIssuer,
+                            ValidAudience = tokenSettings.TokenAudience,
                             IssuerSigningKey =
-                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]))
+                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenSettings.IssuerSigningKey))
                         };
                 }
                 else
                 {
-                    options.Authority = section["Token:TokenIssuer"];
-                    options.Audience = section["Token:TokenAudience"];
+                    options.Authority = tokenSettings.TokenIssuer;
+                    options.Audience = tokenSettings.TokenAudience;
 
                     options.TokenValidationParameters =
                         new TokenValidationParameters
@@ -113,10 +118,10 @@ namespace Microsoft.SCIM.WebHostSample
                             ValidateAudience = true,
                             ValidateLifetime = false,
                             ValidateIssuerSigningKey = true,
-                            ValidIssuer = section["Token:TokenIssuer"],
-                            ValidAudience = section["Token:TokenAudience"],
+                            ValidIssuer = tokenSettings.TokenIssuer,
+                            ValidAudience = tokenSettings.TokenAudience,
                             IssuerSigningKey =
-                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]))
+                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenSettings.IssuerSigningKey))
                         };
 
                     options.Events = new JwtBearerEvents
@@ -128,6 +133,13 @@ namespace Microsoft.SCIM.WebHostSample
             }
 
             services.AddOptions<AppSettings>().Bind(configuration.GetSection("KI"));
+
+            // #421: the App Configuration refresh (and the feature flags') runs only when something asks for it; the
+            // library has no timer of its own. UseAzureAppConfiguration (Configure, below) asks on every request, the
+            // health probe's included, without delaying it. Bumping KI:RefreshOption under the label reloads every KI:*
+            // value within the 5-minute cache. Only settings read through IOptionsSnapshot / IOptionsMonitor change
+            // without a restart (see CLAUDE.md).
+            services.AddAzureAppConfiguration();
 
          //   services.AddApplicationInsightsTelemetry();
 
@@ -250,6 +262,8 @@ namespace Microsoft.SCIM.WebHostSample
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app)
         {
+            app.UseAzureAppConfiguration(); // #421: first, so every request (the health probe's included) can trigger the refresh
+
             if (this.environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

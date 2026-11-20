@@ -2,7 +2,7 @@
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //------------------------------------------------------------
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
+using Microsoft.SCIM.WebHostSample.Configuration;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -16,13 +16,14 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
     [ApiController]
     public class TokenController : ControllerBase
     {
-        private readonly IConfiguration configuration;
+        // #421: the startup snapshot validation uses too (TokenSettings), never IConfiguration per request.
+        private readonly TokenSettings tokenSettings;
         private const int DefaultTokenExpirationTimeInMins = 120;
         private const string TenantIdHeaderName = "X-Tenant-Id";
 
-        public TokenController(IConfiguration configuration)
+        public TokenController(TokenSettings tokenSettings)
         {
-            this.configuration = configuration;
+            this.tokenSettings = tokenSettings;
         }
 
         public class TokenRequest
@@ -37,9 +38,7 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
 
         private string GenerateJsonWebToken(string tenantId)
         {
-            var section = configuration.GetSection("KI");
-
-            var signingKey = section["Token:IssuerSigningKey"];
+            var signingKey = tokenSettings.IssuerSigningKey;
             if (string.IsNullOrWhiteSpace(signingKey))
             {
                 throw new InvalidOperationException("IssuerSigningKey configuration value is missing or empty.");
@@ -56,13 +55,13 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
 
             var startTime = DateTime.UtcNow;
             var expiryTime = startTime.AddMinutes(
-                double.TryParse(section["Token:TokenLifetimeInMins"], out double tokenExpiration)
+                double.TryParse(tokenSettings.TokenLifetimeInMins, out double tokenExpiration)
                 ? tokenExpiration
                 : DefaultTokenExpirationTimeInMins);
 
             var token = new JwtSecurityToken(
-                section["Token:TokenIssuer"],
-                section["Token:TokenAudience"],
+                tokenSettings.TokenIssuer,
+                tokenSettings.TokenAudience,
                 claims,
                 notBefore: startTime,
                 expires: expiryTime,
@@ -130,9 +129,8 @@ namespace Microsoft.SCIM.WebHostSample.Controllers
         // Authentication helper
         private bool Authenticate(string user, string password)
         {
-            var section = configuration.GetSection("KI:Token");
-            var expectedUser = section["AuthUser"];
-            var expectedPassword = section["AuthPassword"];
+            var expectedUser = tokenSettings.AuthUser;
+            var expectedPassword = tokenSettings.AuthPassword;
 
             if (string.IsNullOrWhiteSpace(expectedUser) || string.IsNullOrWhiteSpace(expectedPassword))
                 throw new InvalidOperationException("AuthUser or AuthPassword configuration value is missing or empty.");
