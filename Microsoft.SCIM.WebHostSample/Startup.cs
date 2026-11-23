@@ -27,7 +27,6 @@ namespace Microsoft.SCIM.WebHostSample
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.IdentityModel.Tokens;
-    using Microsoft.SCIM.WebHostSample.Configuration;
     using Microsoft.SCIM.WebHostSample.Provider;
     using Newtonsoft.Json;
     using KN.KI.LogAggregator.Library.Abstractions;
@@ -83,14 +82,10 @@ namespace Microsoft.SCIM.WebHostSample
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             }
 
-            // #421: one startup snapshot of KI:Token for issuing (TokenController) and validating (below). Now that a
-            // sentinel bump reloads IConfiguration, issuing from it per request would sign with a changed key, issuer or
-            // audience that these options (built once) reject; a KI:Token change needs a restart.
-            var tokenSettings = TokenSettings.From(this.configuration);
-            services.AddSingleton(tokenSettings);
-
             void ConfigureJwtBearerOptons(JwtBearerOptions options)
             {
+                var section = this.configuration.GetSection("KI");
+
                 if (this.environment.IsDevelopment())
                 {
                     options.TokenValidationParameters =
@@ -100,16 +95,16 @@ namespace Microsoft.SCIM.WebHostSample
                             ValidateAudience = false,
                             ValidateLifetime = false,
                             ValidateIssuerSigningKey = false,
-                            ValidIssuer = tokenSettings.TokenIssuer,
-                            ValidAudience = tokenSettings.TokenAudience,
+                            ValidIssuer = section["Token:TokenIssuer"],
+                            ValidAudience = section["Token:TokenAudience"],
                             IssuerSigningKey =
-                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenSettings.IssuerSigningKey))
+                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]))
                         };
                 }
                 else
                 {
-                    options.Authority = tokenSettings.TokenIssuer;
-                    options.Audience = tokenSettings.TokenAudience;
+                    options.Authority = section["Token:TokenIssuer"];
+                    options.Audience = section["Token:TokenAudience"];
 
                     options.TokenValidationParameters =
                         new TokenValidationParameters
@@ -118,10 +113,10 @@ namespace Microsoft.SCIM.WebHostSample
                             ValidateAudience = true,
                             ValidateLifetime = false,
                             ValidateIssuerSigningKey = true,
-                            ValidIssuer = tokenSettings.TokenIssuer,
-                            ValidAudience = tokenSettings.TokenAudience,
+                            ValidIssuer = section["Token:TokenIssuer"],
+                            ValidAudience = section["Token:TokenAudience"],
                             IssuerSigningKey =
-                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenSettings.IssuerSigningKey))
+                                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(section["Token:IssuerSigningKey"]))
                         };
 
                     options.Events = new JwtBearerEvents
@@ -144,6 +139,13 @@ namespace Microsoft.SCIM.WebHostSample
          //   services.AddApplicationInsightsTelemetry();
 
             services.AddAuthentication(ConfigureAuthenticationOptions).AddJwtBearer(ConfigureJwtBearerOptons);
+            // #421: TokenController reads KI:Token (signing key, issuer, audience) on every request, and a sentinel bump
+            // now reloads it. The JWT bearer options are built once and cached, so without this they would keep the old
+            // values and reject every token issued after the change. This source drops the cached options on every
+            // configuration reload, so ConfigureJwtBearerOptons runs again: issuing and validation switch together, with no
+            // restart (tokens signed with the old key stop working at that moment, as after a restart).
+            services.AddSingleton<IOptionsChangeTokenSource<JwtBearerOptions>>(
+                new ConfigurationChangeTokenSource<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, configuration));
             services.AddControllers().AddNewtonsoftJson(ConfigureMvcNewtonsoftJsonOptions);
 
             services.AddCors(options =>
