@@ -47,8 +47,12 @@ namespace Microsoft.SCIM.WebHostSample
                             .ConfigureKeyVault(kv => { kv.SetCredential(credential); })
                             .ConfigureRefresh(refresh =>
                             {
-                                refresh.Register("KI:RefreshOption", refreshAll: true)
-                                    .SetCacheExpiration(TimeSpan.FromSeconds(5));
+                                // #421: under the label the keys are selected with. Register(key, refreshAll) alone
+                                // watches the unlabelled key, which the store does not have, so a bump of the labelled
+                                // sentinel never reloaded. 5 minutes like the other services: with the request middleware
+                                // now triggering it, 5 seconds would contact the store up to every 5 seconds.
+                                refresh.Register("KI:RefreshOption", appConfigLabel, refreshAll: true)
+                                    .SetCacheExpiration(TimeSpan.FromMinutes(5));
                             })
                             .UseFeatureFlags();
                     });
