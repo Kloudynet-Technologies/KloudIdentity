@@ -514,40 +514,53 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
     {
         var idField = GetFieldMapperValue(actionStep, appConfig.AppId, "Identifier", _configuration["urnPrefix"]!);
 
-        // The mapped Identifier field, when there is one and the response carries it.
+        // A mapped Identifier is explicit configuration: use it, or fail. Guessing another field here would
+        // store a wrong id (a transaction id, a nested organization.id...) that every later PATCH/DELETE targets.
         if (!string.IsNullOrEmpty(idField))
         {
             var idFieldPath = response.SelectToken(idField);
-            if (idFieldPath != null)
+            if (idFieldPath != null && idFieldPath.Type != JTokenType.Null)
                 return idFieldPath.ToString();
 
-            Log.Warning(
-                "Identifier field '{Field}' not found in the response payload; searching for a known id key. AppId: {AppId}, CorrelationID: {CorrelationID}",
+            Log.Error(
+                "Identifier field '{Field}' is mapped but not found in the payload. AppId: {AppId}, CorrelationID: {CorrelationID}",
                 idField, appConfig.AppId, correlationId);
+            throw new InvalidOperationException($"Identifier field '{idField}' not found in the response payload.");
         }
 
-        // Try to find a property like "id", "identifier", "key", etc.
+        // No Identifier mapping: look for a well-known id key, top level first so a nested
+        // role.id / organization.id never wins over the record's own id.
         var possibleKeys = new[] { "login", "id", "identifier", "key", "userKey", "user_id", "userId" };
-        foreach (var key in possibleKeys)
-        {
-            // Try to find the key at any depth in the payload (recursive search)
-            var token = response.SelectToken($"$..{key}", false);
-            if (token != null)
-            {
-                Log.Warning(
-                    "Identifier field not mapped, but found '{Key}' in payload. AppId: {AppId}, CorrelationID: {CorrelationID}",
-                    key, appConfig.AppId, correlationId);
+        var found = FindIdKey(possibleKeys, key => response.TryGetValue(key, out var t) ? new[] { t } : Array.Empty<JToken>())
+                    // Then at any depth (e.g. {"data":[{"userKey":...}]}). SelectTokens, not SelectToken,
+                    // which throws when the key occurs more than once.
+                    ?? FindIdKey(possibleKeys, key => response.SelectTokens($"$..{key}"));
 
-                return token.ToString();
-            }
+        if (found is { } hit)
+        {
+            Log.Warning(
+                "Identifier field not mapped; using '{Key}' from the payload. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                hit.Key, appConfig.AppId, correlationId);
+            return hit.Value;
         }
 
         Log.Error(
-            "Identifier field not configured and no fallback found in payload. AppId: {AppId}, CorrelationID: {CorrelationID}",
+            "Identifier field not mapped and no known id key found in the payload. AppId: {AppId}, CorrelationID: {CorrelationID}",
             appConfig.AppId, correlationId);
-        throw new InvalidOperationException(string.IsNullOrEmpty(idField)
-            ? "Identifier field not configured and no fallback found in payload."
-            : "Identifier field not found in the response payload.");
+        throw new InvalidOperationException("Identifier field not configured and no fallback found in payload.");
+    }
+
+    /// <summary>First key (in priority order) with a scalar, non-null value among the tokens <paramref name="lookup"/> yields.</summary>
+    private static (string Key, string Value)? FindIdKey(IEnumerable<string> keys, Func<string, IEnumerable<JToken>> lookup)
+    {
+        foreach (var key in keys)
+        {
+            var token = lookup(key).FirstOrDefault(t => t is JValue v && v.Type != JTokenType.Null);
+            if (token != null)
+                return (key, token.ToString());
+        }
+
+        return null;
     }
 
     protected async Task CreateLogAsync(string appId, string eventInfo, string logMessage, LogType logType,

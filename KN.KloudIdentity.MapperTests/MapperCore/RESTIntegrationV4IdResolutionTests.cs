@@ -15,8 +15,10 @@ namespace KN.KloudIdentity.MapperTests.MapperCore;
 
 /// <summary>
 /// How <see cref="RESTIntegrationV4"/> decides the SCIM identifier after a create call:
-///   1. the field named by the "Identifier" mapping row (any request type - the action step carries the verb),
-///   2. otherwise a well-known id key anywhere in the response (login, id, identifier, key, userKey, user_id, userId),
+///   1. the field named by the "Identifier" mapping row (any request type - the action step carries the verb);
+///      if that field is missing the create fails - a mapping is never second-guessed,
+///   2. with no Identifier row, a well-known id key (login, id, identifier, key, userKey, user_id, userId),
+///      top level first, then at any depth,
 ///   3. otherwise the create fails.
 /// The cases below model real applications: some map the id, some only return it, some return none.
 /// </summary>
@@ -145,11 +147,23 @@ public class RESTIntegrationV4IdResolutionTests
     }
 
     [Fact]
-    public async Task Mapped_ButFieldMissingFromReply_FallsBackToIdLikeKey()
+    public async Task Mapped_ButFieldMissingFromReply_Throws_EvenWhenAnIdLikeKeyExists()
+    {
+        // A wrong mapping must fail loudly, not store some other id (here a transaction id) as the user's.
+        var step = CreateStep(Row("data.userId", "Identifier"));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => ResolveIdAsync("""{"id":"txn-1","data":{"user_id":"u-9"}}""", step));
+        Assert.Contains("'data.userId' not found in the response", ex.Message);
+    }
+
+    [Fact]
+    public async Task Mapped_FieldIsNullInReply_Throws()
     {
         var step = CreateStep(Row("email", "Identifier"));
 
-        Assert.Equal("acc-42", await ResolveIdAsync("""{"name":"Jane","id":"acc-42"}""", step));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => ResolveIdAsync("""{"email":null,"id":"acc-42"}""", step));
     }
 
     [Fact]
@@ -196,6 +210,23 @@ public class RESTIntegrationV4IdResolutionTests
         var step = CreateStep(Row("userName", "UserName"));
 
         Assert.Equal("octocat", await ResolveIdAsync("""{"id":1,"login":"octocat"}""", step));
+    }
+
+    [Fact]
+    public async Task ResponseOnly_TopLevelId_WinsOverNestedIds()
+    {
+        var step = CreateStep(Row("userName", "UserName"));
+
+        Assert.Equal("u-1", await ResolveIdAsync("""{"organization":{"id":"org-5"},"id":"u-1"}""", step));
+    }
+
+    [Fact]
+    public async Task ResponseOnly_KeyOccursSeveralTimes_DoesNotThrow()
+    {
+        var step = CreateStep(Row("userName", "UserName"));
+
+        Assert.Equal("1", await ResolveIdAsync("""{"id":"1","roles":[{"id":"r"}]}""", step));
+        Assert.Equal("a", await ResolveIdAsync("""{"items":[{"id":"a"},{"id":"b"}]}""", step));
     }
 
     [Fact]

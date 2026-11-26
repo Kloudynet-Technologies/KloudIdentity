@@ -184,15 +184,15 @@ public class RESTIntegrationV4ProvisionTests
         Assert.Equal("jane@x.com", result!.Identifier);
     }
 
-    // If the mapped field is not in the reply, the old id-key search still applies.
+    // A mapped Identifier missing from the reply fails the create; an id-like key is not used in its place,
+    // or a wrong id would be stored and targeted by every later PATCH/DELETE.
     [Fact]
-    public async Task ProvisionAsync_FallsBackToIdLikeKey_WhenMappedIdentifierFieldIsMissing()
+    public async Task ProvisionAsync_Throws_WhenMappedIdentifierFieldIsMissing_EvenIfReplyHasAnId()
     {
         var sut = CreateSut("""{"name":"Jane Doe","id":"acc-42"}""");
         var step = FlagrightCreateStep(requestType: HttpRequestTypes.NotDefined);
 
-        var result = await sut.ProvisionAsync(new JObject(), AppId, MakeAppConfig(), step, "corr-1");
-
-        Assert.Equal("acc-42", result!.Identifier);
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => sut.ProvisionAsync(new JObject(), AppId, MakeAppConfig(), step, "corr-1"));
     }
 }
