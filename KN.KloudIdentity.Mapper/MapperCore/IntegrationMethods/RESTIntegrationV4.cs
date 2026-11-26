@@ -241,7 +241,7 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         }
 
         string formattedEndpoint = actionStep.EndPoint.Contains('{')
-                    ? GenerateFormattedEndpoint(GetIDValue(jPayload, actionStep, appConfig, correlationId, HttpRequestTypes.POST), actionStep)
+                    ? GenerateFormattedEndpoint(GetIDValue(jPayload, actionStep, appConfig, correlationId), actionStep)
                     : actionStep.EndPoint;
 
         using var request = new HttpRequestMessage(httpMethod, formattedEndpoint)
@@ -263,13 +263,8 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             throw new HttpRequestException($"Error creating user: {response.StatusCode} - {responseBody}");
         }
 
-        var requestType = httpMethod == HttpMethod.Post ? HttpRequestTypes.POST
-            : httpMethod == HttpMethod.Put ? HttpRequestTypes.PUT
-            : httpMethod == HttpMethod.Patch ? HttpRequestTypes.PATCH
-            : HttpRequestTypes.POST;
-
         var responseJson = JObject.Parse(responseBody);
-        var idVal = GetIDValue(responseJson, actionStep, appConfig, correlationId, requestType);
+        var idVal = GetIDValue(responseJson, actionStep, appConfig, correlationId);
 
         // Fire-and-forget success logging
         _ = Task.Run(async () =>
@@ -387,14 +382,37 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         ArgumentNullException.ThrowIfNull(actionStep);
         ArgumentException.ThrowIfNullOrWhiteSpace((actionStep.EndPoint));
         
-        if(actionStep.HttpVerb != HttpVerbs.DELETE)
-            throw new NotSupportedException($"Right now action step with StepOrder {actionStep.StepOrder}, HttpVerb {actionStep.HttpVerb}, EndPoint '{actionStep.EndPoint}' is not supported for delete operation. Expected HttpVerb: DELETE.");
-        
         var endpoint = GenerateFormattedEndpoint(identifier, actionStep);
         var client = await CreateHttpClientAsync(appConfig, SCIMDirections.Outbound, cancellationToken);
-        var response = await client.DeleteAsync(endpoint, cancellationToken);
+
+        HttpResponseMessage response;
+        if (actionStep.HttpVerb == HttpVerbs.DELETE)
+        {
+            response = await client.DeleteAsync(endpoint, cancellationToken);
+        }
+        else
+        {
+            // Soft-delete style APIs (e.g. a status-change endpoint): send the step's configured
+            // body using POST/PUT/PATCH. Use Constant mappings, as no user data is available on delete.
+            HttpMethod httpMethod = actionStep.HttpVerb switch
+            {
+                HttpVerbs.POST => HttpMethod.Post,
+                HttpVerbs.PUT => HttpMethod.Put,
+                HttpVerbs.PATCH => HttpMethod.Patch,
+                _ => throw new NotSupportedException($"Action step with StepOrder {actionStep.StepOrder}, HttpVerb {actionStep.HttpVerb}, EndPoint '{actionStep.EndPoint}' is not supported for delete operation. Expected DELETE, POST, PUT or PATCH.")
+            };
+
+            var attributes = actionStep.UserAttributeSchemas?.ToList() ?? [];
+            dynamic payload = await MapAndPreparePayloadAsync(attributes, new Core2EnterpriseUser { Identifier = identifier }, appConfig, cancellationToken);
+            var customConfig = _appSettings.Value.AppIntegrationConfigs?.FirstOrDefault(x => x.AppId == appId);
+            var content = PrepareHttpContent(payload as JObject ?? JObject.FromObject(payload), customConfig?.HttpSettings?.ContentType);
+
+            using var request = new HttpRequestMessage(httpMethod, endpoint) { Content = content };
+            response = await client.SendAsync(request, cancellationToken);
+        }
+
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
-        
+
         if (!response.IsSuccessStatusCode)
         {
             Log.Error(
@@ -463,7 +481,11 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         return new StringContent(payload.ToString(Formatting.None), Encoding.UTF8, "application/json");
     }
 
-    protected virtual string? GetFieldMapperValue(ActionStep actionStep, string appId, string fieldName, string urnPrefix, HttpRequestTypes? requestType = HttpRequestTypes.POST)
+    /// <summary>
+    /// Returns the destination field (urn prefix removed) of the mapping row whose source is <paramref name="fieldName"/>.
+    /// In a multistep app the HTTP verb belongs to the action step, so rows are matched by source name only.
+    /// </summary>
+    protected virtual string? GetFieldMapperValue(ActionStep actionStep, string appId, string fieldName, string urnPrefix)
     {
         if (actionStep == null || actionStep.UserAttributeSchemas == null)
         {
@@ -471,12 +493,10 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             return null;
         }
 
-        var field = actionStep.UserAttributeSchemas.FirstOrDefault(f => f.SourceValue == fieldName &&
-                                                                        f.HttpRequestType == requestType);
+        var field = actionStep.UserAttributeSchemas.FirstOrDefault(f => f.SourceValue == fieldName);
         field ??= actionStep.UserAttributeSchemas
             .SelectMany(s => s.ChildSchemas ?? Array.Empty<AttributeSchema>())
-            .FirstOrDefault(f => f.SourceValue == fieldName &&
-                                 f.HttpRequestType == requestType);
+            .FirstOrDefault(f => f.SourceValue == fieldName);
         if (field != null)
         {
             return field.DestinationField.Remove(0, urnPrefix.Length);
@@ -490,46 +510,46 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         }
     }
 
-    protected virtual dynamic GetIDValue(JObject response, ActionStep actionStep, AppConfig appConfig, string correlationId, HttpRequestTypes? requestType = HttpRequestTypes.POST)
+    protected virtual dynamic GetIDValue(JObject response, ActionStep actionStep, AppConfig appConfig, string correlationId)
     {
-        var idField = GetFieldMapperValue(actionStep, appConfig.AppId, "Identifier", _configuration["urnPrefix"]!, requestType);
-        if (string.IsNullOrEmpty(idField))
+        var idField = GetFieldMapperValue(actionStep, appConfig.AppId, "Identifier", _configuration["urnPrefix"]!);
+
+        // The mapped Identifier field, when there is one and the response carries it.
+        if (!string.IsNullOrEmpty(idField))
         {
-            // Try to find a property like "id", "identifier", "key", etc.
-            var possibleKeys = new[] { "login", "id", "identifier", "key", "userKey", "user_id", "userId"};
-            foreach (var key in possibleKeys)
+            var idFieldPath = response.SelectToken(idField);
+            if (idFieldPath != null)
+                return idFieldPath.ToString();
+
+            Log.Warning(
+                "Identifier field '{Field}' not found in the response payload; searching for a known id key. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                idField, appConfig.AppId, correlationId);
+        }
+
+        // Try to find a property like "id", "identifier", "key", etc.
+        var possibleKeys = new[] { "login", "id", "identifier", "key", "userKey", "user_id", "userId" };
+        foreach (var key in possibleKeys)
+        {
+            // Try to find the key at any depth in the payload (recursive search)
+            var token = response.SelectToken($"$..{key}", false);
+            if (token != null)
             {
-                // Try to find the key at any depth in the payload (recursive search)
-                var token = response.SelectToken($"$..{key}", false);
-                if (token != null)
-                {
-                    Log.Warning(
-                        "Identifier field not mapped, but found '{Key}' in payload. AppId: {AppId}, CorrelationID: {CorrelationID}",
-                        key, appConfig.AppId, correlationId);
+                Log.Warning(
+                    "Identifier field not mapped, but found '{Key}' in payload. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                    key, appConfig.AppId, correlationId);
 
-                    return token.ToString();
-                }
+                return token.ToString();
             }
-
-            Log.Error(
-                "Identifier field not configured and no fallback found in payload. AppId: {AppId}, CorrelationID: {CorrelationID}",
-                appConfig.AppId, correlationId);
-            throw new InvalidOperationException("Identifier field not configured and no fallback found in payload.");
         }
 
-        var idFieldPath = response.SelectToken(idField);
-        if (idFieldPath == null)
-        {
-            Log.Error(
-                "Identifier field not found in the response payload. AppId: {AppId}, CorrelationID: {CorrelationID}, Field: {Field}",
-                appConfig.AppId, correlationId, idField);
-            throw new InvalidOperationException("Identifier field not found in the response payload.");
-        }
-
-        var idVal = idFieldPath.ToString();
-        return idVal;
+        Log.Error(
+            "Identifier field not configured and no fallback found in payload. AppId: {AppId}, CorrelationID: {CorrelationID}",
+            appConfig.AppId, correlationId);
+        throw new InvalidOperationException(string.IsNullOrEmpty(idField)
+            ? "Identifier field not configured and no fallback found in payload."
+            : "Identifier field not found in the response payload.");
     }
-    
+
     protected async Task CreateLogAsync(string appId, string eventInfo, string logMessage, LogType logType,
         LogSeverities logSeverity, string correlationId)
     {
