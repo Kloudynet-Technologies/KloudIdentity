@@ -240,8 +240,9 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             throw new ArgumentException("ActionStep endpoint must be provided for PROVISION operation.");
         }
 
+        // Read the id only when the endpoint has a {0} placeholder: GetIDValue throws when it finds none.
         string formattedEndpoint = actionStep.EndPoint.Contains('{')
-                    ? GenerateFormattedEndpoint(GetIDValue(jPayload, actionStep, appConfig, correlationId), actionStep)
+                    ? string.Format(actionStep.EndPoint, (string)GetIDValue(jPayload, actionStep, appConfig, correlationId))
                     : actionStep.EndPoint;
 
         using var request = new HttpRequestMessage(httpMethod, formattedEndpoint)

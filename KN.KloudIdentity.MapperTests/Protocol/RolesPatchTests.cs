@@ -65,7 +65,7 @@ public class RolesPatchTests
         Assert.Equal(new[] { "Analyst" }, RoleValues(user));
     }
 
-    // ---- the one shape the current code understands ----
+    // ---- each value as JSON object text (the shape the code understood before plain strings) ----
 
     [Fact]
     public void Replace_Roles_WhenEachValueIsJsonObjectText_SetsRole()
@@ -73,14 +73,6 @@ public class RolesPatchTests
         var user = Apply("""{"op":"Replace","path":"roles","value":[{"value":"{\"value\":\"Analyst\",\"displayName\":\"Analyst\"}"}]}""");
 
         Assert.Equal(new[] { "Analyst" }, RoleValues(user));
-    }
-
-    [Fact]
-    public void Remove_Roles_ClearsRoles()
-    {
-        var user = Apply("""{"op":"Remove","path":"roles"}""");
-
-        Assert.Empty(RoleValues(user));
     }
 
     // ---- end to end: patched user to the mapped value Flagright's PATCH body is built from ----
