@@ -184,6 +184,78 @@ public class RESTIntegrationV4ProvisionTests
         Assert.Equal("jane@x.com", result!.Identifier);
     }
 
+    // ---------- multistep create: only the first step's reply carries the id ----------
+
+    private static (AppConfig Config, ActionStep Step1, ActionStep Step2) TwoStepCreate()
+    {
+        var step1 = FlagrightCreateStep(requestType: HttpRequestTypes.NotDefined);
+        var step2 = new ActionStep
+        {
+            StepOrder = 2, HttpVerb = HttpVerbs.POST, EndPoint = Endpoint + "/{0}/role",
+            UserAttributeSchemas = new List<AttributeSchema>
+            {
+                Row("email", "Identifier", HttpRequestTypes.NotDefined),
+                Row("role", "KIExtension:ExtensionAttribute1", HttpRequestTypes.NotDefined)
+            }
+        };
+        var config = MakeAppConfig();
+        config.Actions = new List<KN.KloudIdentity.Mapper.Domain.Application.Action>
+        {
+            new() { AppId = AppId, ActionName = ActionNames.CREATE, ActionTarget = ActionTargets.USER, ActionSteps = new List<ActionStep> { step2, step1 } }
+        };
+        return (config, step1, step2);
+    }
+
+    [Fact]
+    public async Task ProvisionAsync_FirstCreateStep_ReadsIdFromReply()
+    {
+        var (config, step1, _) = TwoStepCreate();
+        var sut = CreateSut(FlagrightResponse);
+
+        var result = await sut.ProvisionAsync(new JObject(), AppId, config, step1, "corr-1");
+
+        Assert.Equal("jane@x.com", result!.Identifier);
+    }
+
+    [Theory]
+    [InlineData("""{"ok":true}""")] // reply without the id field
+    [InlineData("{}")]
+    [InlineData("")]                // 204-style empty body
+    public async Task ProvisionAsync_LaterCreateStep_ReturnsNull_SoTheFirstStepIdIsKept(string reply)
+    {
+        var (config, _, step2) = TwoStepCreate();
+        string? url = null;
+        var sut = CreateSut(reply, (r, _) => url = r.RequestUri!.ToString());
+
+        var result = await sut.ProvisionAsync(JObject.Parse("""{"email":"jane@x.com","role":"Admin"}"""), AppId, config, step2, "corr-1");
+
+        Assert.Null(result);
+        Assert.Equal(Endpoint + "/jane@x.com/role", url); // {0} still filled from the step's payload
+    }
+
+    [Fact]
+    public async Task ProvisionAsync_FirstCreateStep_EmptyReply_ThrowsClearError()
+    {
+        var (config, step1, _) = TwoStepCreate();
+        var sut = CreateSut("");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => sut.ProvisionAsync(new JObject(), AppId, config, step1, "corr-1"));
+        Assert.Contains("response is empty", ex.Message);
+    }
+
+    [Fact]
+    public async Task ProvisionAsync_StepNotInConfigActions_BehavesAsSingleStep()
+    {
+        // App config without Actions (as in the other tests): the step is treated as the first one.
+        var sut = CreateSut(FlagrightResponse);
+        var lone = FlagrightCreateStep(requestType: HttpRequestTypes.NotDefined);
+
+        var result = await sut.ProvisionAsync(new JObject(), AppId, MakeAppConfig(), lone, "corr-1");
+
+        Assert.Equal("jane@x.com", result!.Identifier);
+    }
+
     // A mapped Identifier missing from the reply fails the create; an id-like key is not used in its place,
     // or a wrong id would be stored and targeted by every later PATCH/DELETE.
     [Fact]

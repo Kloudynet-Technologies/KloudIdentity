@@ -263,6 +263,25 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
             throw new HttpRequestException($"Error creating user: {response.StatusCode} - {responseBody}");
         }
 
+        // Only the first step of the CREATE action creates the account, so only its reply carries the id.
+        // A later step (e.g. POST /accounts/{0}/role) may reply {} or 204: return null so the caller keeps
+        // the id it already has (CreateUserV4 only overwrites resource.Identifier on a non-null result).
+        if (!IsFirstCreateStep(appConfig, actionStep))
+        {
+            Log.Information(
+                "Create step {StepOrder} succeeded; keeping the identifier from the first step. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                actionStep.StepOrder, appConfig.AppId, correlationId);
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(responseBody))
+        {
+            Log.Error(
+                "Create step {StepOrder} returned an empty body; the identifier cannot be read. AppId: {AppId}, CorrelationID: {CorrelationID}",
+                actionStep.StepOrder, appConfig.AppId, correlationId);
+            throw new InvalidOperationException("The create response is empty; the identifier cannot be read from it.");
+        }
+
         var responseJson = JObject.Parse(responseBody);
         var idVal = GetIDValue(responseJson, actionStep, appConfig, correlationId);
 
@@ -294,6 +313,23 @@ public class RESTIntegrationV4 : IIntegrationBaseV2
         {
             Identifier = idVal
         };
+    }
+
+    /// <summary>
+    /// True when <paramref name="actionStep"/> is the lowest-ordered step of the user CREATE action
+    /// (or when it cannot be located there, which keeps the single-step behaviour).
+    /// </summary>
+    protected static bool IsFirstCreateStep(AppConfig appConfig, ActionStep actionStep)
+    {
+        var createSteps = appConfig.Actions?
+            .Where(a => a is { ActionTarget: ActionTargets.USER, ActionName: ActionNames.CREATE })
+            .SelectMany(a => a.ActionSteps ?? [])
+            .ToList();
+
+        if (createSteps == null || !createSteps.Any(s => ReferenceEquals(s, actionStep) || (s.Id != 0 && s.Id == actionStep.Id)))
+            return true;
+
+        return actionStep.StepOrder == createSteps.Min(s => s.StepOrder);
     }
 
     [Obsolete("Use ProvisionAsync with ActionStep parameter instead.")]
