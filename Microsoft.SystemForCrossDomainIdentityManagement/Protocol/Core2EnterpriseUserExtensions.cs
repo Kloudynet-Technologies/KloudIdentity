@@ -1073,23 +1073,30 @@ namespace Microsoft.SCIM
                             return null;
                         }
 
-                        try
+                        // A value that is JSON object text carries the role's fields
+                        if (v.Value.TrimStart().StartsWith('{'))
                         {
-                            var j = JObject.Parse(v.Value);
-                            // Map fields manually
-                            return new Role
+                            try
                             {
-                                Value = (string)j["value"],
-                                Display = (string)j["displayName"] // manual mapping here
-                            };
+                                var j = JObject.Parse(v.Value);
+                                return new Role
+                                {
+                                    Value = (string)j["value"],
+                                    Display = (string)j["displayName"]
+                                };
+                            }
+                            catch (JsonException)
+                            {
+                                return null;
+                            }
                         }
-                        catch (JsonException)
-                        {
-                            // Optionally log the error or handle as needed
-                            return null;
-                        }
+
+                        // Otherwise the text is the role itself: Entra's roles[primary eq "True"].value
+                        // sends a plain string, and [{"value":"Analyst"}] arrives here as "Analyst".
+                        return new Role { Value = v.Value, Primary = true };
                     })
-                    .Where(role => role != null);
+                    .Where(role => role != null)
+                    .ToArray();
 
                 user.Roles = roles;
             }
